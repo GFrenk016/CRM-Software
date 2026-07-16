@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% set section = "clienti" %}
+{% block title %}{{ 'Modifica' if c else 'Nuovo' }} cliente{% endblock %}
+{% block page_title %}{{ 'Modifica cliente' if c else 'Nuovo cliente' }}{% endblock %}
+
+{% block content %}
+<form class="form-card" method="post">
+  <div class="form-row">
+    <div class="form-group"><label>Nome *</label><input class="form-input" name="nome" value="{{ c.nome if c else '' }}" required></div>
+    <div class="form-group"><label>Cognome *</label><input class="form-input" name="cognome" value="{{ c.cognome if c else '' }}" required></div>
+  </div>
+  <div class="form-row-3">
+    <div class="form-group"><label>Indirizzo</label><input class="form-input" name="indirizzo" value="{{ c.indirizzo or '' if c else '' }}"></div>
+    <div class="form-group"><label>Città</label><input class="form-input" name="citta" value="{{ c.citta or '' if c else '' }}"></div>
+    <div class="form-group"><label>CAP</label><input class="form-input" name="cap" value="{{ c.cap or '' if c else '' }}"></div>
+  </div>
+  <div class="form-row-3">
+    <div class="form-group"><label>Provincia</label><input class="form-input" name="provincia" maxlength="2" value="{{ c.provincia or '' if c else '' }}"></div>
+    <div class="form-group"><label>Email</label><input class="form-input" type="email" name="email" value="{{ c.email or '' if c else '' }}"></div>
+    <div class="form-group"><label>Professione</label><input class="form-input" name="professione" value="{{ c.professione or '' if c else '' }}"></div>
+  </div>
+  <div class="form-row">
+    <div class="form-group"><label>Cellulare</label><input class="form-input" name="cellulare" value="{{ c.cellulare or '' if c else '' }}"></div>
+    <div class="form-group"><label>Telefono</label><input class="form-input" name="telefono" value="{{ c.telefono or '' if c else '' }}"></div>
+  </div>
+  <div class="form-row-3">
+    <div class="form-group"><label>Codice fiscale</label><input class="form-input" name="codice_fiscale" value="{{ c.codice_fiscale or '' if c else '' }}"></div>
+    <div class="form-group"><label>Data nascita</label><input class="form-input" type="date" name="data_nascita" value="{{ c.data_nascita.isoformat() if c and c.data_nascita else '' }}"></div>
+    <div class="form-group"><label>Figli</label><input class="form-input" type="number" min="0" name="num_figli" value="{{ c.num_figli or 0 if c else 0 }}"></div>
+  </div>
+  <div class="form-row-3">
+    <div class="form-group"><label>Tipo documento</label>
+      <select class="form-input" name="tipo_documento">
+        {% set td = c.tipo_documento if c else '' %}
+        <option value="">—</option>
+        {% for t in ['Carta identità','Patente','Passaporto'] %}
+        <option value="{{ t }}" {{ 'selected' if td == t }}>{{ t }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="form-group"><label>N. documento</label><input class="form-input" name="numero_documento" value="{{ c.numero_documento or '' if c else '' }}"></div>
+    <div class="form-group"><label>Stato civile</label>
+      <select class="form-input" name="stato_civile">
+        {% set sc = c.stato_civile if c else '' %}
+        <option value="">—</option>
+        {% for s in ['celibe/nubile','coniugato','convivente','divorziato','vedovo'] %}
+        <option value="{{ s }}" {{ 'selected' if sc == s }}>{{ s }}</option>{% endfor %}
+      </select>
+    </div>
+  </div>
+  <div class="form-group checkbox-row">
+    <input type="checkbox" name="convivenza" id="conv" {{ 'checked' if c and c.convivenza }}>
+    <label for="conv" style="text-transform:none">Convivenza</label>
+  </div>
+  <div class="form-group"><label>Note</label><textarea class="form-input" name="note">{{ c.note or '' if c else '' }}</textarea></div>
+  <div class="form-actions">
+    <a class="btn btn-secondary" href="{{ url_for('clienti.index') }}">Annulla</a>
+    <button class="btn btn-primary" type="submit">Salva</button>
+  </div>
+</form>
+{% endblock %}

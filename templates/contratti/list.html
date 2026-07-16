@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% set section = "contratti" %}
+{% block title %}Contratti{% endblock %}
+{% block page_title %}Contratti attivi{% endblock %}
+{% block actions %}
+  <a class="btn btn-primary btn-sm" href="{{ url_for('contratti.form') }}"><svg class="icon icon-sm"><use href="#i-plus"/></svg> Nuovo contratto</a>
+{% endblock %}
+
+{% block content %}
+<div class="table-wrapper">
+  <div class="table-toolbar">
+    <form method="get" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <select class="form-input" name="compagnia" onchange="this.form.submit()" style="width:auto">
+        <option value="">Tutte le compagnie</option>
+        {% for co in compagnie %}<option value="{{ co.id }}" {{ 'selected' if compagnia_sel == co.id|string }}>{{ co.nome }}</option>{% endfor %}
+      </select>
+      <select class="form-input" name="stato" onchange="this.form.submit()" style="width:auto">
+        <option value="">Tutti gli stati</option>
+        {% for s in stati %}<option value="{{ s }}" {{ 'selected' if stato_sel == s }}>{{ s }}</option>{% endfor %}
+      </select>
+    </form>
+    <span class="muted" style="margin-left:auto">{{ contratti|length }} contratti</span>
+  </div>
+  <div class="table-scroll">
+    <table>
+      <thead><tr>
+        <th>Polizza</th><th>Cliente</th><th>Ramo</th><th>Compagnia</th>
+        <th class="text-right">Premio</th><th>Scadenza</th><th class="text-center">Stato</th><th></th>
+      </tr></thead>
+      <tbody>
+        {% for k in contratti %}
+        <tr>
+          <td class="mono font-bold"><a href="{{ url_for('contratti.detail', contratto_id=k.id) }}">{{ k.numero_polizza }}</a></td>
+          <td><a href="{{ url_for('clienti.detail', cliente_id=k.cliente_id) }}">{{ k.cliente.nome_completo }}</a></td>
+          <td>{{ k.ramo or '—' }}</td>
+          <td>{{ k.compagnia.nome if k.compagnia else '—' }}</td>
+          <td class="text-right mono">{{ k.premio|eur }}</td>
+          <td class="mono">{{ k.data_scadenza|data_it }}</td>
+          <td class="text-center"><span class="badge badge-{{ k.stato }}">{{ k.stato }}</span></td>
+          <td>
+            <div class="table-actions">
+              <a class="btn-icon" href="{{ url_for('contratti.detail', contratto_id=k.id) }}"><svg class="icon icon-sm"><use href="#i-eye"/></svg></a>
+              <a class="btn-icon" href="{{ url_for('contratti.form', contratto_id=k.id) }}"><svg class="icon icon-sm"><use href="#i-edit"/></svg></a>
+            </div>
+          </td>
+        </tr>
+        {% else %}<tr><td colspan="8"><div class="empty-state"><svg class="icon"><use href="#i-shield"/></svg><h3>Nessun contratto</h3></div></td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

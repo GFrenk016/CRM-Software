@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% set section = "clienti" %}
+{% block title %}Anagrafica{% endblock %}
+{% block page_title %}Anagrafica clienti{% endblock %}
+{% block actions %}
+  <button class="btn btn-secondary btn-sm" onclick="apriEditorMessaggio()">
+    <svg class="icon icon-sm"><use href="#i-message"/></svg> Messaggio
+  </button>
+  <a class="btn btn-primary btn-sm" href="{{ url_for('clienti.form') }}">
+    <svg class="icon icon-sm"><use href="#i-plus"/></svg> Nuovo cliente
+  </a>
+{% endblock %}
+
+{% block content %}
+<!-- Filtro avanzato multi-campo: tradotto in query SQL lato server -->
+<form class="filter-panel" method="get">
+  <div class="filter-grid">
+    <div class="form-group">
+      <label>Nome / CF / email / cell.</label>
+      <input class="form-input" name="nome" value="{{ filtri.nome }}" placeholder="Cerca...">
+    </div>
+    <div class="form-group">
+      <label>Città</label>
+      <input class="form-input" name="citta" value="{{ filtri.citta }}">
+    </div>
+    <div class="form-group">
+      <label>Provincia</label>
+      <input class="form-input" name="provincia" value="{{ filtri.provincia }}" maxlength="2">
+    </div>
+    <div class="form-group">
+      <label>Professione</label>
+      <input class="form-input" name="professione" value="{{ filtri.professione }}">
+    </div>
+    <div class="form-group">
+      <label>Stato civile</label>
+      <select class="form-input" name="stato_civile">
+        <option value="">Tutti</option>
+        {% for s in stati_civili %}
+        <option value="{{ s }}" {{ 'selected' if filtri.stato_civile == s }}>{{ s }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Con figli</label>
+      <select class="form-input" name="con_figli">
+        <option value="">Indifferente</option>
+        <option value="si" {{ 'selected' if filtri.con_figli == 'si' }}>Sì</option>
+        <option value="no" {{ 'selected' if filtri.con_figli == 'no' }}>No</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Polizza in scad. (mese)</label>
+      <select class="form-input" name="scad_mese">
+        <option value="">—</option>
+        {% for m in range(1,13) %}
+        <option value="{{ m }}" {{ 'selected' if filtri.scad_mese == m|string }}>{{ '%02d'|format(m) }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Polizza in scad. (anno)</label>
+      <input class="form-input" name="scad_anno" value="{{ filtri.scad_anno }}" placeholder="es. {{ oggi.year }}">
+    </div>
+  </div>
+  <div class="filter-actions">
+    <button class="btn btn-primary btn-sm" type="submit">
+      <svg class="icon icon-sm"><use href="#i-search"/></svg> Filtra
+    </button>
+    {% if filtri_attivi %}
+    <a class="btn btn-secondary btn-sm" href="{{ url_for('clienti.index') }}">Azzera filtri</a>
+    {% endif %}
+    <span class="muted" style="align-self:center">{{ clienti|length }} risultati</span>
+  </div>
+</form>
+
+<div class="table-wrapper">
+  <div class="table-scroll">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:34px"><input type="checkbox" id="sel-all"></th>
+          <th>Cliente</th><th>Contatti</th><th>Codice fiscale</th>
+          <th>Città</th><th class="text-center">Figli</th>
+          <th class="text-center">Contratti</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in clienti %}
+        <tr data-search="{{ (c.nome_completo ~ ' ' ~ (c.codice_fiscale or '') ~ ' ' ~ (c.email or ''))|lower }}">
+          <td><input type="checkbox" class="sel-cliente" value="{{ c.id }}"></td>
+          <td class="font-bold row-link" onclick="location.href='{{ url_for('clienti.detail', cliente_id=c.id) }}'">{{ c.nome_completo }}</td>
+          <td>
+            <div style="font-size:12px">{{ c.cellulare or c.telefono or '—' }}</div>
+            <div class="muted" style="font-size:11px">{{ c.email or '' }}</div>
+          </td>
+          <td class="mono" style="font-size:11px">{{ c.codice_fiscale or '—' }}</td>
+          <td>{{ c.citta or '—' }}{% if c.provincia %} ({{ c.provincia }}){% endif %}</td>
+          <td class="text-center">{{ c.num_figli or 0 }}</td>
+          <td class="text-center">{{ c.contratti|length }}</td>
+          <td>
+            <div class="table-actions">
+              <a class="btn-icon" href="{{ url_for('clienti.detail', cliente_id=c.id) }}" title="Scheda 360°"><svg class="icon icon-sm"><use href="#i-eye"/></svg></a>
+              <a class="btn-icon" href="{{ url_for('clienti.form', cliente_id=c.id) }}" title="Modifica"><svg class="icon icon-sm"><use href="#i-edit"/></svg></a>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8"><div class="empty-state"><svg class="icon"><use href="#i-users"/></svg><h3>Nessun cliente</h3></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

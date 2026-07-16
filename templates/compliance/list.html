@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% set section = "compliance" %}
+{% block title %}Compliance{% endblock %}
+{% block page_title %}Compliance documentale{% endblock %}
+
+{% block content %}
+<div class="table-wrapper">
+  <div class="table-toolbar">
+    <div>
+      <div style="font-weight:700;font-size:14px">Checklist documentale per cliente</div>
+      <div class="muted" style="font-size:12px">Ogni spunta deriva dai dati reali del cliente e dai documenti caricati.</div>
+    </div>
+  </div>
+  <div class="table-scroll">
+    <table>
+      <thead><tr>
+        <th>Cliente</th>
+        <th class="text-center">Dati identità</th>
+        <th class="text-center">Doc. identità caricato</th>
+        <th class="text-center">Consenso privacy</th>
+        <th class="text-center">Contatti</th>
+        <th class="text-center">Stato</th>
+      </tr></thead>
+      <tbody>
+        {% macro chk(v) %}
+          {% if v %}<svg class="icon icon-sm check-ok"><use href="#i-check"/></svg>
+          {% else %}<svg class="icon icon-sm check-no"><use href="#i-x"/></svg>{% endif %}
+        {% endmacro %}
+        {% for r in righe %}
+        <tr>
+          <td class="font-bold"><a href="{{ url_for('clienti.detail', cliente_id=r.cliente.id) }}">{{ r.cliente.nome_completo }}</a></td>
+          <td class="text-center">{{ chk(r.dati_identita) }}</td>
+          <td class="text-center">{{ chk(r.doc_identita) }}</td>
+          <td class="text-center">{{ chk(r.privacy) }}</td>
+          <td class="text-center">{{ chk(r.contatti) }}</td>
+          <td class="text-center">
+            {% if r.completo %}<span class="badge badge-vinto">Completo</span>
+            {% elif r.parziale %}<span class="badge badge-proposta">Parziale</span>
+            {% else %}<span class="badge badge-perso">Incompleto</span>{% endif %}
+          </td>
+        </tr>
+        {% else %}<tr><td colspan="6"><div class="empty-state"><svg class="icon"><use href="#i-check-shield"/></svg><h3>Nessun cliente</h3></div></td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+<p class="muted" style="font-size:12px;margin-top:10px">Suggerimento: carica un documento con tipo contenente "identità" o "privacy" nella scheda del cliente per spuntare le rispettive voci.</p>
+{% endblock %}

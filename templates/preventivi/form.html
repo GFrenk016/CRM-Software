@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% set section = "preventivi" %}
+{% block title %}{{ 'Modifica' if p else 'Nuovo' }} preventivo{% endblock %}
+{% block page_title %}{{ 'Modifica preventivo' if p else 'Nuovo preventivo' }}{% endblock %}
+
+{% block content %}
+<form class="form-card" method="post">
+  <div class="form-row">
+    <div class="form-group"><label>Cliente *</label>
+      <select class="form-input" name="cliente_id" required>
+        {% for c in clienti %}<option value="{{ c.id }}" {{ 'selected' if p and p.cliente_id == c.id }}>{{ c.nome_completo }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="form-group"><label>Lead collegato</label>
+      <select class="form-input" name="lead_id">
+        <option value="">—</option>
+        {% for l in lead %}<option value="{{ l.id }}" {{ 'selected' if p and p.lead_id == l.id }}>{{ l.cliente.nome_completo }} · {{ l.stadio }}</option>{% endfor %}
+      </select>
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-group"><label>Compagnia</label>
+      <select class="form-input" name="compagnia_id">
+        <option value="">—</option>
+        {% for co in compagnie %}<option value="{{ co.id }}" {{ 'selected' if p and p.compagnia_id == co.id }}>{{ co.nome }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="form-group"><label>Oggetto</label><input class="form-input" name="oggetto" value="{{ p.oggetto or '' if p else '' }}" placeholder="es. RC Auto"></div>
+  </div>
+  <div class="form-row-3">
+    <div class="form-group"><label>Premio proposto (€)</label><input class="form-input" type="number" step="0.01" name="premio_proposto" value="{{ p.premio_proposto if p else 0 }}"></div>
+    <div class="form-group"><label>Stato</label>
+      <select class="form-input" name="stato">{% for s in stati %}<option value="{{ s }}" {{ 'selected' if p and p.stato == s }}>{{ s }}</option>{% endfor %}</select>
+    </div>
+    <div class="form-group"><label>Data invio</label><input class="form-input" type="date" name="data_invio" value="{{ p.data_invio.isoformat() if p and p.data_invio else '' }}"></div>
+  </div>
+  <div class="form-actions">
+    <a class="btn btn-secondary" href="{{ url_for('preventivi.index') }}">Annulla</a>
+    <button class="btn btn-primary" type="submit">Salva</button>
+  </div>
+</form>
+{% endblock %}

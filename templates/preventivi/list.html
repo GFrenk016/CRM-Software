@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% set section = "preventivi" %}
+{% block title %}Preventivi{% endblock %}
+{% block page_title %}Preventivi{% endblock %}
+{% block actions %}
+  <a class="btn btn-primary btn-sm" href="{{ url_for('preventivi.form') }}"><svg class="icon icon-sm"><use href="#i-plus"/></svg> Nuovo preventivo</a>
+{% endblock %}
+
+{% block content %}
+<div class="table-wrapper">
+  <div class="table-toolbar">
+    <form method="get" style="display:flex;gap:8px;align-items:center">
+      <label class="muted" style="font-size:12px">Stato:</label>
+      <select class="form-input" name="stato" onchange="this.form.submit()" style="width:auto">
+        <option value="">Tutti</option>
+        {% for s in stati %}<option value="{{ s }}" {{ 'selected' if stato_sel == s }}>{{ s }}</option>{% endfor %}
+      </select>
+    </form>
+    <span class="muted" style="margin-left:auto">{{ preventivi|length }} preventivi</span>
+  </div>
+  <div class="table-scroll">
+    <table>
+      <thead><tr>
+        <th>Numero</th><th>Cliente</th><th>Oggetto</th><th>Compagnia</th>
+        <th class="text-right">Premio</th><th class="text-center">Stato</th><th></th>
+      </tr></thead>
+      <tbody>
+        {% for p in preventivi %}
+        <tr>
+          <td class="mono font-bold">{{ p.numero }}</td>
+          <td><a href="{{ url_for('clienti.detail', cliente_id=p.cliente_id) }}">{{ p.cliente.nome_completo }}</a></td>
+          <td>{{ p.oggetto or '—' }}</td>
+          <td>{{ p.compagnia.nome if p.compagnia else '—' }}</td>
+          <td class="text-right mono">{{ p.premio_proposto|eur }}</td>
+          <td class="text-center"><span class="badge badge-{{ p.stato }}">{{ p.stato }}</span></td>
+          <td>
+            <div class="table-actions">
+              {% if not p.contratto and p.stato != 'rifiutato' %}
+              <form method="post" action="{{ url_for('preventivi.converti', prev_id=p.id) }}" title="Genera contratto">
+                <button class="btn-icon"><svg class="icon icon-sm"><use href="#i-arrow-right"/></svg></button>
+              </form>
+              {% elif p.contratto %}
+              <a class="btn-icon" href="{{ url_for('contratti.detail', contratto_id=p.contratto.id) }}" title="Contratto collegato"><svg class="icon icon-sm"><use href="#i-shield"/></svg></a>
+              {% endif %}
+              <a class="btn-icon" href="{{ url_for('preventivi.form', prev_id=p.id) }}" title="Modifica"><svg class="icon icon-sm"><use href="#i-edit"/></svg></a>
+              <form method="post" action="{{ url_for('preventivi.elimina', prev_id=p.id) }}" onsubmit="return confirm('Eliminare?')"><button class="btn-icon"><svg class="icon icon-sm"><use href="#i-trash"/></svg></button></form>
+            </div>
+          </td>
+        </tr>
+        {% else %}<tr><td colspan="7"><div class="empty-state"><svg class="icon"><use href="#i-file-text"/></svg><h3>Nessun preventivo</h3></div></td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+<p class="muted" style="font-size:12px;margin-top:10px">La freccia <svg class="icon icon-sm" style="vertical-align:middle"><use href="#i-arrow-right"/></svg> genera un contratto attivo collegato al preventivo (segna il preventivo come accettato).</p>
+{% endblock %}
