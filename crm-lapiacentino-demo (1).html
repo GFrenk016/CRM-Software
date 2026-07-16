@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CRM La Piacentino — Demo</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+<style>
+:root {
+  --bg: #0d0f14;
+  --surface: #13161e;
+  --surface2: #1a1e2a;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.12);
+  --text: #e8eaf0;
+  --text2: #8b91a8;
+  --text3: #555c74;
+  --primary: #4f8ef7;
+  --primary-dim: rgba(79,142,247,0.15);
+  --success: #34d17a;
+  --success-dim: rgba(52,209,122,0.12);
+  --warning: #f7b24f;
+  --warning-dim: rgba(247,178,79,0.12);
+  --danger: #f7524f;
+  --danger-dim: rgba(247,82,79,0.12);
+  --purple: #a855f7;
+  --purple-dim: rgba(168,85,247,0.12);
+  --sidebar-w: 220px;
+  --radius: 10px;
+  --shadow: 0 4px 24px rgba(0,0,0,0.4);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text); font-size:14px; line-height:1.5; height:100vh; overflow:hidden; }
+
+/* DEMO BANNER */
+.demo-banner {
+  position: fixed; top:0; left:0; right:0; z-index:1000;
+  background: linear-gradient(90deg, #1a1e2a 0%, #1e2435 50%, #1a1e2a 100%);
+  border-bottom: 1px solid var(--border2);
+  padding: 6px 20px;
+  display: flex; align-items:center; gap:12px; font-size:12px; color:var(--text2);
+}
+.demo-banner .badge-demo { background: var(--primary); color:#fff; font-size:10px; font-weight:700; padding:2px 8px; border-radius:20px; letter-spacing:0.05em; }
+.demo-banner span { color: var(--text3); }
+
+/* LAYOUT */
+.app { display:flex; height:100vh; padding-top:32px; }
+
+/* SIDEBAR */
+.sidebar {
+  width: var(--sidebar-w); background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction:column;
+  flex-shrink:0;
+  overflow-y:auto;
+}
+.sidebar-logo {
+  padding: 20px 16px 16px;
+  display:flex; align-items:center; gap:10px;
+  border-bottom:1px solid var(--border);
+}
+.sidebar-logo .logo-icon {
+  width:32px; height:32px; background: var(--primary);
+  border-radius:8px; display:flex; align-items:center; justify-content:center;
+  font-size:16px; color:#fff;
+}
+.sidebar-logo .logo-text { font-weight:700; font-size:13px; line-height:1.2; }
+.sidebar-logo .logo-sub { font-size:10px; color:var(--text3); font-weight:400; }
+
+.sidebar-nav { padding:12px 8px; flex:1; }
+.nav-section { font-size:10px; font-weight:600; color:var(--text3); letter-spacing:0.08em; text-transform:uppercase; padding:8px 8px 4px; }
+.nav-item {
+  display:flex; align-items:center; gap:10px;
+  padding:8px 10px; border-radius:8px;
+  cursor:pointer; transition:all 0.15s;
+  color:var(--text2); font-size:13px; font-weight:500;
+  text-decoration:none; user-select:none;
+  margin-bottom:2px;
+}
+.nav-item:hover { background: var(--surface2); color:var(--text); }
+.nav-item.active { background:var(--primary-dim); color:var(--primary); }
+.nav-item .material-icons-round { font-size:18px; }
+
+.sidebar-footer {
+  padding:12px; border-top:1px solid var(--border);
+  display:flex; align-items:center; gap:10px;
+}
+.user-avatar {
+  width:32px; height:32px; background: linear-gradient(135deg,var(--primary),var(--purple));
+  border-radius:8px; display:flex; align-items:center; justify-content:center;
+  font-size:12px; font-weight:700; color:#fff; flex-shrink:0;
+}
+.user-name { font-size:12px; font-weight:600; }
+.user-role { font-size:10px; color:var(--text3); }
+
+/* MAIN */
+.main { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+.topbar {
+  padding:12px 24px; border-bottom:1px solid var(--border);
+  display:flex; align-items:center; gap:16px;
+  background:var(--surface); flex-shrink:0;
+}
+.page-title { font-size:16px; font-weight:700; flex:1; }
+.topbar-actions { display:flex; gap:8px; align-items:center; }
+.content { flex:1; overflow-y:auto; padding:24px; }
+
+/* BUTTONS */
+.btn {
+  display:inline-flex; align-items:center; gap:6px;
+  padding:7px 14px; border-radius:8px; border:none;
+  font-family:inherit; font-size:13px; font-weight:600; cursor:pointer;
+  transition:all 0.15s; text-decoration:none; white-space:nowrap;
+}
+.btn-primary { background:var(--primary); color:#fff; }
+.btn-primary:hover { background:#6b9ef9; }
+.btn-secondary { background:var(--surface2); color:var(--text); border:1px solid var(--border2); }
+.btn-secondary:hover { background:var(--border); }
+.btn-sm { padding:5px 10px; font-size:12px; }
+.btn-icon { background:none; border:none; cursor:pointer; color:var(--text2); padding:4px; border-radius:6px; display:flex; align-items:center; transition:all 0.15s; }
+.btn-icon:hover { color:var(--text); background:var(--surface2); }
+.btn-icon .material-icons-round { font-size:18px; }
+
+/* STATS */
+.stats-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:24px; }
+.stat-card {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius); padding:20px;
+  display:flex; flex-direction:column; gap:8px;
+  position:relative; overflow:hidden;
+}
+.stat-card::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:2px;
+}
+.stat-card.blue::before { background:var(--primary); }
+.stat-card.green::before { background:var(--success); }
+.stat-card.amber::before { background:var(--warning); }
+.stat-card.purple::before { background:var(--purple); }
+.stat-icon {
+  width:36px; height:36px; border-radius:8px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:18px;
+}
+.stat-icon.blue { background:var(--primary-dim); color:var(--primary); }
+.stat-icon.green { background:var(--success-dim); color:var(--success); }
+.stat-icon.amber { background:var(--warning-dim); color:var(--warning); }
+.stat-icon.purple { background:var(--purple-dim); color:var(--purple); }
+.stat-value { font-size:28px; font-weight:700; font-family:'DM Mono',monospace; }
+.stat-label { font-size:12px; color:var(--text2); font-weight:500; }
+
+/* CHARTS ROW */
+.charts-row { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:24px; }
+.chart-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:20px; }
+.chart-card h3 { font-size:13px; font-weight:600; color:var(--text2); margin-bottom:16px; text-transform:uppercase; letter-spacing:0.05em; }
+
+/* BAR CHART */
+.bar-row { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+.bar-label { font-size:11px; color:var(--text2); width:80px; flex-shrink:0; text-transform:capitalize; }
+.bar-track { flex:1; background:var(--surface2); border-radius:4px; height:20px; overflow:hidden; }
+.bar-fill {
+  height:100%; border-radius:4px; display:flex; align-items:center;
+  padding:0 8px; font-size:11px; font-weight:700; color:#fff; transition:width 0.5s ease;
+}
+.bar-fill.nuovo { background:var(--text3); }
+.bar-fill.contattato { background:var(--primary); }
+.bar-fill.qualificato { background:var(--purple); }
+.bar-fill.proposta { background:var(--warning); }
+.bar-fill.vinto { background:var(--success); }
+.bar-fill.perso { background:var(--danger); }
+
+/* SOURCE LIST */
+.source-item { display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--border); }
+.source-item:last-child { border-bottom:none; }
+.source-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+.source-name { flex:1; font-size:13px; text-transform:capitalize; }
+.source-count { font-size:13px; font-weight:700; color:var(--primary); font-family:'DM Mono',monospace; }
+
+/* BADGES */
+.badge {
+  display:inline-flex; align-items:center; padding:2px 8px;
+  border-radius:20px; font-size:11px; font-weight:700; letter-spacing:0.03em;
+}
+.badge-nuovo { background:rgba(139,145,168,0.15); color:var(--text2); }
+.badge-contattato { background:var(--primary-dim); color:var(--primary); }
+.badge-qualificato { background:var(--purple-dim); color:var(--purple); }
+.badge-proposta { background:var(--warning-dim); color:var(--warning); }
+.badge-vinto { background:var(--success-dim); color:var(--success); }
+.badge-perso { background:var(--danger-dim); color:var(--danger); }
+.badge-bozza { background:var(--surface2); color:var(--text2); }
+.badge-inviato { background:var(--primary-dim); color:var(--primary); }
+.badge-accettato { background:var(--success-dim); color:var(--success); }
+
+/* TABLE */
+.table-wrapper { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; }
+.table-toolbar { padding:12px 16px; border-bottom:1px solid var(--border); display:flex; gap:12px; align-items:center; }
+.search-box { display:flex; align-items:center; gap:8px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:6px 12px; flex:1; max-width:320px; }
+.search-box input { background:none; border:none; outline:none; color:var(--text); font-family:inherit; font-size:13px; width:100%; }
+.search-box .material-icons-round { font-size:16px; color:var(--text3); }
+table { width:100%; border-collapse:collapse; }
+th { padding:10px 12px; text-align:left; font-size:11px; font-weight:600; color:var(--text3); text-transform:uppercase; letter-spacing:0.05em; border-bottom:1px solid var(--border); background:var(--surface2); cursor:pointer; user-select:none; }
+th:hover { color:var(--text2); }
+td { padding:10px 12px; border-bottom:1px solid var(--border); font-size:13px; max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+tr:last-child td { border-bottom:none; }
+tr:hover td { background:var(--surface2); }
+.font-bold { font-weight:700; }
+.table-actions { display:flex; gap:4px; }
+
+/* PIPELINE */
+.pipeline-board { display:grid; grid-template-columns:repeat(6,1fr); gap:12px; align-items:start; }
+.pipeline-col { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; }
+.col-header { padding:10px 12px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; }
+.col-header-title { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; }
+.col-count { font-size:11px; font-weight:700; background:var(--surface2); padding:1px 7px; border-radius:20px; }
+.col-body { padding:8px; display:flex; flex-direction:column; gap:6px; min-height:80px; }
+.kanban-card {
+  background:var(--surface2); border:1px solid var(--border);
+  border-radius:8px; padding:10px; cursor:pointer;
+  transition:all 0.15s;
+}
+.kanban-card:hover { border-color:var(--border2); transform:translateY(-1px); box-shadow:var(--shadow); }
+.kc-company { font-size:12px; font-weight:700; margin-bottom:2px; }
+.kc-contact { font-size:11px; color:var(--text2); margin-bottom:8px; }
+.kc-footer { display:flex; justify-content:space-between; align-items:center; }
+.kc-value { font-size:11px; font-weight:700; font-family:'DM Mono',monospace; color:var(--primary); }
+.kc-score { font-size:11px; font-weight:700; display:flex; align-items:center; gap:2px; }
+.kc-score .material-icons-round { font-size:12px; }
+
+/* MODAL */
+.modal-overlay {
+  position:fixed; inset:0; background:rgba(0,0,0,0.7);
+  display:flex; align-items:center; justify-content:center;
+  z-index:999; padding:20px; backdrop-filter:blur(4px);
+}
+.modal-overlay.hidden { display:none; }
+.modal {
+  background:var(--surface); border:1px solid var(--border2);
+  border-radius:14px; width:100%; max-width:600px; max-height:85vh;
+  overflow-y:auto; box-shadow:var(--shadow);
+}
+.modal-header { padding:20px 20px 16px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+.modal-header h3 { font-size:16px; font-weight:700; }
+.modal-body { padding:20px; }
+.modal-footer { display:flex; gap:8px; justify-content:flex-end; margin-top:20px; padding-top:16px; border-top:1px solid var(--border); }
+
+/* FORM */
+.form-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.form-group { display:flex; flex-direction:column; gap:5px; margin-bottom:12px; }
+.form-group label { font-size:11px; font-weight:600; color:var(--text2); text-transform:uppercase; letter-spacing:0.04em; }
+.form-input {
+  background:var(--surface2); border:1px solid var(--border);
+  border-radius:8px; padding:8px 12px; color:var(--text);
+  font-family:inherit; font-size:13px; outline:none;
+  transition:border-color 0.15s;
+}
+.form-input:focus { border-color:var(--primary); }
+select.form-input { cursor:pointer; }
+
+/* DETAIL */
+.detail-header { display:flex; align-items:center; gap:16px; margin-bottom:20px; }
+.detail-avatar { width:48px; height:48px; background:linear-gradient(135deg,var(--primary),var(--purple)); border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:700; color:#fff; flex-shrink:0; }
+.detail-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px; }
+.detail-item label { display:block; font-size:10px; font-weight:600; color:var(--text3); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:3px; }
+.detail-item span { font-size:13px; font-family:'DM Mono',monospace; }
+.section-title { font-size:12px; font-weight:700; color:var(--text2); text-transform:uppercase; letter-spacing:0.05em; border-bottom:1px solid var(--border); padding-bottom:8px; margin-bottom:12px; display:flex; align-items:center; gap:6px; }
+.section-title .material-icons-round { font-size:16px; }
+.ai-score-row { display:flex; align-items:center; gap:12px; }
+.ai-score-num { font-size:24px; font-weight:700; font-family:'DM Mono',monospace; }
+
+/* SCADENZIARIO */
+.exp-warning { background:rgba(247,178,79,0.06); }
+.exp-danger { background:rgba(247,82,79,0.06); }
+
+/* COMPLIANCE */
+.check-icon.ok { color:var(--success); }
+.check-icon.no { color:var(--danger); }
+
+/* TOAST */
+.toast-container { position:fixed; bottom:20px; right:20px; display:flex; flex-direction:column; gap:8px; z-index:9999; }
+.toast {
+  background:var(--surface2); border:1px solid var(--border2);
+  border-radius:10px; padding:12px 16px; display:flex; align-items:center; gap:10px;
+  box-shadow:var(--shadow); font-size:13px; font-weight:500;
+  animation: slideIn 0.2s ease;
+}
+@keyframes slideIn { from { transform:translateX(20px); opacity:0; } to { transform:translateX(0); opacity:1; } }
+.toast.success { border-left:3px solid var(--success); }
+.toast.error { border-left:3px solid var(--danger); }
+.toast .material-icons-round { font-size:18px; }
+.toast.success .material-icons-round { color:var(--success); }
+.toast.error .material-icons-round { color:var(--danger); }
+
+/* EMPTY STATE */
+.empty-state { padding:60px 20px; text-align:center; color:var(--text3); }
+.empty-state .material-icons-round { font-size:48px; margin-bottom:12px; display:block; }
+.empty-state h3 { font-size:16px; color:var(--text2); margin-bottom:4px; }
+
+/* QUOTES GRID */
+.quotes-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:16px; }
+.quote-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:20px; }
+.quote-num { font-size:12px; color:var(--text3); font-family:'DM Mono',monospace; }
+.quote-amount { font-size:28px; font-weight:700; font-family:'DM Mono',monospace; color:var(--primary); margin:8px 0; }
+.quote-footer { display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border); padding-top:12px; margin-top:12px; }
+
+/* NETWORK */
+.network-cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:16px; }
+.network-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:20px; }
+.nc-header { display:flex; align-items:center; gap:12px; margin-bottom:16px; }
+.nc-avatar { width:40px; height:40px; border-radius:10px; background:linear-gradient(135deg,var(--purple),var(--primary)); display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:700; color:#fff; }
+.nc-stat { display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid var(--border); font-size:13px; }
+.nc-stat:last-child { border-bottom:none; }
+.nc-stat-val { font-weight:700; font-family:'DM Mono',monospace; }
+.trend-pos { color:var(--success); }
+
+/* COMPANIES */
+.companies-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:12px; }
+.company-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:16px; display:flex; align-items:center; justify-content:space-between; }
+.company-info { display:flex; align-items:center; gap:10px; }
+.company-icon { width:32px; height:32px; background:var(--primary-dim); border-radius:8px; display:flex; align-items:center; justify-content:center; }
+.company-icon .material-icons-round { font-size:16px; color:var(--primary); }
+
+/* IMPORT */
+.import-zone { max-width:600px; margin:0 auto; }
+.dropzone { border:2px dashed var(--border2); border-radius:var(--radius); padding:60px 20px; text-align:center; cursor:pointer; color:var(--text2); transition:all 0.15s; }
+.dropzone:hover { border-color:var(--primary); color:var(--primary); background:var(--primary-dim); }
+.dropzone .material-icons-round { font-size:48px; margin-bottom:12px; display:block; }
+.dropzone h3 { font-size:16px; margin-bottom:4px; }
+.dropzone input { display:none; }
+
+/* SCROLLBAR */
+::-webkit-scrollbar { width:6px; height:6px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:var(--border2); border-radius:3px; }
+
+/* HIDDEN */
+.hidden { display:none !important; }
+
+/* SKELETON */
+.skeleton { background:var(--surface2); border-radius:var(--radius); animation:pulse 1.5s infinite; }
+@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
+
+.mono { font-family:'DM Mono',monospace; }
+
+/* ACTIVITY TIMELINE */
+.timeline { padding-left:8px; }
+.timeline-item { display:flex; gap:12px; margin-bottom:12px; }
+.timeline-dot { width:8px; height:8px; border-radius:50%; background:var(--primary); margin-top:5px; flex-shrink:0; }
+.timeline-desc { font-size:12px; }
+.timeline-time { font-size:11px; color:var(--text3); margin-top:2px; }
+</style>
+</head>
+<body>
+
+<div class="demo-banner">
+  <span class="badge-demo">DEMO</span>
+  <span>Prototipo dimostrativo — CRM La Piacentino Hub Assicurativo</span>
+  <span style="margin-left:auto">Versione 1.0 — Aprile 2026</span>
+</div>
+
+<div class="app">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon"><span class="material-icons-round" style="font-size:16px">hub</span></div>
+      <div>
+        <div class="logo-text">La Piacentino</div>
+        <div class="logo-sub">Hub Assicurativo</div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">Principale</div>
+      <a class="nav-item active" data-page="dashboard">
+        <span class="material-icons-round">dashboard</span>Bacheca
+      </a>
+      <a class="nav-item" data-page="pipeline">
+        <span class="material-icons-round">view_kanban</span>Pipeline
+      </a>
+      <a class="nav-item" data-page="leads">
+        <span class="material-icons-round">people</span>Anagrafica
+      </a>
+      <a class="nav-item" data-page="quotes">
+        <span class="material-icons-round">receipt_long</span>Preventivi
+      </a>
+      <div class="nav-section">Polizze</div>
+      <a class="nav-item" data-page="expirations">
+        <span class="material-icons-round">event_upcoming</span>Scadenziario
+      </a>
+      <a class="nav-item" data-page="claims">
+        <span class="material-icons-round">report_problem</span>Sinistri
+      </a>
+      <div class="nav-section">Gestione</div>
+      <a class="nav-item" data-page="network">
+        <span class="material-icons-round">account_tree</span>Rete Vendita
+      </a>
+      <a class="nav-item" data-page="compliance">
+        <span class="material-icons-round">gavel</span>Compliance
+      </a>
+      <a class="nav-item" data-page="companies">
+        <span class="material-icons-round">corporate_fare</span>Compagnie
+      </a>
+      <a class="nav-item" data-page="import">
+        <span class="material-icons-round">upload_file</span>Import CSV
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-avatar">RB</div>
+      <div>
+        <div class="user-name">Ruggero Brizzi</div>
+        <div class="user-role">Amministratore</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <header class="topbar">
+      <span class="material-icons-round" style="font-size:20px;color:var(--text3)">hub</span>
+      <h2 class="page-title" id="page-title">Bacheca</h2>
+      <div class="topbar-actions" id="topbar-actions"></div>
+    </header>
+    <div class="content" id="content"></div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay hidden" id="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modal-title"></h3>
+      <button class="btn-icon" onclick="closeModal()"><span class="material-icons-round">close</span></button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast-container" id="toast-container"></div>
+
+<script>
+// ============================================================
+// DEMO DATA — dati reali dall'anagrafica La Piacentino
+// ============================================================
+const LEADS = [{"id":"1","azienda":"Aversente","contatto":"Aversente Rosanna","email":null,"telefono":null,"cellulare":null,"codice_fiscale":null,"data_nascita":null,"residenza":"VIA JAMES COOK, 9 ,CORIGLIANO ROSSANO","tipo_documento":null,"numero_documento":null,"contratto_1":"115897232","contratto_2":null,"sotto_attivita":null,"stadio":"nuovo","fonte":"referral","valore":3000,"ai_score":88},{"id":"2","azienda":"Bagnato","contatto":"Bagnato Francesco Matteo","email":"avv.fmbagnato@gmail.com","telefono":"3407313212","cellulare":"3407313212","codice_fiscale":"BGNFNC96R23L452X","data_nascita":"23/10/1996","residenza":"V. ANGELO VENTUROLI 24.BOLOGNA","tipo_documento":"CARTA IDENTITA","numero_documento":"CA69015OI","contratto_1":"325400479","contratto_2":null,"sotto_attivita":null,"stadio":"contattato","fonte":"sito","valore":2000,"ai_score":45},{"id":"3","azienda":"Bernardo","contatto":"Bernardo Franca","email":null,"telefono":null,"cellulare":null,"codice_fiscale":"BRNFNC66A52D005J","data_nascita":"12/01/1966","residenza":"VIA MADRID 135,CORIGLIANO ROSSANO","tipo_documento":"CARTA IDENTITA","numero_documento":"AY7920567","contratto_1":"116506786","contratto_2":null,"sotto_attivita":null,"stadio":"qualificato","fonte":"social","valore":1500,"ai_score":76},{"id":"4","azienda":"Birsanescu","contatto":"Birsanescu","email":null,"telefono":null,"cellulare":null,"codice_fiscale":null,"data_nascita":null,"residenza":"VIA RAGANELLO, 14,CORIGLIANO ROSSANO","tipo_documento":null,"numero_documento":null,"contratto_1":"115863173","contratto_2":null,"sotto_attivita":null,"stadio":"proposta","fonte":"chiamata","valore":3000,"ai_score":45},{"id":"5","azienda":"Caccuri","contatto":"Caccuri Eleonora","email":null,"telefono":null,"cellulare":null,"codice_fiscale":null,"data_nascita":null,"residenza":null,"tipo_documento":null,"numero_documento":null,"contratto_1":"450784552","contratto_2":null,"sotto_attivita":null,"stadio":"vinto","fonte":"evento","valore":1200,"ai_score":43},{"id":"6","azienda":"Caravetta","contatto":"Caravetta Luigi","email":"caravettaluigi1970@gmail.com","telefono":"3285766553","cellulare":"3285766553","codice_fiscale":"CRVLGU70E06Z112U","data_nascita":"06/05/1970","residenza":"VIA SARDEGNA 5 , CORIGLIANO-ROSSANO (CS)","tipo_documento":"PATENTE","numero_documento":"U19M54977K","contratto_1":"326382219","contratto_2":null,"sotto_attivita":null,"stadio":"perso","fonte":"altro","valore":4500,"ai_score":82},{"id":"7","azienda":"Caruso","contatto":"Caruso Fiorella","email":null,"telefono":null,"cellulare":null,"codice_fiscale":null,"data_nascita":null,"residenza":null,"tipo_documento":null,"numero_documento":null,"contratto_1":null,"contratto_2":null,"sotto_attivita":null,"stadio":"contattato","fonte":"referral","valore":8000,"ai_score":67},{"id":"8","azienda":"Cinelli","contatto":"Cinelli Florinda","email":null,"telefono":null,"cellulare":null,"codice_fiscale":"CNLFRN81M41B774U","data_nascita":"01/08/81","residenza":"VIA RIVABELLA, 40136, BOLOGNA (BO)","tipo_documento":"CARTA IDENTITA","numero_documento":"CA19481EF","contratto_1":"440755699","contratto_2":null,"sotto_attivita":null,"stadio":"qualificato","fonte":"sito","valore":2500,"ai_score":55},{"id":"9","azienda":"Converso","contatto":"Converso Damiano","email":null,"telefono":null,"cellulare":null,"codice_fiscale":null,"data_nascita":null,"residenza":null,"tipo_documento":null,"numero_documento":null,"contratto_1":null,"contratto_2":null,"sotto_attivita":null,"stadio":"proposta","fonte":"social","valore":1800,"ai_score":90},{"id":"10","azienda":"Cosenza","contatto":"Cosenza Ermelinda","email":"ermelinda.cosenza@gmail.com","telefono":"329 353 5924","cellulare":"329 353 5924","codice_fiscale":"CSNRLN86T41H579M","data_nascita":"01/12/1986","residenza":"VIA ANAGNI 147, ROMA","tipo_documento":"PATENTE","numero_documento":"UJ1442497P","contratto_1":"317359565","contratto_2":null,"sotto_attivita":null,"stadio":"vinto","fonte":"chiamata","valore":6000,"ai_score":38},{"id":"11","azienda":"Curia","contatto":"Curia Annamaria","email":null,"telefono":null,"cellulare":null,"codice_fiscale":null,"data_nascita":null,"residenza":null,"tipo_documento":null,"numero_documento":null,"contratto_1":null,"contratto_2":null,"sotto_attivita":null,"stadio":"nuovo","fonte":"evento","valore":3500,"ai_score":72},{"id":"12","azienda":"Dionigi","contatto":"Dionigi","email":null,"telefono":null,"cellulare":null,"codice_fiscale":null,"data_nascita":null,"residenza":null,"tipo_documento":null,"numero_documento":null,"contratto_1":null,"contratto_2":null,"sotto_attivita":null,"stadio":"contattato","fonte":"altro","valore":1200,"ai_score":61},{"id":"13","azienda":"Francesco","contatto":"Francesco Russo","email":null,"telefono":"3408198374","cellulare":"3408198374","codice_fiscale":"RSSFNC48B19G298N","data_nascita":null,"residenza":"Via Nazionale 105","tipo_documento":"DOC","numero_documento":"BLP717386853","contratto_1":null,"contratto_2":null,"sotto_attivita":null,"stadio":"qualificato","fonte":"referral","valore":900,"ai_score":44},{"id":"14","azienda":"Francesetti","contatto":"Francesetti Sara","email":null,"telefono":null,"cellulare":null,"codice_fiscale":null,"data_nascita":null,"residenza":"VIA LUIGI CAPALBO, 22,CORIGLIANO ROSSANO","tipo_documento":null,"numero_documento":null,"contratto_1":"115908419","contratto_2":null,"sotto_attivita":null,"stadio":"vinto","fonte":"sito","valore":5000,"ai_score":85},{"id":"15","azienda":"Gaudio","contatto":"Gaudio Roberto","email":null,"telefono":null,"cellulare":null,"codice_fiscale":null,"data_nascita":null,"residenza":"VIA GIACOMO PUCCINI, 30,MONTALTO UFFUGO","tipo_documento":null,"numero_documento":null,"contratto_1":"116371904","contratto_2":null,"sotto_attivita":null,"stadio":"perso","fonte":"social","valore":2200,"ai_score":57},{"id":"16","azienda":"Graziani","contatto":"Graziani Antonio Paolo Maria","email":null,"telefono":"3402719369","cellulare":"3402719369","codice_fiscale":"GRZNNP91S17H579V","data_nascita":"17-11-1991","residenza":"VIA GIOVANNI AMENDOLA,37,CORIGLIANO ROSSANO","tipo_documento":null,"numero_documento":null,"contratto_1":"116484890","contratto_2":null,"sotto_attivita":null,"stadio":"qualificato","fonte":"chiamata","valore":7500,"ai_score":70},{"id":"17","azienda":"Lavia","contatto":"Lavia Cesare Umberto","email":null,"telefono":null,"cellulare":null,"codice_fiscale":"LVACRM68A02E678S","data_nascita":"02/01/1968","residenza":"VIA DI NOVOLI 81 ,FIRENZE","tipo_documento":"CARTA IDENTITA","numero_documento":"AY6416240","contratto_1":"327173356","contratto_2":null,"sotto_attivita":null,"stadio":"proposta","fonte":"evento","valore":1500,"ai_score":48},{"id":"18","azienda":"Lemoko'","contatto":"Lemoko' Di Eleonora Caccuri","email":"ele.caccuri313@gmail.com","telefono":"329 600 7940","cellulare":"329 600 7940","codice_fiscale":"03466540782","data_nascita":null,"residenza":"Via Marco Polo, 49, Corigliano-rossano","tipo_documento":null,"numero_documento":null,"contratto_1":"n. 450784552","contratto_2":null,"sotto_attivita":null,"stadio":"vinto","fonte":"altro","valore":3000,"ai_score":92},{"id":"19","azienda":"Nicastro","contatto":"Nicastro Domenico","email":null,"telefono":null,"cellulare":null,"codice_fiscale":"NCSDNC94H25H579I","data_nascita":null,"residenza":"Via Colonna S. Isidoro 124,CORIGLIANO ROSSANO","tipo_documento":null,"numero_documento":null,"contratto_1":"BLP304529884","contratto_2":null,"sotto_attivita":null,"stadio":"contattato","fonte":"referral","valore":4000,"ai_score":63},{"id":"20","azienda":"Nicoli","contatto":"Nicoli Giandomenico","email":null,"telefono":null,"cellulare":null,"codice_fiscale":"NCLGDM78T16H579Y","data_nascita":"16/12/1978","residenza":"VIA DEI PICENI 21,CORIGLIANO ROSSANO","tipo_documento":"CARTA IDENTITA","numero_documento":"AX8844231","contratto_1":"_IGI04410-00","contratto_2":null,"sotto_attivita":null,"stadio":"nuovo","fonte":"sito","valore":2800,"ai_score":79}];
+
+let QUOTES = [
+  {id:'q1', numero:'PRV-0001', lead_id:'3', importo:1500, stato:'inviato', note:'Polizza vita + infortuni', created_at:'2026-04-01'},
+  {id:'q2', numero:'PRV-0002', lead_id:'10', importo:6000, stato:'accettato', note:'Auto + casa completa', created_at:'2026-04-10'},
+  {id:'q3', numero:'PRV-0003', lead_id:'14', importo:5000, stato:'bozza', note:'RC professionale', created_at:'2026-04-20'},
+];
+
+let EXPIRATIONS = [
+  {id:1, cliente:'Cosenza Ermelinda', polizza:'Auto RBC', compagnia:'Generali', scadenza:'2026-05-05', premio:650},
+  {id:2, cliente:'Caravetta Luigi', polizza:'Casa Safe', compagnia:'Allianz', scadenza:'2026-05-18', premio:420},
+  {id:3, cliente:'Bagnato Francesco', polizza:'Vita Plus', compagnia:'Unipol', scadenza:'2026-06-30', premio:1200},
+  {id:4, cliente:'Bernardo Franca', polizza:'Auto RBC', compagnia:'Generali', scadenza:'2026-07-15', premio:580},
+  {id:5, cliente:'Francesetti Sara', polizza:'RC Professionale', compagnia:'Axa', scadenza:'2026-08-01', premio:900},
+];
+
+let CLAIMS = [
+  {id:'SIN-001', cliente:'Cosenza Ermelinda', tipo:'Auto - Tamponamento', compagnia:'Generali', data:'2026-04-01', stato:'aperto', importo:3200},
+  {id:'SIN-002', cliente:'Cinelli Florinda', tipo:'Casa - Perdita Acqua', compagnia:'Allianz', data:'2026-03-20', stato:'perizia', importo:850},
+  {id:'SIN-003', cliente:'Bagnato Francesco', tipo:'Infortuni - Frattura', compagnia:'Unipol', data:'2026-02-10', stato:'chiuso', importo:1500},
+];
+
+let COMPANIES = ['Generali','Allianz','Unipol','Axa','Cattolica'];
+
+const NETWORK = [
+  {nome:'Alessandro Esposito', ruolo:'Sub-Agente Senior', premi:125000, contratti:142, trend:'+12%'},
+  {nome:'Francesca Romano', ruolo:'Collaboratore Esterno', premi:45000, contratti:38, trend:'+5%'},
+  {nome:'Stefano Costa', ruolo:'Sub-Agente Junior', premi:82000, contratti:94, trend:'+22%'},
+];
+
+// ============================================================
+// STATE
+// ============================================================
+const state = { currentPage:'dashboard', leadSort:{field:'azienda',dir:'asc'} };
+const FONTE_COLORS = {referral:'#a855f7',sito:'#4f8ef7',social:'#f7b24f',chiamata:'#34d17a',evento:'#f7524f',altro:'#8b91a8'};
+
+// ============================================================
+// NAV
+// ============================================================
+document.querySelectorAll('.nav-item').forEach(el => {
+  el.addEventListener('click', e => {
+    e.preventDefault();
+    navigateTo(el.dataset.page);
+  });
+});
+
+function navigateTo(page) {
+  state.currentPage = page;
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('active', el.dataset.page === page));
+  const titles = {dashboard:'Bacheca',pipeline:'Pipeline Vendite',leads:'Anagrafica Lead',quotes:'Preventivi',expirations:'Scadenziario Rinnovi',claims:'Gestione Sinistri',network:'Rete Vendita',compliance:'Compliance IVASS',companies:'Mappatura Compagnie',import:'Importazione CSV'};
+  document.getElementById('page-title').textContent = titles[page] || page;
+  renderPage(page);
+}
+
+// ============================================================
+// ROUTER
+// ============================================================
+function renderPage(page) {
+  const c = document.getElementById('content');
+  const a = document.getElementById('topbar-actions');
+  a.innerHTML = '';
+  switch(page) {
+    case 'dashboard': renderDashboard(c,a); break;
+    case 'pipeline': renderPipeline(c,a); break;
+    case 'leads': renderLeads(c,a); break;
+    case 'quotes': renderQuotes(c,a); break;
+    case 'expirations': renderExpirations(c,a); break;
+    case 'claims': renderClaims(c,a); break;
+    case 'network': renderNetwork(c,a); break;
+    case 'compliance': renderCompliance(c,a); break;
+    case 'companies': renderCompanies(c,a); break;
+    case 'import': renderImport(c,a); break;
+  }
+}
+
+// ============================================================
+// DASHBOARD
+// ============================================================
+function renderDashboard(c,a) {
+  const total = LEADS.length;
+  const pipeline = LEADS.reduce((s,l) => s + l.valore, 0);
+  const won = LEADS.filter(l => l.stadio==='vinto').length;
+  const conv = total ? Math.round((won/total)*100) : 0;
+  
+  const stageCount = {};
+  LEADS.forEach(l => stageCount[l.stadio] = (stageCount[l.stadio]||0)+1);
+  const fonteCount = {};
+  LEADS.forEach(l => fonteCount[l.fonte] = (fonteCount[l.fonte]||0)+1);
+
+  c.innerHTML = `
+    <div class="stats-grid">
+      <div class="stat-card blue">
+        <div class="stat-icon blue"><span class="material-icons-round">groups</span></div>
+        <div class="stat-value">${total}</div>
+        <div class="stat-label">Lead Totali</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-icon green"><span class="material-icons-round">payments</span></div>
+        <div class="stat-value">€${pipeline.toLocaleString('it-IT')}</div>
+        <div class="stat-label">Valore Pipeline</div>
+      </div>
+      <div class="stat-card amber">
+        <div class="stat-icon amber"><span class="material-icons-round">trending_up</span></div>
+        <div class="stat-value">${conv}%</div>
+        <div class="stat-label">Tasso Conversione</div>
+      </div>
+      <div class="stat-card purple">
+        <div class="stat-icon purple"><span class="material-icons-round">description</span></div>
+        <div class="stat-value">${QUOTES.length}</div>
+        <div class="stat-label">Preventivi Emessi</div>
+      </div>
+    </div>
+    <div class="charts-row">
+      <div class="chart-card">
+        <h3>Distribuzione Pipeline</h3>
+        ${['nuovo','contattato','qualificato','proposta','vinto','perso'].map(s => `
+          <div class="bar-row">
+            <div class="bar-label">${s}</div>
+            <div class="bar-track">
+              <div class="bar-fill ${s}" style="width:${Math.max(((stageCount[s]||0)/total)*100,5)}%">
+                ${stageCount[s]||0}
+              </div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+      <div class="chart-card">
+        <h3>Fonti Principali</h3>
+        ${Object.entries(fonteCount).sort((a,b)=>b[1]-a[1]).map(([f,n]) => `
+          <div class="source-item">
+            <div class="source-dot" style="background:${FONTE_COLORS[f]||'#555'}"></div>
+            <div class="source-name">${f}</div>
+            <div class="source-count">${n}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+// ============================================================
+// PIPELINE
+// ============================================================
+function renderPipeline(c,a) {
+  a.innerHTML = `<button class="btn btn-primary btn-sm" onclick="showLeadForm()"><span class="material-icons-round">person_add</span> Lead</button>`;
+  const stages = ['nuovo','contattato','qualificato','proposta','vinto','perso'];
+  const headerColors = {nuovo:'var(--text3)',contattato:'var(--primary)',qualificato:'var(--purple)',proposta:'var(--warning)',vinto:'var(--success)',perso:'var(--danger)'};
+  c.innerHTML = `<div class="pipeline-board">` +
+    stages.map(s => {
+      const cards = LEADS.filter(l => l.stadio===s);
+      return `<div class="pipeline-col">
+        <div class="col-header">
+          <div class="col-header-title" style="color:${headerColors[s]}">${s}</div>
+          <div class="col-count">${cards.length}</div>
+        </div>
+        <div class="col-body">
+          ${cards.map(l => `
+            <div class="kanban-card" onclick="showLeadDetail('${l.id}')">
+              <div class="kc-company">${l.azienda}</div>
+              <div class="kc-contact">${l.contatto}</div>
+              <div class="kc-footer">
+                <div class="kc-value">€${l.valore.toLocaleString('it-IT')}</div>
+                <div class="kc-score" style="color:${l.ai_score>=70?'var(--success)':l.ai_score>=40?'var(--warning)':'var(--danger)'}">
+                  <span class="material-icons-round">bolt</span>${l.ai_score}
+                </div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>`;
+    }).join('') + `</div>`;
+}
+
+// ============================================================
+// LEADS TABLE
+// ============================================================
+function renderLeads(c,a) {
+  a.innerHTML = `<button class="btn btn-primary btn-sm" onclick="showLeadForm()"><span class="material-icons-round">person_add</span> Nuovo Lead</button>`;
+  const sort = state.leadSort;
+  const sorted = [...LEADS].sort((a,b) => {
+    const va = (a[sort.field]||'').toString().toLowerCase();
+    const vb = (b[sort.field]||'').toString().toLowerCase();
+    return sort.dir==='asc' ? va.localeCompare(vb) : vb.localeCompare(va);
+  });
+
+  c.innerHTML = `
+    <div class="table-wrapper">
+      <div class="table-toolbar">
+        <div class="search-box">
+          <span class="material-icons-round">search</span>
+          <input type="text" id="lead-search" placeholder="Cerca per nome, CF, email...">
+        </div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th data-field="azienda">Cognome</th>
+            <th data-field="contatto">Nome Completo</th>
+            <th data-field="email">Email</th>
+            <th data-field="cellulare">Cellulare</th>
+            <th data-field="codice_fiscale">Cod. Fiscale</th>
+            <th data-field="residenza">Residenza</th>
+            <th data-field="contratto_1">Contratto 1</th>
+            <th data-field="stadio">Stadio</th>
+            <th data-field="ai_score" style="text-align:center">AI</th>
+            <th>Azioni</th>
+          </tr>
+        </thead>
+        <tbody id="leads-tbody">
+          ${sorted.map(l => leadRow(l)).join('')}
+        </tbody>
+      </table>
+    </div>`;
+
+  c.querySelectorAll('th[data-field]').forEach(th => {
+    th.addEventListener('click', () => {
+      const f = th.dataset.field;
+      state.leadSort = {field:f, dir: state.leadSort.field===f && state.leadSort.dir==='asc'?'desc':'asc'};
+      renderPage('leads');
+    });
+  });
+
+  document.getElementById('lead-search').addEventListener('input', e => {
+    const val = e.target.value.toLowerCase();
+    document.querySelectorAll('#leads-tbody tr').forEach(row => {
+      row.classList.toggle('hidden', !row.textContent.toLowerCase().includes(val));
+    });
+  });
+
+  c.querySelectorAll('.btn-view').forEach(btn => btn.addEventListener('click', () => showLeadDetail(btn.dataset.id)));
+  c.querySelectorAll('.btn-edit').forEach(btn => btn.addEventListener('click', () => showLeadForm(btn.dataset.id)));
+  c.querySelectorAll('.btn-del').forEach(btn => btn.addEventListener('click', () => deleteLead(btn.dataset.id)));
+}
+
+function leadRow(l) {
+  const sc = l.ai_score>=70?'var(--success)':l.ai_score>=40?'var(--warning)':'var(--danger)';
+  return `<tr>
+    <td class="font-bold">${l.azienda}</td>
+    <td>${l.contatto}</td>
+    <td style="font-size:12px;color:var(--text2)">${l.email||'—'}</td>
+    <td class="mono" style="font-size:12px">${l.cellulare||'—'}</td>
+    <td class="mono" style="font-size:11px">${l.codice_fiscale||'—'}</td>
+    <td style="font-size:12px;max-width:130px">${l.residenza||'—'}</td>
+    <td class="mono" style="font-size:11px">${l.contratto_1||'—'}</td>
+    <td><span class="badge badge-${l.stadio}">${l.stadio}</span></td>
+    <td style="text-align:center;font-weight:700;color:${sc}" class="mono">${l.ai_score}</td>
+    <td>
+      <div class="table-actions">
+        <button class="btn-icon btn-view" data-id="${l.id}" title="Dettagli"><span class="material-icons-round">visibility</span></button>
+        <button class="btn-icon btn-edit" data-id="${l.id}" title="Modifica"><span class="material-icons-round">edit</span></button>
+        <button class="btn-icon btn-del" data-id="${l.id}" title="Elimina"><span class="material-icons-round">delete</span></button>
+      </div>
+    </td>
+  </tr>`;
+}
+
+// ============================================================
+// LEAD DETAIL
+// ============================================================
+function showLeadDetail(id) {
+  const l = LEADS.find(x => x.id===id);
+  if (!l) return;
+  const sc = l.ai_score>=70?'var(--success)':l.ai_score>=40?'var(--warning)':'var(--danger)';
+  showModal('Dettaglio Lead', `
+    <div class="detail-header">
+      <div class="detail-avatar">${l.azienda[0].toUpperCase()}</div>
+      <div>
+        <h3 style="font-size:18px">${l.azienda}</h3>
+        <div style="color:var(--text2);font-size:13px">${l.contatto}</div>
+      </div>
+      <div style="margin-left:auto"><span class="badge badge-${l.stadio}">${l.stadio}</span></div>
+    </div>
+    <div class="detail-grid">
+      <div class="detail-item"><label>Email</label><span>${l.email||'—'}</span></div>
+      <div class="detail-item"><label>Telefono</label><span>${l.telefono||l.cellulare||'—'}</span></div>
+      <div class="detail-item"><label>Valore</label><span style="color:var(--primary)">€ ${l.valore.toLocaleString('it-IT')}</span></div>
+      <div class="detail-item"><label>Fonte</label><span>${l.fonte}</span></div>
+    </div>
+    <div class="section-title"><span class="material-icons-round">badge</span> Dati Anagrafici</div>
+    <div class="detail-grid">
+      <div class="detail-item"><label>Codice Fiscale</label><span>${l.codice_fiscale||'—'}</span></div>
+      <div class="detail-item"><label>Data Nascita</label><span>${l.data_nascita||'—'}</span></div>
+      <div class="detail-item"><label>Residenza</label><span style="font-family:inherit;font-size:12px">${l.residenza||'—'}</span></div>
+      <div class="detail-item"><label>Cellulare</label><span>${l.cellulare||'—'}</span></div>
+      <div class="detail-item"><label>Documento</label><span>${l.tipo_documento||'—'}</span></div>
+      <div class="detail-item"><label>N. Documento</label><span>${l.numero_documento||'—'}</span></div>
+    </div>
+    <div class="section-title"><span class="material-icons-round">description</span> Contratti</div>
+    <div class="detail-grid">
+      <div class="detail-item"><label>Contratto 1</label><span>${l.contratto_1||'—'}</span></div>
+      <div class="detail-item"><label>Contratto 2</label><span>${l.contratto_2||'—'}</span></div>
+    </div>
+    <div class="section-title"><span class="material-icons-round">psychology</span> Punteggio AI</div>
+    <div class="ai-score-row" style="margin-bottom:16px">
+      <div class="ai-score-num" style="color:${sc}">${l.ai_score}<span style="font-size:14px;color:var(--text3)">/100</span></div>
+      <div style="flex:1;background:var(--surface2);border-radius:4px;height:8px;overflow:hidden;margin-left:12px">
+        <div style="width:${l.ai_score}%;height:100%;background:${sc};border-radius:4px;transition:width 0.5s"></div>
+      </div>
+      <button class="btn btn-secondary btn-sm" onclick="runAI('${l.id}')"><span class="material-icons-round">bolt</span> Analizza</button>
+    </div>
+    <div class="section-title"><span class="material-icons-round">history</span> Attività Recenti</div>
+    <div class="timeline">
+      <div class="timeline-item"><div class="timeline-dot"></div><div><div class="timeline-desc"><strong>Import</strong>: Lead importato dall'anagrafica</div><div class="timeline-time">14/04/2026 09:23</div></div></div>
+      <div class="timeline-item"><div class="timeline-dot" style="background:var(--success)"></div><div><div class="timeline-desc"><strong>Cambio stadio</strong>: → ${l.stadio}</div><div class="timeline-time">14/04/2026 16:44</div></div></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal()">Chiudi</button>
+      <button class="btn btn-primary" onclick="closeModal();showLeadForm('${l.id}')"><span class="material-icons-round">edit</span> Modifica</button>
+    </div>
+  `);
+}
+
+function runAI(id) {
+  const l = LEADS.find(x => x.id===id);
+  if (!l) return;
+  const newScore = Math.min(100, Math.max(20, l.ai_score + Math.floor(Math.random()*20)-5));
+  l.ai_score = newScore;
+  showToast(`AI score aggiornato: ${newScore}/100`,'success');
+  showLeadDetail(id);
+}
+
+// ============================================================
+// LEAD FORM
+// ============================================================
+function showLeadForm(id=null) {
+  const l = id ? LEADS.find(x=>x.id===id) : null;
+  showModal(l?'Modifica Lead':'Nuovo Lead', `
+    <form onsubmit="saveLead(event,'${id||''}')">
+      <div class="form-row">
+        <div class="form-group"><label>Azienda / Cognome</label><input class="form-input" id="f-azienda" value="${l?.azienda||''}" required></div>
+        <div class="form-group"><label>Nome Completo</label><input class="form-input" id="f-contatto" value="${l?.contatto||''}" required></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Email</label><input type="email" class="form-input" id="f-email" value="${l?.email||''}"></div>
+        <div class="form-group"><label>Cellulare</label><input class="form-input" id="f-cellulare" value="${l?.cellulare||''}"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Valore (€)</label><input type="number" class="form-input" id="f-valore" value="${l?.valore||0}"></div>
+        <div class="form-group"><label>Fonte</label>
+          <select class="form-input" id="f-fonte">
+            ${['referral','sito','social','chiamata','evento','altro'].map(f=>`<option value="${f}" ${l?.fonte===f?'selected':''}>${f}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Codice Fiscale</label><input class="form-input" id="f-cf" value="${l?.codice_fiscale||''}"></div>
+        <div class="form-group"><label>Data Nascita</label><input class="form-input" id="f-nascita" value="${l?.data_nascita||''}"></div>
+      </div>
+      <div class="form-group"><label>Residenza</label><input class="form-input" id="f-residenza" value="${l?.residenza||''}"></div>
+      <div class="form-row">
+        <div class="form-group"><label>Stadio</label>
+          <select class="form-input" id="f-stadio">
+            ${['nuovo','contattato','qualificato','proposta','vinto','perso'].map(s=>`<option value="${s}" ${l?.stadio===s?'selected':''}>${s}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group"><label>Contratto 1</label><input class="form-input" id="f-c1" value="${l?.contratto_1||''}"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal()">Annulla</button>
+        <button type="submit" class="btn btn-primary">Salva</button>
+      </div>
+    </form>
+  `);
+}
+
+function saveLead(e, id) {
+  e.preventDefault();
+  const data = {
+    azienda: document.getElementById('f-azienda').value,
+    contatto: document.getElementById('f-contatto').value,
+    email: document.getElementById('f-email').value||null,
+    cellulare: document.getElementById('f-cellulare').value||null,
+    valore: parseFloat(document.getElementById('f-valore').value)||0,
+    fonte: document.getElementById('f-fonte').value,
+    codice_fiscale: document.getElementById('f-cf').value||null,
+    data_nascita: document.getElementById('f-nascita').value||null,
+    residenza: document.getElementById('f-residenza').value||null,
+    stadio: document.getElementById('f-stadio').value,
+    contratto_1: document.getElementById('f-c1').value||null,
+  };
+  if (id) {
+    const idx = LEADS.findIndex(x=>x.id===id);
+    if (idx>=0) Object.assign(LEADS[idx], data);
+    showToast('Lead aggiornato');
+  } else {
+    data.id = String(Date.now());
+    data.ai_score = Math.floor(Math.random()*60)+20;
+    LEADS.push(data);
+    showToast('Lead creato');
+  }
+  closeModal();
+  renderPage(state.currentPage);
+}
+
+function deleteLead(id) {
+  if (!confirm('Eliminare questo lead?')) return;
+  const idx = LEADS.findIndex(x=>x.id===id);
+  if (idx>=0) LEADS.splice(idx,1);
+  showToast('Lead eliminato');
+  renderPage('leads');
+}
+
+// ============================================================
+// QUOTES
+// ============================================================
+function renderQuotes(c,a) {
+  a.innerHTML = `<button class="btn btn-primary btn-sm" onclick="showQuoteForm()"><span class="material-icons-round">add</span> Crea Preventivo</button>`;
+  if (!QUOTES.length) {
+    c.innerHTML = `<div class="empty-state"><span class="material-icons-round">receipt_long</span><h3>Nessun preventivo</h3></div>`;
+    return;
+  }
+  c.innerHTML = `<div class="quotes-grid">` + QUOTES.map(q => {
+    const lead = LEADS.find(l=>l.id===q.lead_id);
+    return `<div class="quote-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div class="quote-num">${q.numero}</div>
+        <span class="badge badge-${q.stato}">${q.stato}</span>
+      </div>
+      <div class="quote-amount">€${q.importo.toLocaleString('it-IT')}</div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:4px">${lead?.contatto||'—'}</div>
+      <div style="font-size:12px;color:var(--text3)">${q.note}</div>
+      <div class="quote-footer">
+        <span style="font-size:11px;color:var(--text3)">${q.created_at}</span>
+        <button class="btn-icon" onclick="deleteQuote('${q.id}')"><span class="material-icons-round">delete</span></button>
+      </div>
+    </div>`;
+  }).join('') + `</div>`;
+}
+
+function showQuoteForm() {
+  showModal('Crea Preventivo', `
+    <form onsubmit="saveQuote(event)">
+      <div class="form-group"><label>Cliente</label>
+        <select class="form-input" id="q-lead">
+          ${LEADS.map(l=>`<option value="${l.id}">${l.contatto}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group"><label>Note / Oggetto</label><input class="form-input" id="q-note" placeholder="Tipo di polizza..."></div>
+      <div class="form-group"><label>Importo (€)</label><input type="number" class="form-input" id="q-importo" required placeholder="0.00"></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal()">Annulla</button>
+        <button type="submit" class="btn btn-primary">Genera Preventivo</button>
+      </div>
+    </form>
+  `);
+}
+
+function saveQuote(e) {
+  e.preventDefault();
+  QUOTES.push({
+    id: 'q'+Date.now(), numero:`PRV-${String(QUOTES.length+1).padStart(4,'0')}`,
+    lead_id: document.getElementById('q-lead').value,
+    importo: parseFloat(document.getElementById('q-importo').value)||0,
+    note: document.getElementById('q-note').value,
+    stato: 'bozza',
+    created_at: new Date().toISOString().split('T')[0]
+  });
+  showToast('Preventivo creato');
+  closeModal();
+  renderPage('quotes');
+}
+
+function deleteQuote(id) {
+  if (!confirm('Eliminare questo preventivo?')) return;
+  QUOTES = QUOTES.filter(q=>q.id!==id);
+  showToast('Preventivo eliminato');
+  renderPage('quotes');
+}
+
+// ============================================================
+// EXPIRATIONS
+// ============================================================
+function renderExpirations(c,a) {
+  a.innerHTML = `<button class="btn btn-primary btn-sm" onclick="showExpirationForm()"><span class="material-icons-round">add</span> Nuova Scadenza</button>`;
+  c.innerHTML = `
+    <div class="table-wrapper">
+      <table>
+        <thead><tr>
+          <th>Cliente</th><th>Polizza</th><th>Compagnia</th><th>Scadenza</th>
+          <th style="text-align:right">Premio</th><th style="text-align:center">Stato</th><th></th>
+        </tr></thead>
+        <tbody>
+          ${EXPIRATIONS.map(e => {
+            const d = new Date(e.scadenza);
+            const diff = Math.ceil((d-Date.now())/(1000*60*60*24));
+            const cls = diff<0?'badge-perso':diff<=15?'badge-perso':diff<=30?'badge-proposta':'badge-vinto';
+            const label = diff<0?'SCADUTA':diff<=15?'IMMINENTE':diff<=30?'IN SCADENZA':'Attiva';
+            return `<tr class="${diff<=15?'exp-danger':diff<=30?'exp-warning':''}">
+              <td class="font-bold">${e.cliente}</td>
+              <td>${e.polizza}</td>
+              <td>${e.compagnia}</td>
+              <td class="mono">${d.toLocaleDateString('it-IT')}</td>
+              <td style="text-align:right;font-weight:700" class="mono">€${e.premio.toLocaleString('it-IT')}</td>
+              <td style="text-align:center"><span class="badge ${cls}">${label}</span></td>
+              <td><button class="btn-icon" onclick="deleteExpiration(${e.id})"><span class="material-icons-round">delete</span></button></td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+function showExpirationForm() {
+  showModal('Nuova Scadenza Polizza', `
+    <form onsubmit="saveExpiration(event)">
+      <div class="form-row">
+        <div class="form-group"><label>Cliente</label>
+          <select class="form-input" id="ex-cliente">
+            ${LEADS.map(l=>`<option value="${l.contatto}">${l.contatto}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group"><label>Tipo Polizza</label><input class="form-input" id="ex-polizza" placeholder="es. Auto RBC" required></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Compagnia</label>
+          <select class="form-input" id="ex-compagnia">
+            ${COMPANIES.map(c=>`<option>${c}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group"><label>Data Scadenza</label><input type="date" class="form-input" id="ex-data" required></div>
+      </div>
+      <div class="form-group"><label>Premio (€)</label><input type="number" class="form-input" id="ex-premio" value="0"></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal()">Annulla</button>
+        <button type="submit" class="btn btn-primary">Salva</button>
+      </div>
+    </form>
+  `);
+}
+
+function saveExpiration(e) {
+  e.preventDefault();
+  EXPIRATIONS.push({
+    id: Date.now(),
+    cliente: document.getElementById('ex-cliente').value,
+    polizza: document.getElementById('ex-polizza').value,
+    compagnia: document.getElementById('ex-compagnia').value,
+    scadenza: document.getElementById('ex-data').value,
+    premio: parseFloat(document.getElementById('ex-premio').value)||0
+  });
+  showToast('Scadenza aggiunta');
+  closeModal();
+  renderPage('expirations');
+}
+
+function deleteExpiration(id) {
+  EXPIRATIONS = EXPIRATIONS.filter(e=>e.id!==id);
+  showToast('Scadenza rimossa');
+  renderPage('expirations');
+}
+
+// ============================================================
+// CLAIMS
+// ============================================================
+function renderClaims(c,a) {
+  a.innerHTML = `<button class="btn btn-primary btn-sm" onclick="showClaimForm()"><span class="material-icons-round">add</span> Nuovo Sinistro</button>`;
+  const open = CLAIMS.filter(x=>x.stato!=='chiuso').length;
+  c.innerHTML = `
+    <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:24px">
+      <div class="stat-card red" style="--c:var(--danger)">
+        <div class="stat-icon" style="background:var(--danger-dim);color:var(--danger)"><span class="material-icons-round">warning</span></div>
+        <div class="stat-value">${open}</div><div class="stat-label">Sinistri Aperti</div>
+      </div>
+      <div class="stat-card amber">
+        <div class="stat-icon amber"><span class="material-icons-round">search</span></div>
+        <div class="stat-value">${CLAIMS.filter(x=>x.stato==='perizia').length}</div><div class="stat-label">In Perizia</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-icon green"><span class="material-icons-round">check</span></div>
+        <div class="stat-value">${CLAIMS.filter(x=>x.stato==='chiuso').length}</div><div class="stat-label">Chiusi</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px">
+      ${CLAIMS.map(cl => `
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <span style="font-weight:700;color:var(--primary);font-family:'DM Mono',monospace">${cl.id}</span>
+            <span class="badge badge-${cl.stato==='chiuso'?'vinto':cl.stato==='aperto'?'perso':'proposta'}">${cl.stato}</span>
+          </div>
+          <div style="font-size:15px;font-weight:700;margin-bottom:4px">${cl.cliente}</div>
+          <div style="font-size:12px;color:var(--text2);margin-bottom:12px">${cl.tipo} · ${cl.compagnia}</div>
+          <div style="display:flex;justify-content:space-between;border-top:1px solid var(--border);padding-top:12px">
+            <span style="font-size:12px;color:var(--text3)">${cl.data}</span>
+            <span style="font-weight:700;font-family:'DM Mono',monospace">€${cl.importo.toLocaleString('it-IT')}</span>
+          </div>
+        </div>
+      `).join('')}
+    </div>`;
+}
+
+function showClaimForm() {
+  showModal('Nuovo Sinistro', `
+    <form onsubmit="saveClaim(event)">
+      <div class="form-row">
+        <div class="form-group"><label>Cliente</label>
+          <select class="form-input" id="cl-cliente">
+            ${LEADS.map(l=>`<option value="${l.contatto}">${l.contatto}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group"><label>Compagnia</label>
+          <select class="form-input" id="cl-compagnia">${COMPANIES.map(c=>`<option>${c}</option>`).join('')}</select>
+        </div>
+      </div>
+      <div class="form-group"><label>Tipo Sinistro</label><input class="form-input" id="cl-tipo" placeholder="es. Auto - Tamponamento" required></div>
+      <div class="form-row">
+        <div class="form-group"><label>Data</label><input type="date" class="form-input" id="cl-data" required></div>
+        <div class="form-group"><label>Stato</label>
+          <select class="form-input" id="cl-stato">
+            <option value="aperto">Aperto</option><option value="perizia">Perizia</option>
+            <option value="liquidazione">Liquidazione</option><option value="chiuso">Chiuso</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group"><label>Importo Stimato (€)</label><input type="number" class="form-input" id="cl-importo" value="0"></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal()">Annulla</button>
+        <button type="submit" class="btn btn-primary">Registra</button>
+      </div>
+    </form>
+  `);
+}
+
+function saveClaim(e) {
+  e.preventDefault();
+  CLAIMS.unshift({
+    id: 'SIN-'+String(Date.now()).slice(-4),
+    cliente: document.getElementById('cl-cliente').value,
+    tipo: document.getElementById('cl-tipo').value,
+    compagnia: document.getElementById('cl-compagnia').value,
+    data: document.getElementById('cl-data').value,
+    stato: document.getElementById('cl-stato').value,
+    importo: parseFloat(document.getElementById('cl-importo').value)||0
+  });
+  showToast('Sinistro registrato');
+  closeModal();
+  renderPage('claims');
+}
+
+// ============================================================
+// NETWORK
+// ============================================================
+function renderNetwork(c,a) {
+  const initials = n => n.split(' ').map(x=>x[0]).join('').slice(0,2);
+  c.innerHTML = `
+    <div class="table-wrapper" style="margin-bottom:24px">
+      <div class="table-toolbar"><h3 style="font-size:14px;font-weight:700">Performance Collaboratori</h3></div>
+      <table>
+        <thead><tr>
+          <th>Collaboratore</th><th>Ruolo</th>
+          <th style="text-align:right">Premi Totali</th>
+          <th style="text-align:center">Contratti</th>
+          <th style="text-align:center">Trend</th>
+        </tr></thead>
+        <tbody>
+          ${NETWORK.map(n => `<tr>
+            <td class="font-bold">${n.nome}</td>
+            <td style="color:var(--text2);font-size:12px">${n.ruolo}</td>
+            <td style="text-align:right;font-weight:700" class="mono">€${n.premi.toLocaleString('it-IT')}</td>
+            <td style="text-align:center;font-weight:700">${n.contratti}</td>
+            <td style="text-align:center;font-weight:700;color:var(--success)">${n.trend}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+// ============================================================
+// COMPLIANCE
+// ============================================================
+function renderCompliance(c,a) {
+  const sample = LEADS.slice(0,12).map((l,i) => ({
+    cliente: l.contatto,
+    firma: i%3!==0,
+    all3: i%4!==2,
+    all4: i%2===0
+  }));
+  c.innerHTML = `
+    <div class="table-wrapper">
+      <div class="table-toolbar">
+        <div>
+          <div style="font-size:14px;font-weight:700">Checklist IVASS & Privacy</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:2px">Verifica documentazione clienti per conformità normativa</div>
+        </div>
+      </div>
+      <table>
+        <thead><tr>
+          <th>Cliente</th>
+          <th style="text-align:center">Firma Digitale</th>
+          <th style="text-align:center">Allegato 3</th>
+          <th style="text-align:center">Allegato 4</th>
+          <th>Stato</th>
+        </tr></thead>
+        <tbody>
+          ${sample.map(r => {
+            const ok = [r.firma,r.all3,r.all4].filter(Boolean).length;
+            return `<tr>
+              <td class="font-bold">${r.cliente}</td>
+              <td style="text-align:center"><span class="material-icons-round check-icon ${r.firma?'ok':'no'}">${r.firma?'check_circle':'cancel'}</span></td>
+              <td style="text-align:center"><span class="material-icons-round check-icon ${r.all3?'ok':'no'}">${r.all3?'check_circle':'cancel'}</span></td>
+              <td style="text-align:center"><span class="material-icons-round check-icon ${r.all4?'ok':'no'}">${r.all4?'check_circle':'cancel'}</span></td>
+              <td><span class="badge ${ok===3?'badge-vinto':ok>0?'badge-proposta':'badge-perso'}">${ok===3?'COMPLETO':'INCOMPLETO'}</span></td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+// ============================================================
+// COMPANIES
+// ============================================================
+function renderCompanies(c,a) {
+  a.innerHTML = `<button class="btn btn-primary btn-sm" onclick="addCompany()"><span class="material-icons-round">add</span> Nuova Compagnia</button>`;
+  c.innerHTML = `<div class="companies-grid">` +
+    COMPANIES.map((co,i) => `
+      <div class="company-card">
+        <div class="company-info">
+          <div class="company-icon"><span class="material-icons-round">corporate_fare</span></div>
+          <span style="font-weight:700">${co}</span>
+        </div>
+        <button class="btn-icon" onclick="removeCompany(${i})"><span class="material-icons-round">delete</span></button>
+      </div>
+    `).join('') + `</div>`;
+}
+
+function addCompany() {
+  const name = prompt('Nome della nuova compagnia:');
+  if (name?.trim()) { COMPANIES.push(name.trim()); showToast('Compagnia aggiunta'); renderPage('companies'); }
+}
+function removeCompany(i) {
+  if (confirm(`Rimuovere ${COMPANIES[i]}?`)) { COMPANIES.splice(i,1); renderPage('companies'); }
+}
+
+// ============================================================
+// IMPORT
+// ============================================================
+function renderImport(c,a) {
+  c.innerHTML = `
+    <div class="import-zone">
+      <div class="dropzone" id="dz" onclick="document.getElementById('csv-input').click()">
+        <span class="material-icons-round">upload_file</span>
+        <h3>Trascina il file CSV qui</h3>
+        <p style="font-size:12px;color:var(--text3);margin-top:4px">Formato: Nome, Cod. Fiscale, Residenza, Cellulare, E-mail, Contratti...</p>
+        <input type="file" id="csv-input" accept=".csv" onchange="handleImport(event)">
+        <div style="margin-top:16px"><button class="btn btn-primary btn-sm" type="button">Seleziona file</button></div>
+      </div>
+      <div id="import-result" style="margin-top:20px"></div>
+    </div>`;
+}
+
+function handleImport(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const lines = ev.target.result.split('\n').filter(l=>l.trim()).length;
+    const imported = Math.max(0, lines-5);
+    document.getElementById('import-result').innerHTML = `
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px">
+        <h3 style="margin-bottom:16px">Risultato Importazione</h3>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
+          <div style="text-align:center"><div style="font-size:28px;font-weight:700;font-family:'DM Mono',monospace">${lines}</div><div style="font-size:12px;color:var(--text2)">Righe trovate</div></div>
+          <div style="text-align:center"><div style="font-size:28px;font-weight:700;color:var(--success);font-family:'DM Mono',monospace">${imported}</div><div style="font-size:12px;color:var(--text2)">Importate</div></div>
+          <div style="text-align:center"><div style="font-size:28px;font-weight:700;color:var(--danger);font-family:'DM Mono',monospace">0</div><div style="font-size:12px;color:var(--text2)">Errori</div></div>
+        </div>
+      </div>`;
+    showToast(`Importazione completata: ${imported} lead`);
+  };
+  reader.readAsText(file);
+}
+
+// ============================================================
+// MODAL & TOAST
+// ============================================================
+function showModal(title, body) {
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-body').innerHTML = body;
+  document.getElementById('modal-overlay').classList.remove('hidden');
+}
+function closeModal() { document.getElementById('modal-overlay').classList.add('hidden'); }
+document.getElementById('modal-overlay').addEventListener('click', e => { if(e.target===document.getElementById('modal-overlay')) closeModal(); });
+
+function showToast(msg, type='success') {
+  const tc = document.getElementById('toast-container');
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.innerHTML = `<span class="material-icons-round">${type==='error'?'error':'check_circle'}</span><span>${msg}</span>`;
+  tc.appendChild(t);
+  setTimeout(() => t.remove(), 4000);
+}
+
+// ============================================================
+// BOOT
+// ============================================================
+navigateTo('dashboard');
+</script>
+</body>
+</html>
