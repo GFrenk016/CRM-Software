@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% set section = "sinistri" %}
+{% block title %}Sinistri{% endblock %}
+{% block page_title %}Gestione sinistri{% endblock %}
+{% block actions %}
+  <a class="btn btn-primary btn-sm" href="{{ url_for('sinistri.form') }}"><svg class="icon icon-sm"><use href="#i-plus"/></svg> Nuovo sinistro</a>
+{% endblock %}
+
+{% block content %}
+<div class="stats-grid" style="grid-template-columns:repeat(3,1fr)">
+  <div class="stat-card red"><div class="stat-icon red"><svg class="icon"><use href="#i-alert"/></svg></div><div class="stat-value">{{ conteggi.aperto }}</div><div class="stat-label">Aperti</div></div>
+  <div class="stat-card amber"><div class="stat-icon amber"><svg class="icon"><use href="#i-search"/></svg></div><div class="stat-value">{{ conteggi.perizia }}</div><div class="stat-label">In perizia</div></div>
+  <div class="stat-card green"><div class="stat-icon green"><svg class="icon"><use href="#i-check"/></svg></div><div class="stat-value">{{ conteggi.chiuso }}</div><div class="stat-label">Chiusi</div></div>
+</div>
+
+<div class="table-wrapper">
+  <div class="table-toolbar">
+    <form method="get"><select class="form-input" name="stato" onchange="this.form.submit()" style="width:auto">
+      <option value="">Tutti gli stati</option>
+      {% for s in stati %}<option value="{{ s }}" {{ 'selected' if stato_sel == s }}>{{ s }}</option>{% endfor %}
+    </select></form>
+  </div>
+  <div class="table-scroll">
+    <table>
+      <thead><tr><th>Numero</th><th>Cliente</th><th>Tipo</th><th>Polizza</th><th>Apertura</th><th class="text-right">Importo</th><th class="text-center">Stato</th><th></th></tr></thead>
+      <tbody>
+        {% for s in sinistri %}
+        <tr>
+          <td class="mono font-bold">{{ s.numero }}</td>
+          <td><a href="{{ url_for('clienti.detail', cliente_id=s.cliente_id) }}">{{ s.cliente.nome_completo }}</a></td>
+          <td>{{ s.tipo }}</td>
+          <td class="mono"><a href="{{ url_for('contratti.detail', contratto_id=s.contratto_id) }}">{{ s.contratto.numero_polizza }}</a></td>
+          <td class="mono">{{ s.data_apertura|data_it }}</td>
+          <td class="text-right mono">{{ s.importo_stimato|eur }}</td>
+          <td class="text-center"><span class="badge badge-{{ s.stato }}">{{ s.stato }}</span></td>
+          <td><div class="table-actions">
+            <a class="btn-icon" href="{{ url_for('sinistri.form', sin_id=s.id) }}"><svg class="icon icon-sm"><use href="#i-edit"/></svg></a>
+            <form method="post" action="{{ url_for('sinistri.elimina', sin_id=s.id) }}" onsubmit="return confirm('Eliminare?')"><button class="btn-icon"><svg class="icon icon-sm"><use href="#i-trash"/></svg></button></form>
+          </div></td>
+        </tr>
+        {% else %}<tr><td colspan="8"><div class="empty-state"><svg class="icon"><use href="#i-alert"/></svg><h3>Nessun sinistro</h3></div></td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

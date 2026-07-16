@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% set section = "clienti" %}
+{% block title %}{{ c.nome_completo }}{% endblock %}
+{% block page_title %}Scheda cliente{% endblock %}
+{% block actions %}
+  <a class="btn btn-secondary btn-sm" href="{{ url_for('clienti.index') }}">← Elenco</a>
+  <a class="btn btn-primary btn-sm" href="{{ url_for('clienti.form', cliente_id=c.id) }}">
+    <svg class="icon icon-sm"><use href="#i-edit"/></svg> Modifica
+  </a>
+{% endblock %}
+
+{% block content %}
+<div class="detail-header">
+  <div class="detail-avatar">{{ c.iniziali }}</div>
+  <div>
+    <h3 style="font-size:20px">{{ c.nome_completo }}</h3>
+    <div class="muted">{{ c.professione or '—' }}{% if c.citta %} · {{ c.citta }}{% endif %}</div>
+  </div>
+  <form method="post" action="{{ url_for('clienti.delete', cliente_id=c.id) }}" style="margin-left:auto"
+        onsubmit="return confirm('Eliminare definitivamente questo cliente e tutti i dati collegati?')">
+    <button class="btn btn-danger btn-sm"><svg class="icon icon-sm"><use href="#i-trash"/></svg> Elimina</button>
+  </form>
+</div>
+
+<div class="detail-cols">
+  <!-- Colonna sinistra: anagrafica + documenti -->
+  <div>
+    <div class="card">
+      <div class="section-title" style="margin-top:0"><span class="st-left">Dati anagrafici</span></div>
+      <div class="detail-grid">
+        <div class="detail-item"><label>Codice fiscale</label><span class="mono">{{ c.codice_fiscale or '—' }}</span></div>
+        <div class="detail-item"><label>Data nascita</label><span>{{ c.data_nascita|data_it }}</span></div>
+        <div class="detail-item"><label>Cellulare</label><span>{{ c.cellulare or '—' }}</span></div>
+        <div class="detail-item"><label>Telefono</label><span>{{ c.telefono or '—' }}</span></div>
+        <div class="detail-item" style="grid-column:span 2"><label>Email</label><span>{{ c.email or '—' }}</span></div>
+        <div class="detail-item" style="grid-column:span 2"><label>Indirizzo</label><span>{{ c.indirizzo or '—' }}{% if c.cap %}, {{ c.cap }}{% endif %} {{ c.citta or '' }} {% if c.provincia %}({{ c.provincia }}){% endif %}</span></div>
+        <div class="detail-item"><label>Documento</label><span>{{ c.tipo_documento or '—' }}</span></div>
+        <div class="detail-item"><label>N. documento</label><span class="mono">{{ c.numero_documento or '—' }}</span></div>
+        <div class="detail-item"><label>Stato civile</label><span>{{ c.stato_civile or '—' }}</span></div>
+        <div class="detail-item"><label>Convivenza</label><span>{{ 'Sì' if c.convivenza else 'No' }}</span></div>
+        <div class="detail-item"><label>Figli</label><span>{{ c.num_figli or 0 }}</span></div>
+      </div>
+      {% if c.note %}<div class="detail-item" style="margin-top:12px"><label>Note</label><span>{{ c.note }}</span></div>{% endif %}
+    </div>
+
+    <!-- DOCUMENTI: upload / anteprima / download -->
+    <div class="section-title">
+      <span class="st-left"><svg class="icon icon-sm"><use href="#i-file-text"/></svg> Documenti</span>
+    </div>
+    <form class="card" method="post" enctype="multipart/form-data"
+          action="{{ url_for('documenti.carica', cliente_id=c.id) }}" style="padding:14px">
+      <div class="form-row">
+        <div class="form-group" style="margin-bottom:8px">
+          <label>Tipo</label>
+          <input class="form-input" name="tipo" placeholder="es. Carta identità, Modulo firmato">
+        </div>
+        <div class="form-group" style="margin-bottom:8px">
+          <label>File</label>
+          <input class="form-input" type="file" name="file" required>
+        </div>
+      </div>
+      <button class="btn btn-primary btn-sm"><svg class="icon icon-sm"><use href="#i-upload"/></svg> Carica</button>
+    </form>
+    <div class="related-list" style="margin-top:10px">
+      {% for d in c.documenti %}
+      <div class="related-item">
+        <div>
+          <div style="font-weight:600">{{ d.filename }}</div>
+          <div class="muted" style="font-size:11px">{{ d.tipo }} · {{ (d.size / 1024)|round|int }} KB</div>
+        </div>
+        <div class="table-actions">
+          <button class="btn-icon" title="Anteprima"
+            onclick="previewDoc({{ d.id }}, {{ d.filename|tojson }}, {{ d.is_immagine|tojson }}, {{ d.is_pdf|tojson }})">
+            <svg class="icon icon-sm"><use href="#i-eye"/></svg></button>
+          <a class="btn-icon" href="{{ url_for('documenti.download', doc_id=d.id) }}" title="Scarica"><svg class="icon icon-sm"><use href="#i-download"/></svg></a>
+          <form method="post" action="{{ url_for('documenti.elimina', doc_id=d.id) }}" onsubmit="return confirm('Eliminare il documento?')">
+            <button class="btn-icon" title="Elimina"><svg class="icon icon-sm"><use href="#i-trash"/></svg></button>
+          </form>
+        </div>
+      </div>
+      {% else %}<div class="related-empty">Nessun documento caricato.</div>{% endfor %}
+    </div>
+  </div>
+
+  <!-- Colonna destra: tutte le entità collegate (360°) -->
+  <div>
+    <!-- LEAD -->
+    <div class="section-title" style="margin-top:0"><span class="st-left"><svg class="icon icon-sm"><use href="#i-kanban"/></svg> Pipeline / Lead</span></div>
+    <div class="related-list">
+      {% for l in c.lead %}
+      <div class="related-item">
+        <div>
+          <span class="badge badge-{{ l.stadio }}">{{ l.stadio }}</span>
+          <span class="muted" style="font-size:12px"> · {{ l.prossima_azione or 'nessuna azione' }}</span>
+        </div>
+        <div><span class="mono">{{ l.valore_stimato|eur }}</span> <span class="muted">· punteggio {{ l.punteggio }}</span></div>
+      </div>
+      {% else %}<div class="related-empty">Nessun lead.</div>{% endfor %}
+    </div>
+
+    <!-- PREVENTIVI -->
+    <div class="section-title"><span class="st-left"><svg class="icon icon-sm"><use href="#i-file-text"/></svg> Preventivi</span></div>
+    <div class="related-list">
+      {% for p in c.preventivi %}
+      <div class="related-item">
+        <div><span class="mono">{{ p.numero }}</span> · {{ p.oggetto or '—' }}
+          <span class="muted">{{ p.compagnia.nome if p.compagnia else '' }}</span></div>
+        <div><span class="badge badge-{{ p.stato }}">{{ p.stato }}</span> <span class="mono">{{ p.premio_proposto|eur }}</span></div>
+      </div>
+      {% else %}<div class="related-empty">Nessun preventivo.</div>{% endfor %}
+    </div>
+
+    <!-- CONTRATTI -->
+    <div class="section-title"><span class="st-left"><svg class="icon icon-sm"><use href="#i-shield"/></svg> Contratti attivi</span></div>
+    <div class="related-list">
+      {% for k in c.contratti %}
+      <div class="related-item">
+        <div>
+          <a href="{{ url_for('contratti.detail', contratto_id=k.id) }}"><span class="mono">{{ k.numero_polizza }}</span></a>
+          · {{ k.ramo or '—' }} <span class="muted">{{ k.compagnia.nome if k.compagnia else '' }}</span>
+          {% if k.preventivo %}<span class="muted" style="font-size:11px"> (da {{ k.preventivo.numero }})</span>{% endif %}
+        </div>
+        <div><span class="mono">{{ k.premio|eur }}</span> <span class="muted">scad. {{ k.data_scadenza|data_it }}</span></div>
+      </div>
+      {% else %}<div class="related-empty">Nessun contratto.</div>{% endfor %}
+    </div>
+
+    <!-- SCADENZE (derivate) -->
+    <div class="section-title"><span class="st-left"><svg class="icon icon-sm"><use href="#i-calendar"/></svg> Scadenze / Rinnovi</span></div>
+    <div class="related-list">
+      {% for k in c.scadenze %}
+      <div class="related-item">
+        <div>{{ k.ramo or k.numero_polizza }} <span class="muted">{{ k.compagnia.nome if k.compagnia else '' }}</span></div>
+        <div><span class="badge badge-{{ k.stato_scadenza }}">{{ k.stato_scadenza|replace('_',' ') }}</span> <span class="mono">{{ k.data_scadenza|data_it }}</span></div>
+      </div>
+      {% else %}<div class="related-empty">Nessuna scadenza.</div>{% endfor %}
+    </div>
+
+    <!-- SINISTRI -->
+    <div class="section-title"><span class="st-left"><svg class="icon icon-sm"><use href="#i-alert"/></svg> Sinistri</span></div>
+    <div class="related-list">
+      {% for s in c.sinistri %}
+      <div class="related-item">
+        <div><span class="mono">{{ s.numero }}</span> · {{ s.tipo }}</div>
+        <div><span class="badge badge-{{ s.stato }}">{{ s.stato }}</span> <span class="mono">{{ s.importo_stimato|eur }}</span></div>
+      </div>
+      {% else %}<div class="related-empty">Nessun sinistro.</div>{% endfor %}
+    </div>
+
+    <!-- INCASSI -->
+    <div class="section-title"><span class="st-left"><svg class="icon icon-sm"><use href="#i-wallet"/></svg> Incassi / Provvigioni</span></div>
+    <div class="related-list">
+      {% for i in c.incassi %}
+      <div class="related-item">
+        <div>{{ i.descrizione or 'Provvigione' }} <span class="muted">prev. {{ i.data_prevista|data_it }}</span></div>
+        <div><span class="badge badge-{{ i.stato }}">{{ i.stato|replace('_',' ') }}</span> <span class="mono">{{ i.importo|eur }}</span></div>
+      </div>
+      {% else %}<div class="related-empty">Nessun incasso.</div>{% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

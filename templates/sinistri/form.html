@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% set section = "sinistri" %}
+{% block title %}{{ 'Modifica' if s else 'Nuovo' }} sinistro{% endblock %}
+{% block page_title %}{{ 'Modifica sinistro' if s else 'Nuovo sinistro' }}{% endblock %}
+
+{% block content %}
+<form class="form-card" method="post">
+  <div class="form-row">
+    <div class="form-group"><label>Cliente *</label>
+      <select class="form-input" name="cliente_id" required>
+        {% for c in clienti %}<option value="{{ c.id }}" {{ 'selected' if s and s.cliente_id == c.id }}>{{ c.nome_completo }}</option>{% endfor %}
+      </select></div>
+    <div class="form-group"><label>Contratto *</label>
+      <select class="form-input" name="contratto_id" required>
+        {% for k in contratti %}<option value="{{ k.id }}" {{ 'selected' if s and s.contratto_id == k.id }}>{{ k.numero_polizza }} · {{ k.cliente.nome_completo }}</option>{% endfor %}
+      </select></div>
+  </div>
+  <div class="form-group"><label>Tipo sinistro</label><input class="form-input" name="tipo" value="{{ s.tipo or '' if s else '' }}" placeholder="es. Auto - Tamponamento"></div>
+  <div class="form-row-3">
+    <div class="form-group"><label>Data apertura</label><input class="form-input" type="date" name="data_apertura" value="{{ s.data_apertura.isoformat() if s and s.data_apertura else '' }}"></div>
+    <div class="form-group"><label>Stato</label>
+      <select class="form-input" name="stato">{% for st in stati %}<option value="{{ st }}" {{ 'selected' if s and s.stato == st }}>{{ st }}</option>{% endfor %}</select></div>
+    <div class="form-group"><label>Importo stimato (€)</label><input class="form-input" type="number" step="0.01" name="importo_stimato" value="{{ s.importo_stimato if s else 0 }}"></div>
+  </div>
+  <div class="form-group"><label>Note</label><textarea class="form-input" name="note">{{ s.note or '' if s else '' }}</textarea></div>
+  <div class="form-actions">
+    <a class="btn btn-secondary" href="{{ url_for('sinistri.index') }}">Annulla</a>
+    <button class="btn btn-primary" type="submit">Salva</button>
+  </div>
+</form>
+{% endblock %}

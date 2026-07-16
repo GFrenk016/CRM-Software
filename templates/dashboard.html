@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% set section = "dashboard" %}
+{% block title %}Bacheca{% endblock %}
+{% block page_title %}Bacheca{% endblock %}
+
+{% block content %}
+<div class="stats-grid">
+  <div class="stat-card blue">
+    <div class="stat-icon blue"><svg class="icon"><use href="#i-users"/></svg></div>
+    <div class="stat-value">{{ n_clienti }}</div>
+    <div class="stat-label">Clienti</div>
+  </div>
+  <div class="stat-card green">
+    <div class="stat-icon green"><svg class="icon"><use href="#i-wallet"/></svg></div>
+    <div class="stat-value">{{ valore_pipeline|eur }}</div>
+    <div class="stat-label">Valore pipeline aperta</div>
+  </div>
+  <div class="stat-card amber">
+    <div class="stat-icon amber"><svg class="icon"><use href="#i-arrow-right"/></svg></div>
+    <div class="stat-value">{{ conversione }}%</div>
+    <div class="stat-label">Tasso conversione</div>
+  </div>
+  <div class="stat-card purple">
+    <div class="stat-icon purple"><svg class="icon"><use href="#i-shield"/></svg></div>
+    <div class="stat-value">{{ n_contratti }}</div>
+    <div class="stat-label">Contratti attivi</div>
+  </div>
+</div>
+
+<div class="stats-grid">
+  <div class="stat-card blue">
+    <div class="stat-icon blue"><svg class="icon"><use href="#i-file-text"/></svg></div>
+    <div class="stat-value">{{ n_preventivi }}</div>
+    <div class="stat-label">Preventivi</div>
+  </div>
+  <div class="stat-card amber">
+    <div class="stat-icon amber"><svg class="icon"><use href="#i-calendar"/></svg></div>
+    <div class="stat-value">{{ scadenze_30 }}</div>
+    <div class="stat-label">Scadenze entro 30 gg</div>
+  </div>
+  <div class="stat-card red">
+    <div class="stat-icon red"><svg class="icon"><use href="#i-alert"/></svg></div>
+    <div class="stat-value">{{ n_sinistri_aperti }}</div>
+    <div class="stat-label">Sinistri aperti</div>
+  </div>
+  <div class="stat-card green">
+    <div class="stat-icon green"><svg class="icon"><use href="#i-wallet"/></svg></div>
+    <div class="stat-value">{{ da_incassare|eur }}</div>
+    <div class="stat-label">Da incassare{% if in_ritardo %} ({{ in_ritardo }} in ritardo){% endif %}</div>
+  </div>
+</div>
+
+<div class="charts-row">
+  <div class="card">
+    <h3>Distribuzione pipeline</h3>
+    {% set colori = {'nuovo':'#8b91a8','contattato':'#4f8ef7','qualificato':'#a855f7','proposta':'#f7b24f','vinto':'#34d17a','perso':'#f7524f'} %}
+    {% for stadio, n in per_stadio %}
+    <div class="bar-row">
+      <div class="bar-label">{{ stadio }}</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width:{{ (n / max_stadio * 100)|round(0,'floor') if max_stadio else 0 }}%;background:{{ colori[stadio] }}">{{ n }}</div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  <div class="card">
+    <h3>Fonti principali</h3>
+    {% set fonte_colori = {'referral':'#a855f7','sito':'#4f8ef7','social':'#f7b24f','chiamata':'#34d17a','evento':'#f7524f','altro':'#8b91a8'} %}
+    {% for fonte, n in per_fonte %}
+    <div class="source-item">
+      <div class="source-dot" style="background:{{ fonte_colori.get(fonte,'#555') }}"></div>
+      <div class="source-name">{{ fonte }}</div>
+      <div class="source-count">{{ n }}</div>
+    </div>
+    {% else %}
+    <p class="muted">Nessun dato.</p>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% set section = "scadenze" %}
+{% block title %}Scadenziario{% endblock %}
+{% block page_title %}Scadenziario / Rinnovi{% endblock %}
+
+{% block content %}
+<div class="table-wrapper">
+  <div class="table-toolbar">
+    <form method="get" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <label class="muted" style="font-size:12px">Finestra:</label>
+      <select class="form-input" name="finestra" onchange="this.form.submit()" style="width:auto">
+        {% for val, lbl in [('30','Prossimi 30 gg'),('60','Prossimi 60 gg'),('90','Prossimi 90 gg'),('365','Prossimo anno'),('scadute','Già scadute')] %}
+        <option value="{{ val }}" {{ 'selected' if finestra == val }}>{{ lbl }}</option>{% endfor %}
+      </select>
+      <select class="form-input" name="compagnia" onchange="this.form.submit()" style="width:auto">
+        <option value="">Tutte le compagnie</option>
+        {% for co in compagnie %}<option value="{{ co.id }}" {{ 'selected' if compagnia_sel == co.id|string }}>{{ co.nome }}</option>{% endfor %}
+      </select>
+    </form>
+    <span class="muted" style="margin-left:auto">{{ contratti|length }} scadenze</span>
+  </div>
+  <div class="table-scroll">
+    <table>
+      <thead><tr>
+        <th>Cliente</th><th>Polizza</th><th>Ramo</th><th>Compagnia</th>
+        <th>Scadenza</th><th class="text-center">Giorni</th>
+        <th class="text-right">Premio</th><th class="text-center">Stato</th><th></th>
+      </tr></thead>
+      <tbody>
+        {% for k in contratti %}
+        <tr>
+          <td class="font-bold"><a href="{{ url_for('clienti.detail', cliente_id=k.cliente_id) }}">{{ k.cliente.nome_completo }}</a></td>
+          <td class="mono">{{ k.numero_polizza }}</td>
+          <td>{{ k.ramo or '—' }}</td>
+          <td>{{ k.compagnia.nome if k.compagnia else '—' }}</td>
+          <td class="mono">{{ k.data_scadenza|data_it }}</td>
+          <td class="text-center mono">{{ k.giorni_alla_scadenza }}</td>
+          <td class="text-right mono">{{ k.premio|eur }}</td>
+          <td class="text-center"><span class="badge badge-{{ k.stato_scadenza }}">{{ k.stato_scadenza|replace('_',' ') }}</span></td>
+          <td><a class="btn-icon" href="{{ url_for('contratti.form', contratto_id=k.id) }}" title="Rinnova / modifica"><svg class="icon icon-sm"><use href="#i-edit"/></svg></a></td>
+        </tr>
+        {% else %}<tr><td colspan="9"><div class="empty-state"><svg class="icon"><use href="#i-calendar"/></svg><h3>Nessuna scadenza nella finestra selezionata</h3></div></td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+<p class="muted" style="font-size:12px;margin-top:10px">Le scadenze sono derivate automaticamente dai contratti attivi. Per rinnovare, modifica la data di scadenza del contratto.</p>
+{% endblock %}

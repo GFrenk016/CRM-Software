@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% set section = "pipeline" %}
+{% block title %}Pipeline{% endblock %}
+{% block page_title %}Pipeline vendite{% endblock %}
+{% block actions %}
+  <button class="btn btn-primary btn-sm" onclick="openTemplate('tpl-nuovo-lead')">
+    <svg class="icon icon-sm"><use href="#i-plus"/></svg> Nuovo lead
+  </button>
+{% endblock %}
+
+{% block content %}
+<p class="muted" style="margin-bottom:12px;font-size:12px">Trascina le card tra le colonne per aggiornare lo stadio (salvato subito nel database).</p>
+<div class="pipeline-board">
+  {% for stadio, colore, leads in colonne %}
+  <div class="pipeline-col">
+    <div class="col-header">
+      <div class="col-title" style="color:{{ colore }}">{{ stadio }}</div>
+      <div class="col-count">{{ leads|length }}</div>
+    </div>
+    <div class="col-body" data-stadio="{{ stadio }}">
+      {% for l in leads %}
+      {% set sc = 'var(--success)' if l.punteggio >= 70 else ('var(--warning)' if l.punteggio >= 40 else 'var(--danger)') %}
+      <div class="kanban-card" data-lead-id="{{ l.id }}">
+        <div class="kc-name">{{ l.cliente.nome_completo }}</div>
+        <div class="kc-action">{{ l.prossima_azione or 'Nessuna azione' }}</div>
+        <div class="kc-footer">
+          <span class="kc-value">{{ l.valore_stimato|eur }}</span>
+          <span class="kc-score" style="color:{{ sc }}" title="Punteggio lead">{{ l.punteggio }}</span>
+        </div>
+        <div class="kc-footer" style="margin-top:4px">
+          <span class="kc-meta">{{ l.giorni_nello_stadio }} gg nello stadio</span>
+          <form method="post" action="{{ url_for('pipeline.elimina', lead_id=l.id) }}" onsubmit="return confirm('Eliminare il lead?')">
+            <button class="btn-icon" title="Elimina"><svg class="icon icon-sm"><use href="#i-trash"/></svg></button>
+          </form>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Template modale: nuovo lead -->
+<template id="tpl-nuovo-lead">
+  <div class="modal-header"><h3>Nuovo lead</h3><button class="btn-icon" onclick="closeModal()"><svg class="icon"><use href="#i-x"/></svg></button></div>
+  <div class="modal-body">
+    <form method="post" action="{{ url_for('pipeline.salva') }}">
+      <div class="form-group"><label>Cliente</label>
+        <select class="form-input" name="cliente_id" required>
+          {% for c in clienti %}<option value="{{ c.id }}">{{ c.nome_completo }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Stadio</label>
+          <select class="form-input" name="stadio">{% for s in stadi %}<option value="{{ s }}">{{ s }}</option>{% endfor %}</select></div>
+        <div class="form-group"><label>Fonte</label>
+          <select class="form-input" name="fonte">{% for f in fonti %}<option value="{{ f }}">{{ f }}</option>{% endfor %}</select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Valore stimato (€)</label><input class="form-input" type="number" name="valore_stimato" value="0"></div>
+        <div class="form-group"><label>Data prossima azione</label><input class="form-input" type="date" name="data_prossima_azione"></div>
+      </div>
+      <div class="form-group"><label>Prossima azione</label><input class="form-input" name="prossima_azione"></div>
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary" onclick="closeModal()">Annulla</button>
+        <button type="submit" class="btn btn-primary">Salva</button>
+      </div>
+    </form>
+  </div>
+</template>
+{% endblock %}

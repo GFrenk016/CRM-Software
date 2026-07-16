@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% set section = "contratti" %}
+{% block title %}{{ 'Modifica' if c else 'Nuovo' }} contratto{% endblock %}
+{% block page_title %}{{ 'Modifica contratto' if c else 'Nuovo contratto' }}{% endblock %}
+
+{% block content %}
+<form class="form-card" method="post">
+  <div class="form-row">
+    <div class="form-group"><label>Cliente *</label>
+      <select class="form-input" name="cliente_id" required>
+        {% for cl in clienti %}<option value="{{ cl.id }}" {{ 'selected' if c and c.cliente_id == cl.id }}>{{ cl.nome_completo }}</option>{% endfor %}
+      </select></div>
+    <div class="form-group"><label>Compagnia</label>
+      <select class="form-input" name="compagnia_id">
+        <option value="">—</option>
+        {% for co in compagnie %}<option value="{{ co.id }}" {{ 'selected' if c and c.compagnia_id == co.id }}>{{ co.nome }}</option>{% endfor %}
+      </select></div>
+  </div>
+  <div class="form-row">
+    <div class="form-group"><label>Numero polizza *</label><input class="form-input" name="numero_polizza" value="{{ c.numero_polizza if c else '' }}" required></div>
+    <div class="form-group"><label>Preventivo di origine</label>
+      <select class="form-input" name="preventivo_id">
+        <option value="">—</option>
+        {% for p in preventivi %}<option value="{{ p.id }}" {{ 'selected' if c and c.preventivo_id == p.id }}>{{ p.numero }} · {{ p.cliente.nome_completo }}</option>{% endfor %}
+      </select></div>
+  </div>
+  <div class="form-row-3">
+    <div class="form-group"><label>Ramo</label><input class="form-input" name="ramo" value="{{ c.ramo or '' if c else '' }}" placeholder="Auto, Casa, Vita..."></div>
+    <div class="form-group"><label>Premio (€)</label><input class="form-input" type="number" step="0.01" name="premio" value="{{ c.premio if c else 0 }}"></div>
+    <div class="form-group"><label>Stato</label>
+      <select class="form-input" name="stato">{% for s in stati %}<option value="{{ s }}" {{ 'selected' if c and c.stato == s }}>{{ s }}</option>{% endfor %}</select></div>
+  </div>
+  <div class="form-row">
+    <div class="form-group"><label>Data emissione</label><input class="form-input" type="date" name="data_emissione" value="{{ c.data_emissione.isoformat() if c and c.data_emissione else '' }}"></div>
+    <div class="form-group"><label>Data scadenza</label><input class="form-input" type="date" name="data_scadenza" value="{{ c.data_scadenza.isoformat() if c and c.data_scadenza else '' }}"></div>
+  </div>
+  <div class="form-group"><label>Note</label><textarea class="form-input" name="note">{{ c.note or '' if c else '' }}</textarea></div>
+  <div class="form-actions">
+    <a class="btn btn-secondary" href="{{ url_for('contratti.index') }}">Annulla</a>
+    <button class="btn btn-primary" type="submit">Salva</button>
+  </div>
+</form>
+{% endblock %}
