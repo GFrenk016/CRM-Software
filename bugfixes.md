@@ -1,4 +1,4 @@
-[] Passando il mouse deve aprirsi la sidebar, non tramite un tasto
+[X] Passando il mouse deve aprirsi la sidebar, non tramite un tasto
 [] Bacheca che mostra piu cose: Urgenze operative (la cosa più utile, in cima)
 Scadenze polizze nei prossimi 7/30 giorni — è il cuore del business ricorrente, dovrebbe saltare all'occhio subito, non essere sepolta nella sezione Scadenze
 Incassi in ritardo — chi non ha ancora pagato, con quanto tempo di ritardo
