@@ -2,25 +2,6 @@
    CRM — logica frontend (vanilla JS, nessuna dipendenza esterna).
    ============================================================ */
 
-// --- SIDEBAR: collasso manuale + auto-collasso entrando in una sezione ------
-function toggleSidebar() {
-  const sb = document.getElementById('sidebar');
-  sb.classList.toggle('collapsed');
-  localStorage.setItem('sidebar-collapsed', sb.classList.contains('collapsed'));
-}
-(function initSidebar() {
-  const sb = document.getElementById('sidebar');
-  if (!sb) return;
-  // Auto-collasso: nelle pagine di dettaglio/sezione si comprime per dare
-  // spazio ai dati; la bacheca resta espansa. Preferenza salvata comunque.
-  const saved = localStorage.getItem('sidebar-collapsed');
-  const autoCollapse = document.body.dataset.section &&
-                       document.body.dataset.section !== 'dashboard';
-  if (saved === 'true' || (saved === null && autoCollapse)) {
-    sb.classList.add('collapsed');
-  }
-})();
-
 // --- MODALE generico --------------------------------------------------------
 function openModal(html, large) {
   const ov = document.getElementById('modal-overlay');

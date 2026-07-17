@@ -32,34 +32,25 @@ a { color:inherit; text-decoration:none; }
 /* LAYOUT */
 .app { display:flex; height:100vh; }
 
-/* SIDEBAR (auto-collassante) */
-.sidebar { width:var(--sidebar-w); background:var(--surface);
+/* SIDEBAR (a espansione su hover: solo icone a riposo, si allarga al passaggio
+   del mouse mostrando le etichette; nessun toggle manuale). */
+.sidebar { width:var(--sidebar-w-collapsed); background:var(--surface);
   border-right:1px solid var(--border); display:flex; flex-direction:column;
-  flex-shrink:0; overflow-x:hidden; transition:width .18s ease; }
-.sidebar.collapsed { width:var(--sidebar-w-collapsed); }
+  flex-shrink:0; overflow-x:hidden; transition:width .18s ease;
+  position:relative; z-index:20; height:100vh; }
+.sidebar:hover { width:var(--sidebar-w); position:absolute; top:0; left:0;
+  box-shadow:var(--shadow); }
 .sidebar-logo { padding:18px 16px; display:flex; align-items:center; gap:10px;
   border-bottom:1px solid var(--border); white-space:nowrap; }
 .logo-icon { width:32px; height:32px; background:var(--primary); border-radius:8px;
   display:flex; align-items:center; justify-content:center; color:#fff; flex-shrink:0; }
 .logo-text { font-weight:700; font-size:13px; line-height:1.2; }
 .logo-sub { font-size:10px; color:var(--text3); }
-.sidebar.collapsed .logo-text-wrap, .sidebar.collapsed .nav-label,
-.sidebar.collapsed .user-info { display:none; }
-.sidebar-nav { padding:10px 8px; flex:1; overflow-y:auto; }
-.nav-item { display:flex; align-items:center; gap:11px; padding:9px 10px;
-  border-radius:8px; cursor:pointer; color:var(--text2); font-size:13px;
-  font-weight:500; margin-bottom:2px; white-space:nowrap; transition:all .15s; }
-.nav-item:hover { background:var(--surface2); color:var(--text); }
-.nav-item.active { background:var(--primary-dim); color:var(--primary); }
-.sidebar-footer { padding:12px; border-top:1px solid var(--border);
-  display:flex; align-items:center; gap:10px; white-space:nowrap; }
-.user-avatar { width:32px; height:32px; border-radius:8px; color:#fff;
-  background:linear-gradient(135deg,var(--primary),var(--purple));
-  display:flex; align-items:center; justify-content:center; font-size:12px;
-  font-weight:700; flex-shrink:0; }
-.user-name { font-size:12px; font-weight:600; }
-.user-role { font-size:10px; color:var(--text3); }
-
+.sidebar .logo-text-wrap, .sidebar .nav-label,
+.sidebar .user-info { display:none; }
+.sidebar:hover .logo-text-wrap, .sidebar:hover .nav-label,
+.sidebar:hover .user-info { display:block; }
+.sidebar:hover .user-info { display:flex; flex-direction:column; }
 /* MAIN */
 .main { flex:1; display:flex; flex-direction:column; overflow:hidden; }
 .topbar { padding:12px 24px; border-bottom:1px solid var(--border);
