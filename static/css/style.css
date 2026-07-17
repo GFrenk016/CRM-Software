@@ -33,24 +33,61 @@ a { color:inherit; text-decoration:none; }
 .app { display:flex; height:100vh; }
 
 /* SIDEBAR (a espansione su hover: solo icone a riposo, si allarga al passaggio
-   del mouse mostrando le etichette; nessun toggle manuale). */
+   del mouse mostrando le etichette; nessun toggle manuale).
+
+   Allineamento icone — principio di base:
+   ogni riga (logo, voce di menu, footer) ha un padding-sinistro calcolato
+   perche' il CENTRO della sua icona cada sempre a 32px (meta' della barra
+   stretta da 64px). Il padding NON cambia tra stato stretto ed espanso:
+   cosi' l'icona resta ferma e il testo, sempre presente nel flusso ma
+   clippato da overflow-x:hidden, si limita a comparire alla sua destra.
+     - logo-icon 32px -> padding-left 16px  (16 + 16 = 32)
+     - nav icon   18px -> padding-left 23px  (23 +  9 = 32)
+     - avatar     34px -> padding-left 15px  (15 + 17 = 32) */
 .sidebar { width:var(--sidebar-w-collapsed); background:var(--surface);
   border-right:1px solid var(--border); display:flex; flex-direction:column;
-  flex-shrink:0; overflow-x:hidden; transition:width .18s ease;
+  flex-shrink:0; overflow-x:hidden; transition:width .22s cubic-bezier(.4,0,.2,1);
   position:relative; z-index:20; height:100vh; }
 .sidebar:hover { width:var(--sidebar-w); position:absolute; top:0; left:0;
   box-shadow:var(--shadow); }
-.sidebar-logo { padding:18px 16px; display:flex; align-items:center; gap:10px;
-  border-bottom:1px solid var(--border); white-space:nowrap; }
+
+.sidebar-logo { padding:18px 16px; display:flex; align-items:center; gap:14px;
+  border-bottom:1px solid var(--border); white-space:nowrap; overflow:hidden; }
 .logo-icon { width:32px; height:32px; background:var(--primary); border-radius:8px;
   display:flex; align-items:center; justify-content:center; color:#fff; flex-shrink:0; }
 .logo-text { font-weight:700; font-size:13px; line-height:1.2; }
 .logo-sub { font-size:10px; color:var(--text3); }
-.sidebar .logo-text-wrap, .sidebar .nav-label,
-.sidebar .user-info { display:none; }
-.sidebar:hover .logo-text-wrap, .sidebar:hover .nav-label,
-.sidebar:hover .user-info { display:block; }
-.sidebar:hover .user-info { display:flex; flex-direction:column; }
+
+/* NAV */
+.sidebar-nav { flex:1; display:flex; flex-direction:column; gap:2px; padding:10px 0; }
+.nav-item { position:relative; display:flex; align-items:center; gap:14px;
+  height:44px; padding:0 16px 0 23px; color:var(--text2); white-space:nowrap;
+  transition:color .15s, background .15s; }
+.nav-item .icon { flex-shrink:0; }
+.nav-item:hover { color:var(--text); background:var(--surface2); }
+.nav-item.active { color:var(--primary); background:var(--primary-dim); }
+.nav-item.active::before { content:''; position:absolute; left:0; top:8px; bottom:8px;
+  width:3px; border-radius:0 3px 3px 0; background:var(--primary); }
+
+/* FOOTER */
+.sidebar-footer { display:flex; align-items:center; gap:14px;
+  padding:14px 16px 14px 15px; border-top:1px solid var(--border);
+  white-space:nowrap; overflow:hidden; }
+.user-avatar { width:34px; height:34px; border-radius:50%; flex-shrink:0;
+  background:var(--primary-dim); color:var(--primary); display:flex;
+  align-items:center; justify-content:center; font-size:12px; font-weight:700; }
+.user-name { font-size:13px; font-weight:600; }
+.user-role { font-size:11px; color:var(--text3); }
+
+/* ETICHETTE: sempre nel flusso (a destra dell'icona), clippate dalla barra
+   stretta e svelate con dissolvenza morbida — niente scatti di display.
+   In apertura la comparsa e' leggermente ritardata per accompagnare
+   l'allargamento; in chiusura svanisce subito, prima che la barra si stringa. */
+.logo-text-wrap, .nav-label, .user-info { opacity:0; transition:opacity .12s ease; }
+.user-info { display:flex; flex-direction:column; }
+.sidebar:hover .logo-text-wrap,
+.sidebar:hover .nav-label,
+.sidebar:hover .user-info { opacity:1; transition:opacity .18s ease .06s; }
 /* MAIN */
 .main { flex:1; display:flex; flex-direction:column; overflow:hidden; }
 .topbar { padding:12px 24px; border-bottom:1px solid var(--border);
