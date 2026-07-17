@@ -65,6 +65,40 @@ def index():
         Incasso.data_prevista < date.today(),
     ).scalar()
 
+    # ----------------------------------------------------------------------- #
+    #  Urgenze operative: liste azionabili (CHI/QUANTO è urgente + link)       #
+    # ----------------------------------------------------------------------- #
+    oggi = date.today()
+    LIMITE = 5
+
+    # 1) Scadenze in arrivo: contratti attivi che scadono nei prossimi 30 gg
+    scadenze_q = Contratto.query.filter(
+        Contratto.stato == "attivo",
+        Contratto.data_scadenza != None,          # noqa: E711
+        Contratto.data_scadenza >= oggi,
+        Contratto.data_scadenza <= oggi + timedelta(days=30),
+    ).order_by(Contratto.data_scadenza.asc())
+    urg_scadenze = scadenze_q.limit(LIMITE).all()
+    urg_scadenze_tot = scadenze_q.count()
+
+    # 2) Incassi in ritardo: non incassati con data prevista già passata
+    incassi_q = Incasso.query.filter(
+        Incasso.data_incasso == None,             # noqa: E711
+        Incasso.data_prevista != None,            # noqa: E711
+        Incasso.data_prevista < oggi,
+    ).order_by(Incasso.data_prevista.asc())
+    urg_incassi = incassi_q.limit(LIMITE).all()
+    urg_incassi_tot = incassi_q.count()
+    # Giorni di ritardo calcolati lato Python (niente logica di date nel template)
+    ritardi = {i.id: (oggi - i.data_prevista).days for i in urg_incassi}
+
+    # 3) Sinistri aperti: tutti quelli non ancora chiusi
+    sinistri_q = Sinistro.query.filter(
+        Sinistro.stato != "chiuso"
+    ).order_by(Sinistro.data_apertura.asc())
+    urg_sinistri = sinistri_q.limit(LIMITE).all()
+    urg_sinistri_tot = sinistri_q.count()
+
     return render_template(
         "dashboard.html",
         valore_pipeline=valore_pipeline, tot_lead=tot_lead,
@@ -73,4 +107,10 @@ def index():
         n_clienti=n_clienti, n_contratti=n_contratti, n_preventivi=n_preventivi,
         n_sinistri_aperti=n_sinistri_aperti, scadenze_30=scadenze_30,
         da_incassare=da_incassare, in_ritardo=in_ritardo,
+        oggi=oggi,
+        urg_scadenze=urg_scadenze, urg_scadenze_tot=urg_scadenze_tot,
+        urg_incassi=urg_incassi, urg_incassi_tot=urg_incassi_tot,
+        ritardi=ritardi,
+        urg_sinistri=urg_sinistri, urg_sinistri_tot=urg_sinistri_tot,
+        limite_urgenze=LIMITE,
     )
