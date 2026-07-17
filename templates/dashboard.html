@@ -4,6 +4,80 @@
 {% block page_title %}Bacheca{% endblock %}
 
 {% block content %}
+<div class="urgenze-grid">
+
+  {# 1) SCADENZE IN ARRIVO ------------------------------------------------- #}
+  <div class="card urgenze-panel">
+    <div class="urgenze-head">
+      <h3>Scadenze in arrivo</h3>
+      {% if urg_scadenze_tot > limite_urgenze %}
+      <a class="urgenze-all" href="{{ url_for('scadenze.index') }}">vedi tutti ({{ urg_scadenze_tot }})</a>
+      {% endif %}
+    </div>
+    {% for c in urg_scadenze %}
+      {% set g = c.giorni_alla_scadenza %}
+      {% set critico = g is not none and g <= 14 %}
+      <a class="urgenze-row {{ 'is-critico' if critico else 'is-attenzione' }}"
+         href="{{ url_for('clienti.detail', cliente_id=c.cliente_id) }}">
+        <div class="urgenze-main">
+          <div class="urgenze-name">{{ c.cliente.nome_completo }}</div>
+          <div class="urgenze-sub">{{ c.ramo }} · {{ c.numero_polizza }}</div>
+        </div>
+        <span class="urg-badge {{ 'badge-critico' if critico else 'badge-attenzione' }}">
+          {% if g == 0 %}oggi{% elif g == 1 %}domani{% else %}{{ g }} gg{% endif %}
+        </span>
+      </a>
+    {% else %}
+      <p class="urgenze-empty">Nessuna scadenza nei prossimi 30 giorni</p>
+    {% endfor %}
+  </div>
+
+  {# 2) INCASSI IN RITARDO -------------------------------------------------- #}
+  <div class="card urgenze-panel">
+    <div class="urgenze-head">
+      <h3>Incassi in ritardo</h3>
+      {% if urg_incassi_tot > limite_urgenze %}
+      <a class="urgenze-all" href="{{ url_for('incassi.index') }}">vedi tutti ({{ urg_incassi_tot }})</a>
+      {% endif %}
+    </div>
+    {% for i in urg_incassi %}
+      <a class="urgenze-row is-critico"
+         href="{{ url_for('clienti.detail', cliente_id=i.cliente_id) }}">
+        <div class="urgenze-main">
+          <div class="urgenze-name">{{ i.cliente.nome_completo }}</div>
+          <div class="urgenze-sub">{{ i.importo|eur }}</div>
+        </div>
+        <span class="urg-badge badge-critico">{{ ritardi[i.id] }} gg fa</span>
+      </a>
+    {% else %}
+      <p class="urgenze-empty">Nessun incasso in ritardo</p>
+    {% endfor %}
+  </div>
+
+  {# 3) SINISTRI APERTI ----------------------------------------------------- #}
+  <div class="card urgenze-panel">
+    <div class="urgenze-head">
+      <h3>Sinistri aperti</h3>
+      {% if urg_sinistri_tot > limite_urgenze %}
+      <a class="urgenze-all" href="{{ url_for('sinistri.index') }}">vedi tutti ({{ urg_sinistri_tot }})</a>
+      {% endif %}
+    </div>
+    {% for s in urg_sinistri %}
+      <a class="urgenze-row is-attenzione"
+         href="{{ url_for('clienti.detail', cliente_id=s.cliente_id) }}">
+        <div class="urgenze-main">
+          <div class="urgenze-name">{{ s.cliente.nome_completo }}</div>
+          <div class="urgenze-sub">{{ s.numero }}</div>
+        </div>
+        <span class="urg-badge badge-attenzione">{{ s.stato }}</span>
+      </a>
+    {% else %}
+      <p class="urgenze-empty">Nessun sinistro aperto</p>
+    {% endfor %}
+  </div>
+
+</div>
+
 <div class="stats-grid">
   <div class="stat-card blue">
     <div class="stat-icon blue"><svg class="icon"><use href="#i-users"/></svg></div>
