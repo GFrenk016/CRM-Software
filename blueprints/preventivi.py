@@ -50,8 +50,11 @@ def form(prev_id=None):
     clienti = Cliente.query.order_by(Cliente.cognome).all()
     compagnie = Compagnia.query.order_by(Compagnia.nome).all()
     lead = Lead.query.all()
+    # Cliente pre-selezionato quando si crea "da scheda cliente" (?cliente_id=X)
+    cliente_sel = request.args.get("cliente_id", type=int)
     return render_template("preventivi/form.html", p=prev, clienti=clienti,
-                           compagnie=compagnie, lead=lead, stati=STATI_PREVENTIVO)
+                           compagnie=compagnie, lead=lead, stati=STATI_PREVENTIVO,
+                           cliente_sel=cliente_sel)
 
 
 @bp.route("/<int:prev_id>/converti", methods=["POST"])

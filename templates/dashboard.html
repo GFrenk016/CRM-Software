@@ -79,49 +79,49 @@
 </div>
 
 <div class="stats-grid">
-  <div class="stat-card blue">
+  <a class="stat-card blue" href="{{ url_for('clienti.index') }}">
     <div class="stat-icon blue"><svg class="icon"><use href="#i-users"/></svg></div>
     <div class="stat-value">{{ n_clienti }}</div>
     <div class="stat-label">Clienti</div>
-  </div>
-  <div class="stat-card green">
+  </a>
+  <a class="stat-card green" href="{{ url_for('pipeline.index') }}">
     <div class="stat-icon green"><svg class="icon"><use href="#i-wallet"/></svg></div>
     <div class="stat-value">{{ valore_pipeline|eur }}</div>
     <div class="stat-label">Valore pipeline aperta</div>
-  </div>
-  <div class="stat-card amber">
+  </a>
+  <a class="stat-card amber" href="{{ url_for('pipeline.index') }}">
     <div class="stat-icon amber"><svg class="icon"><use href="#i-arrow-right"/></svg></div>
     <div class="stat-value">{{ conversione }}%</div>
     <div class="stat-label">Tasso conversione</div>
-  </div>
-  <div class="stat-card purple">
+  </a>
+  <a class="stat-card purple" href="{{ url_for('contratti.index') }}">
     <div class="stat-icon purple"><svg class="icon"><use href="#i-shield"/></svg></div>
     <div class="stat-value">{{ n_contratti }}</div>
     <div class="stat-label">Contratti attivi</div>
-  </div>
+  </a>
 </div>
 
 <div class="stats-grid">
-  <div class="stat-card blue">
+  <a class="stat-card blue" href="{{ url_for('preventivi.index') }}">
     <div class="stat-icon blue"><svg class="icon"><use href="#i-file-text"/></svg></div>
     <div class="stat-value">{{ n_preventivi }}</div>
     <div class="stat-label">Preventivi</div>
-  </div>
-  <div class="stat-card amber">
+  </a>
+  <a class="stat-card amber" href="{{ url_for('scadenze.index') }}">
     <div class="stat-icon amber"><svg class="icon"><use href="#i-calendar"/></svg></div>
     <div class="stat-value">{{ scadenze_30 }}</div>
     <div class="stat-label">Scadenze entro 30 gg</div>
-  </div>
-  <div class="stat-card red">
+  </a>
+  <a class="stat-card red" href="{{ url_for('sinistri.index') }}">
     <div class="stat-icon red"><svg class="icon"><use href="#i-alert"/></svg></div>
     <div class="stat-value">{{ n_sinistri_aperti }}</div>
     <div class="stat-label">Sinistri aperti</div>
-  </div>
-  <div class="stat-card green">
+  </a>
+  <a class="stat-card green" href="{{ url_for('incassi.index') }}">
     <div class="stat-icon green"><svg class="icon"><use href="#i-wallet"/></svg></div>
     <div class="stat-value">{{ da_incassare|eur }}</div>
     <div class="stat-label">Da incassare{% if in_ritardo %} ({{ in_ritardo }} in ritardo){% endif %}</div>
-  </div>
+  </a>
 </div>
 
 <div class="charts-row">
