@@ -38,9 +38,13 @@ def index():
     }
     clienti = Cliente.query.order_by(Cliente.cognome).all()
     contratti = Contratto.query.order_by(Contratto.numero_polizza).all()
+    # Cliente pre-selezionato quando si arriva "da scheda cliente" (?cliente_id=X):
+    # la board apre in automatico la modale di nuovo incasso col cliente scelto.
+    cliente_sel = request.args.get("cliente_id", type=int)
     return render_template("incassi/board.html", incassi=incassi, totali=totali,
                            stati=STATI_INCASSO, stato_sel=stato,
-                           clienti=clienti, contratti=contratti)
+                           clienti=clienti, contratti=contratti,
+                           cliente_sel=cliente_sel)
 
 
 @bp.route("/<int:inc_id>/stato", methods=["POST"])

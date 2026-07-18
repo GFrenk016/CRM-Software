@@ -55,9 +55,11 @@ def form(contratto_id=None):
     clienti = Cliente.query.order_by(Cliente.cognome).all()
     compagnie = Compagnia.query.order_by(Compagnia.nome).all()
     preventivi = Preventivo.query.order_by(Preventivo.numero).all()
+    # Cliente pre-selezionato quando si crea "da scheda cliente" (?cliente_id=X)
+    cliente_sel = request.args.get("cliente_id", type=int)
     return render_template("contratti/form.html", c=c, clienti=clienti,
                            compagnie=compagnie, preventivi=preventivi,
-                           stati=STATI_CONTRATTO)
+                           stati=STATI_CONTRATTO, cliente_sel=cliente_sel)
 
 
 @bp.route("/<int:contratto_id>/elimina", methods=["POST"])

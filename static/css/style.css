@@ -117,6 +117,11 @@ a { color:inherit; text-decoration:none; }
   border-radius:var(--radius); padding:18px; display:flex; flex-direction:column;
   gap:8px; position:relative; overflow:hidden; }
 .stat-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; }
+/* Card statistiche cliccabili (dashboard): stesso aspetto, feedback hover discreto */
+a.stat-card { text-decoration:none; color:inherit; cursor:pointer;
+  transition:transform .12s ease, box-shadow .12s ease, border-color .12s ease; }
+a.stat-card:hover { transform:translateY(-2px); box-shadow:var(--shadow);
+  border-color:var(--border2); }
 .stat-card.blue::before { background:var(--primary); }
 .stat-card.green::before { background:var(--success); }
 .stat-card.amber::before { background:var(--warning); }
@@ -214,6 +219,8 @@ textarea.form-input { resize:vertical; min-height:70px; }
 
 /* SCHEDA CLIENTE 360 */
 .detail-header { display:flex; align-items:center; gap:16px; margin-bottom:20px; }
+/* Barra azioni rapide nella scheda cliente */
+.client-actions { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:20px; }
 .detail-avatar { width:52px; height:52px; border-radius:12px; color:#fff; font-size:18px;
   font-weight:700; background:linear-gradient(135deg,var(--primary),var(--purple));
   display:flex; align-items:center; justify-content:center; flex-shrink:0; }

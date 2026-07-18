@@ -46,8 +46,11 @@ def form(sin_id=None):
         return redirect(url_for("sinistri.index"))
     clienti = Cliente.query.order_by(Cliente.cognome).all()
     contratti = Contratto.query.order_by(Contratto.numero_polizza).all()
+    # Cliente pre-selezionato quando si crea "da scheda cliente" (?cliente_id=X)
+    cliente_sel = request.args.get("cliente_id", type=int)
     return render_template("sinistri/form.html", s=s, clienti=clienti,
-                           contratti=contratti, stati=STATI_SINISTRO)
+                           contratti=contratti, stati=STATI_SINISTRO,
+                           cliente_sel=cliente_sel)
 
 
 @bp.route("/<int:sin_id>/elimina", methods=["POST"])

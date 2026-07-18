@@ -8,7 +8,7 @@
   <div class="form-row">
     <div class="form-group"><label>Cliente *</label>
       <select class="form-input" name="cliente_id" required>
-        {% for cl in clienti %}<option value="{{ cl.id }}" {{ 'selected' if c and c.cliente_id == cl.id }}>{{ cl.nome_completo }}</option>{% endfor %}
+        {% for cl in clienti %}<option value="{{ cl.id }}" {{ 'selected' if (c and c.cliente_id == cl.id) or (not c and cliente_sel == cl.id) }}>{{ cl.nome_completo }}</option>{% endfor %}
       </select></div>
     <div class="form-group"><label>Compagnia</label>
       <select class="form-input" name="compagnia_id">

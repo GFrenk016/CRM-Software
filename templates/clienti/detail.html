@@ -22,6 +22,22 @@
   </form>
 </div>
 
+<!-- Barra azioni rapide: crea una nuova entità già collegata a questo cliente -->
+<div class="client-actions">
+  <a class="btn btn-secondary btn-sm" href="{{ url_for('preventivi.form', cliente_id=c.id) }}">
+    <svg class="icon icon-sm"><use href="#i-file-text"/></svg> Nuovo preventivo
+  </a>
+  <a class="btn btn-secondary btn-sm" href="{{ url_for('contratti.form', cliente_id=c.id) }}">
+    <svg class="icon icon-sm"><use href="#i-shield"/></svg> Nuovo contratto
+  </a>
+  <a class="btn btn-secondary btn-sm" href="{{ url_for('sinistri.form', cliente_id=c.id) }}">
+    <svg class="icon icon-sm"><use href="#i-alert"/></svg> Nuovo sinistro
+  </a>
+  <a class="btn btn-secondary btn-sm" href="{{ url_for('incassi.index', cliente_id=c.id) }}">
+    <svg class="icon icon-sm"><use href="#i-wallet"/></svg> Nuovo incasso
+  </a>
+</div>
+
 <div class="detail-cols">
   <!-- Colonna sinistra: anagrafica + documenti -->
   <div>
