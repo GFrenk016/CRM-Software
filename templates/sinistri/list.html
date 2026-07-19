@@ -3,7 +3,7 @@
 {% block title %}Sinistri{% endblock %}
 {% block page_title %}Gestione sinistri{% endblock %}
 {% block actions %}
-  <a class="btn btn-primary btn-sm" href="{{ url_for('sinistri.form') }}"><svg class="icon icon-sm"><use href="#i-plus"/></svg> Nuovo sinistro</a>
+  <button class="btn btn-primary btn-sm" onclick="openTemplate('tpl-nuovo-sinistro')"><svg class="icon icon-sm"><use href="#i-plus"/></svg> Nuovo sinistro</button>
 {% endblock %}
 
 {% block content %}
@@ -43,4 +43,34 @@
     </table>
   </div>
 </div>
+
+<template id="tpl-nuovo-sinistro">
+  <div class="modal-header"><h3>Nuovo sinistro</h3><button class="btn-icon" onclick="closeModal()"><svg class="icon"><use href="#i-x"/></svg></button></div>
+  <div class="modal-body">
+    <form method="post" action="{{ url_for('sinistri.form') }}">
+      <div class="form-row">
+        <div class="form-group"><label>Cliente *</label>
+          <select class="form-input" name="cliente_id" required>
+            {% for c in clienti %}<option value="{{ c.id }}">{{ c.nome_completo }}</option>{% endfor %}
+          </select></div>
+        <div class="form-group"><label>Contratto *</label>
+          <select class="form-input" name="contratto_id" required>
+            {% for k in contratti %}<option value="{{ k.id }}">{{ k.numero_polizza }} · {{ k.cliente.nome_completo }}</option>{% endfor %}
+          </select></div>
+      </div>
+      <div class="form-group"><label>Tipo sinistro</label><input class="form-input" name="tipo" placeholder="es. Auto - Tamponamento"></div>
+      <div class="form-row-3">
+        <div class="form-group"><label>Data apertura</label><input class="form-input" type="date" name="data_apertura"></div>
+        <div class="form-group"><label>Stato</label>
+          <select class="form-input" name="stato">{% for st in stati %}<option value="{{ st }}">{{ st }}</option>{% endfor %}</select></div>
+        <div class="form-group"><label>Importo stimato (€)</label><input class="form-input" type="number" step="0.01" name="importo_stimato" value="0"></div>
+      </div>
+      <div class="form-group"><label>Note</label><textarea class="form-input" name="note"></textarea></div>
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary" onclick="closeModal()">Annulla</button>
+        <button type="submit" class="btn btn-primary">Salva</button>
+      </div>
+    </form>
+  </div>
+</template>
 {% endblock %}

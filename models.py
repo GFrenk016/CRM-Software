@@ -20,7 +20,7 @@ from extensions import db
 STADI_LEAD = ["nuovo", "contattato", "qualificato", "proposta", "vinto", "perso"]
 FONTI_LEAD = ["referral", "sito", "social", "chiamata", "evento", "altro"]
 STATI_PREVENTIVO = ["bozza", "inviato", "accettato", "rifiutato"]
-STATI_CONTRATTO = ["attivo", "scaduto", "disdetto"]
+STATI_CONTRATTO = ["in attesa", "attivo", "scaduto", "disdetto"]
 STATI_SINISTRO = ["aperto", "perizia", "chiuso"]
 STATI_INCASSO = ["da_incassare", "incassato", "in_ritardo"]
 

@@ -1,0 +1,18 @@
+{# Widget riutilizzabile: ricerca cliente inline (combobox), non un secondo
+   overlay. Digitando si filtra la lista dei clienti gia' disponibile lato
+   template; al click l'id finisce nell'input hidden name="cliente_id" (il
+   backend continua a leggere cliente_id, invariato). Funziona sia nel modale
+   di creazione sia nella pagina di modifica a schermo pieno. #}
+{% macro cliente_search(clienti, selected_id=None, selected_name='') %}
+<div class="form-group cliente-search" data-cliente-search>
+  <label>Cliente *</label>
+  <input type="hidden" name="cliente_id" value="{{ selected_id or '' }}">
+  <input type="text" class="form-input cliente-search-input" autocomplete="off"
+         placeholder="Cerca cliente per nome..." value="{{ selected_name }}">
+  <div class="cliente-search-list hidden">
+    {% for cl in clienti %}
+    <div class="cliente-search-item" data-id="{{ cl.id }}" data-name="{{ cl.nome_completo|lower }}">{{ cl.nome_completo }}</div>
+    {% endfor %}
+  </div>
+</div>
+{% endmacro %}

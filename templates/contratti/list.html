@@ -1,9 +1,10 @@
 {% extends "base.html" %}
+{% from "_macros.html" import cliente_search %}
 {% set section = "contratti" %}
 {% block title %}Contratti{% endblock %}
 {% block page_title %}Contratti attivi{% endblock %}
 {% block actions %}
-  <a class="btn btn-primary btn-sm" href="{{ url_for('contratti.form') }}"><svg class="icon icon-sm"><use href="#i-plus"/></svg> Nuovo contratto</a>
+  <button class="btn btn-primary btn-sm" onclick="openTemplate('tpl-nuovo-contratto', true)"><svg class="icon icon-sm"><use href="#i-plus"/></svg> Nuovo contratto</button>
 {% endblock %}
 
 {% block content %}
@@ -49,4 +50,43 @@
     </table>
   </div>
 </div>
+
+<template id="tpl-nuovo-contratto">
+  <div class="modal-header"><h3>Nuovo contratto</h3><button class="btn-icon" onclick="closeModal()"><svg class="icon"><use href="#i-x"/></svg></button></div>
+  <div class="modal-body">
+    <form method="post" action="{{ url_for('contratti.form') }}">
+      <div class="form-row">
+        {{ cliente_search(clienti) }}
+        <div class="form-group"><label>Compagnia</label>
+          <select class="form-input" name="compagnia_id">
+            <option value="">—</option>
+            {% for co in compagnie %}<option value="{{ co.id }}">{{ co.nome }}</option>{% endfor %}
+          </select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Numero polizza *</label><input class="form-input" name="numero_polizza" required></div>
+        <div class="form-group"><label>Preventivo di origine</label>
+          <select class="form-input" name="preventivo_id">
+            <option value="">—</option>
+            {% for p in preventivi %}<option value="{{ p.id }}">{{ p.numero }} · {{ p.cliente.nome_completo }}</option>{% endfor %}
+          </select></div>
+      </div>
+      <div class="form-row-3">
+        <div class="form-group"><label>Ramo</label><input class="form-input" name="ramo" placeholder="Auto, Casa, Vita..."></div>
+        <div class="form-group"><label>Premio (€)</label><input class="form-input" type="number" step="0.01" name="premio" value="0"></div>
+        <div class="form-group"><label>Stato</label>
+          <select class="form-input" name="stato">{% for s in stati %}<option value="{{ s }}">{{ s }}</option>{% endfor %}</select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Data emissione</label><input class="form-input" type="date" name="data_emissione"></div>
+        <div class="form-group"><label>Data scadenza</label><input class="form-input" type="date" name="data_scadenza"></div>
+      </div>
+      <div class="form-group"><label>Note</label><textarea class="form-input" name="note"></textarea></div>
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary" onclick="closeModal()">Annulla</button>
+        <button type="submit" class="btn btn-primary">Salva</button>
+      </div>
+    </form>
+  </div>
+</template>
 {% endblock %}

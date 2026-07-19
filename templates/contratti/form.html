@@ -1,15 +1,16 @@
 {% extends "base.html" %}
+{% from "_macros.html" import cliente_search %}
 {% set section = "contratti" %}
 {% block title %}{{ 'Modifica' if c else 'Nuovo' }} contratto{% endblock %}
 {% block page_title %}{{ 'Modifica contratto' if c else 'Nuovo contratto' }}{% endblock %}
 
 {% block content %}
+{% set sel_cli = (clienti | selectattr('id', 'equalto', cliente_sel) | first) if (not c and cliente_sel) else none %}
 <form class="form-card" method="post">
   <div class="form-row">
-    <div class="form-group"><label>Cliente *</label>
-      <select class="form-input" name="cliente_id" required>
-        {% for cl in clienti %}<option value="{{ cl.id }}" {{ 'selected' if (c and c.cliente_id == cl.id) or (not c and cliente_sel == cl.id) }}>{{ cl.nome_completo }}</option>{% endfor %}
-      </select></div>
+    {{ cliente_search(clienti,
+                      selected_id=(c.cliente_id if c else (sel_cli.id if sel_cli else None)),
+                      selected_name=(c.cliente.nome_completo if c else (sel_cli.nome_completo if sel_cli else ''))) }}
     <div class="form-group"><label>Compagnia</label>
       <select class="form-input" name="compagnia_id">
         <option value="">—</option>
