@@ -2,14 +2,12 @@
 {% set section = "pipeline" %}
 {% block title %}Pipeline{% endblock %}
 {% block page_title %}Pipeline vendite{% endblock %}
-{% block actions %}
-  <button class="btn btn-primary btn-sm" onclick="openTemplate('tpl-nuovo-lead')">
-    <svg class="icon icon-sm"><use href="#i-plus"/></svg> Nuovo lead
-  </button>
-{% endblock %}
 
 {% block content %}
-<p class="muted" style="margin-bottom:12px;font-size:12px">Trascina le card tra le colonne per aggiornare lo stadio (salvato subito nel database).</p>
+<!-- I lead non si creano da qui: nascono automaticamente alla creazione di un
+     cliente in Anagrafica (entrano nel primo stadio). La pipeline serve solo a
+     visualizzarli e a spostarli tra gli stadi. -->
+<p class="muted" style="margin-bottom:12px;font-size:12px">Trascina le card tra le colonne per aggiornare lo stadio (salvato subito nel database). I nuovi lead si generano creando un cliente in Anagrafica.</p>
 <div class="pipeline-board">
   {% for stadio, colore, leads in colonne %}
   <div class="pipeline-col">
@@ -39,33 +37,4 @@
   </div>
   {% endfor %}
 </div>
-
-<!-- Template modale: nuovo lead -->
-<template id="tpl-nuovo-lead">
-  <div class="modal-header"><h3>Nuovo lead</h3><button class="btn-icon" onclick="closeModal()"><svg class="icon"><use href="#i-x"/></svg></button></div>
-  <div class="modal-body">
-    <form method="post" action="{{ url_for('pipeline.salva') }}">
-      <div class="form-group"><label>Cliente</label>
-        <select class="form-input" name="cliente_id" required>
-          {% for c in clienti %}<option value="{{ c.id }}">{{ c.nome_completo }}</option>{% endfor %}
-        </select>
-      </div>
-      <div class="form-row">
-        <div class="form-group"><label>Stadio</label>
-          <select class="form-input" name="stadio">{% for s in stadi %}<option value="{{ s }}">{{ s }}</option>{% endfor %}</select></div>
-        <div class="form-group"><label>Fonte</label>
-          <select class="form-input" name="fonte">{% for f in fonti %}<option value="{{ f }}">{{ f }}</option>{% endfor %}</select></div>
-      </div>
-      <div class="form-row">
-        <div class="form-group"><label>Valore stimato (€)</label><input class="form-input" type="number" name="valore_stimato" value="0"></div>
-        <div class="form-group"><label>Data prossima azione</label><input class="form-input" type="date" name="data_prossima_azione"></div>
-      </div>
-      <div class="form-group"><label>Prossima azione</label><input class="form-input" name="prossima_azione"></div>
-      <div class="form-actions">
-        <button type="button" class="btn btn-secondary" onclick="closeModal()">Annulla</button>
-        <button type="submit" class="btn btn-primary">Salva</button>
-      </div>
-    </form>
-  </div>
-</template>
 {% endblock %}

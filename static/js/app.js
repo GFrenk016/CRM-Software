@@ -79,12 +79,11 @@ function updateColumnCounts() {
   });
 }
 
-// --- INCASSI: click su cella di stato cicla da_incassare→incassato→in_ritardo
-const CICLO_STATO = { da_incassare: 'incassato', incassato: 'in_ritardo', in_ritardo: 'da_incassare' };
+// --- INCASSI: dropdown di stato esplicito per riga (niente più ciclo a click) --
 const LABEL_STATO = { da_incassare: 'Da incassare', incassato: 'Incassato', in_ritardo: 'In ritardo' };
-async function cicloIncasso(cell) {
-  const id = cell.dataset.incassoId;
-  const nuovo = CICLO_STATO[cell.dataset.stato] || 'da_incassare';
+async function cambiaStatoIncasso(sel) {
+  const id = sel.dataset.incassoId;
+  const nuovo = sel.value;
   try {
     const r = await fetch(`/incassi/${id}/stato`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -92,9 +91,8 @@ async function cicloIncasso(cell) {
     });
     const data = await r.json();
     if (!data.ok) return toast('Errore', 'error');
-    cell.dataset.stato = data.stato;
-    cell.className = 'mono-cell mc-' + data.stato;
-    cell.textContent = LABEL_STATO[data.stato];
+    // Aggiorna la colorazione della cella e la data incasso senza ricaricare.
+    sel.className = 'mono-cell mc-' + data.stato;
     const dc = document.querySelector(`.data-incasso[data-incasso-id="${id}"]`);
     if (dc) dc.textContent = data.data_incasso || '—';
     toast('Stato incasso: ' + LABEL_STATO[data.stato]);
@@ -166,51 +164,135 @@ function previewDoc(id, filename, isImg, isPdf) {
   openModal(body, true);
 }
 
+// --- DOCUMENTI: filtro per tipo (client-side, i documenti sono già in pagina) --
+function filtraDocumenti(tipo) {
+  const items = document.querySelectorAll('#doc-list .related-item');
+  let visibili = 0;
+  items.forEach(it => {
+    const match = !tipo || it.dataset.tipo === tipo;
+    it.classList.toggle('hidden', !match);
+    if (match) visibili++;
+  });
+  const empty = document.getElementById('doc-empty-filtro');
+  if (empty) empty.classList.toggle('hidden', !(tipo && items.length && visibili === 0));
+}
+
 // --- MESSAGGISTICA WhatsApp / Email -----------------------------------------
+// La modale è raggiungibile globalmente dalla sidebar (apriMessaggio senza
+// argomenti) e dalla lista clienti passando gli id già spuntati (pre-selezione).
+// NB: un invio massivo REALE e automatizzato richiederebbe un backend dedicato
+// (WhatsApp Business API / email transazionale). Qui generiamo solo i link.
 function getSelectedClienti() {
   return Array.from(document.querySelectorAll('.sel-cliente:checked'))
     .map(cb => parseInt(cb.value));
 }
-function apriEditorMessaggio() {
-  const ids = getSelectedClienti();
-  if (!ids.length) return toast('Seleziona almeno un cliente', 'error');
-  const html = `<div class="modal-header"><h3>Nuovo messaggio (${ids.length} destinatari)</h3>
-    <button class="btn-icon" onclick="closeModal()">✕</button></div>
+
+let _msgTemplates = [];
+
+async function apriMessaggio(preIds) {
+  preIds = preIds || [];
+  let data;
+  try {
+    const r = await fetch('/messaggi/config');
+    data = await r.json();
+  } catch (_) { return toast('Errore nel caricamento clienti', 'error'); }
+  _msgTemplates = data.templates || [];
+
+  const opts = _msgTemplates.map((t, idx) =>
+    `<option value="${idx}">${t.label}</option>`).join('');
+  const lista = data.clienti.map(c => {
+    const canali = [c.has_wa ? 'WhatsApp' : null, c.has_email ? 'Email' : null]
+      .filter(Boolean).join(' · ') || 'nessun contatto';
+    const checked = preIds.includes(c.id) ? 'checked' : '';
+    return `<label class="msg-cliente-item" data-name="${c.nome.toLowerCase()}">
+        <input type="checkbox" class="msg-sel" value="${c.id}" ${checked}>
+        <span class="msg-cliente-nome">${c.nome}</span>
+        <span class="muted" style="font-size:11px;margin-left:auto">${canali}</span>
+      </label>`;
+  }).join('');
+
+  const html = `<div class="modal-header"><h3>Nuovo messaggio</h3>
+      <button class="btn-icon" onclick="closeModal()"><svg class="icon"><use href="#i-x"/></svg></button></div>
     <div class="modal-body">
-      <div class="form-group"><label>Testo del messaggio</label>
+      <div class="form-group"><label>Destinatari (uno o più)</label>
+        <input class="form-input" id="msg-filtro" placeholder="Filtra clienti..." style="margin-bottom:6px">
+        <div class="msg-cliente-list" id="msg-cliente-list">${lista}</div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Canale</label>
+          <div class="radio-group">
+            <label class="radio-row"><input type="radio" name="msg-canale" value="whatsapp" checked> WhatsApp</label>
+            <label class="radio-row"><input type="radio" name="msg-canale" value="email"> Email</label>
+          </div>
+        </div>
+        <div class="form-group"><label>Messaggio preimpostato</label>
+          <select class="form-input" id="msg-template" onchange="applicaTemplate()">${opts}</select>
+        </div>
+      </div>
+      <div class="form-group"><label>Testo · modificabile — {nome} = nome del cliente</label>
         <textarea class="form-input" id="msg-text" rows="5" placeholder="Scrivi il messaggio..."></textarea></div>
       <div class="form-actions">
-        <button class="btn btn-secondary" onclick="inviaMessaggi('email')">Invia via Email</button>
-        <button class="btn btn-primary" onclick="inviaMessaggi('whatsapp')">Invia via WhatsApp</button>
+        <button type="button" class="btn btn-secondary" onclick="closeModal()">Annulla</button>
+        <button type="button" class="btn btn-primary" onclick="inviaMessaggi()">
+          <svg class="icon icon-sm"><use href="#i-message"/></svg> Invia</button>
       </div>
-      <p class="muted" style="font-size:11px;margin-top:10px">Per invii multipli i messaggi si aprono uno alla volta, con conferma tra un destinatario e l'altro.</p>
+      <p class="muted" style="font-size:11px;margin-top:8px">Per più destinatari i messaggi si aprono uno alla volta, con conferma tra l'uno e l'altro (evita il blocco pop-up del browser).</p>
     </div>`;
-  openModal(html);
+  openModal(html, true);
 }
-async function inviaMessaggi(canale) {
-  const ids = getSelectedClienti();
+
+// Applica il testo del template scelto nel textarea (resta poi modificabile).
+function applicaTemplate() {
+  const sel = document.getElementById('msg-template');
+  const t = _msgTemplates[parseInt(sel.value)];
+  if (t) document.getElementById('msg-text').value = t.testo;
+}
+
+// Filtro live sulla lista destinatari nella modale.
+document.addEventListener('input', (e) => {
+  if (e.target.id !== 'msg-filtro') return;
+  const v = e.target.value.trim().toLowerCase();
+  document.querySelectorAll('#msg-cliente-list .msg-cliente-item').forEach(it => {
+    it.classList.toggle('hidden', !it.dataset.name.includes(v));
+  });
+});
+
+async function inviaMessaggi() {
+  const ids = Array.from(document.querySelectorAll('.msg-sel:checked'))
+    .map(cb => parseInt(cb.value));
+  if (!ids.length) return toast('Seleziona almeno un destinatario', 'error');
   const testo = document.getElementById('msg-text').value.trim();
   if (!testo) return toast('Scrivi un messaggio', 'error');
+  const canale = document.querySelector('input[name="msg-canale"]:checked').value;
+
   const r = await fetch('/messaggi/destinatari', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ ids })
   });
   const { destinatari } = await r.json();
   closeModal();
-  // Apertura sequenziale con conferma tra un destinatario e l'altro
+
+  // Apertura sequenziale con conferma tra un destinatario e l'altro: evita che
+  // il browser blocchi troppe schede aperte in una sola volta.
+  // NB: un invio massivo reale e automatizzato richiederebbe un'integrazione
+  // backend (WhatsApp Business API / email transazionale).
+  let inviati = 0;
   for (let i = 0; i < destinatari.length; i++) {
     const d = destinatari[i];
+    const msg = testo.replace(/\{nome\}/g, d.nome || '');
     let url = null;
     if (canale === 'whatsapp') {
-      if (!d.wa) { alert(`${d.nome}: numero WhatsApp mancante, salto.`); continue; }
-      url = `https://wa.me/${d.wa}?text=${encodeURIComponent(testo)}`;
+      if (!d.wa) { toast(`${d.nome_completo}: numero WhatsApp mancante, salto.`, 'error'); continue; }
+      url = `https://wa.me/${d.wa}?text=${encodeURIComponent(msg)}`;
     } else {
-      if (!d.email) { alert(`${d.nome}: email mancante, salto.`); continue; }
-      url = `mailto:${d.email}?subject=${encodeURIComponent('Messaggio')}&body=${encodeURIComponent(testo)}`;
+      if (!d.email) { toast(`${d.nome_completo}: email mancante, salto.`, 'error'); continue; }
+      url = `mailto:${d.email}?subject=${encodeURIComponent('Comunicazione dalla sua assicurazione')}&body=${encodeURIComponent(msg)}`;
     }
-    if (i > 0 && !confirm(`Aprire il messaggio per ${d.nome}? (${i + 1}/${destinatari.length})`)) break;
+    if (i > 0 && !confirm(`Aprire il messaggio per ${d.nome_completo}? (${i + 1}/${destinatari.length})`)) break;
     window.open(url, '_blank');
+    inviati++;
   }
+  if (inviati) toast(`${inviati} messaggio/i aperti in nuove schede`);
 }
 
 // --- INIT -------------------------------------------------------------------
