@@ -24,8 +24,13 @@ def index():
     if stato:
         q = q.filter_by(stato=stato)
     preventivi = q.order_by(Preventivo.created_at.desc()).all()
+    # Dati per i <select> del modale "Nuovo preventivo"
+    clienti = Cliente.query.order_by(Cliente.cognome).all()
+    compagnie = Compagnia.query.order_by(Compagnia.nome).all()
+    lead = Lead.query.all()
     return render_template("preventivi/list.html", preventivi=preventivi,
-                           stati=STATI_PREVENTIVO, stato_sel=stato)
+                           stati=STATI_PREVENTIVO, stato_sel=stato,
+                           clienti=clienti, compagnie=compagnie, lead=lead)
 
 
 @bp.route("/nuovo", methods=["GET", "POST"])

@@ -19,9 +19,13 @@ def index():
         q = q.filter_by(stato=stato)
     contratti = q.order_by(Contratto.data_scadenza).all()
     compagnie = Compagnia.query.order_by(Compagnia.nome).all()
+    # Dati per i <select>/ricerca del modale "Nuovo contratto"
+    clienti = Cliente.query.order_by(Cliente.cognome).all()
+    preventivi = Preventivo.query.order_by(Preventivo.numero).all()
     return render_template("contratti/list.html", contratti=contratti,
                            compagnie=compagnie, stati=STATI_CONTRATTO,
-                           compagnia_sel=compagnia, stato_sel=stato)
+                           compagnia_sel=compagnia, stato_sel=stato,
+                           clienti=clienti, preventivi=preventivi)
 
 
 @bp.route("/<int:contratto_id>")

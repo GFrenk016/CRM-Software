@@ -21,8 +21,12 @@ def index():
         q = q.filter_by(stato=stato)
     sinistri = q.order_by(Sinistro.data_apertura.desc()).all()
     conteggi = {s: Sinistro.query.filter_by(stato=s).count() for s in STATI_SINISTRO}
+    # Dati per i <select> del modale "Nuovo sinistro"
+    clienti = Cliente.query.order_by(Cliente.cognome).all()
+    contratti = Contratto.query.order_by(Contratto.numero_polizza).all()
     return render_template("sinistri/list.html", sinistri=sinistri,
-                           stati=STATI_SINISTRO, stato_sel=stato, conteggi=conteggi)
+                           stati=STATI_SINISTRO, stato_sel=stato, conteggi=conteggi,
+                           clienti=clienti, contratti=contratti)
 
 
 @bp.route("/nuovo", methods=["GET", "POST"])

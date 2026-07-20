@@ -101,6 +101,59 @@ async function cicloIncasso(cell) {
   } catch (_) { toast('Errore di rete', 'error'); }
 }
 
+// --- RICERCA CLIENTE INLINE (combobox) --------------------------------------
+// Sostituisce il vecchio <select> lungo: si digita per filtrare, si clicca per
+// selezionare. L'id scelto finisce nell'input hidden name="cliente_id" (il
+// backend resta invariato). Delega su document cosi' funziona sia in pagina
+// piena sia dentro il modale (il cui contenuto viene iniettato a runtime).
+document.addEventListener('input', (e) => {
+  const input = e.target.closest('.cliente-search-input');
+  if (!input) return;
+  const wrap = input.closest('[data-cliente-search]');
+  const list = wrap.querySelector('.cliente-search-list');
+  wrap.querySelector('input[type=hidden]').value = '';   // digitando si annulla la scelta
+  const v = input.value.trim().toLowerCase();
+  let visibili = 0;
+  list.querySelectorAll('.cliente-search-item').forEach(it => {
+    const match = it.dataset.name.includes(v);
+    it.classList.toggle('hidden', !match);
+    if (match) visibili++;
+  });
+  list.classList.toggle('hidden', visibili === 0);
+});
+document.addEventListener('click', (e) => {
+  // Selezione di un cliente dalla lista
+  const item = e.target.closest('.cliente-search-item');
+  if (item) {
+    const wrap = item.closest('[data-cliente-search]');
+    wrap.querySelector('input[type=hidden]').value = item.dataset.id;
+    wrap.querySelector('.cliente-search-input').value = item.textContent.trim();
+    wrap.querySelector('.cliente-search-list').classList.add('hidden');
+    return;
+  }
+  // Focus/click sul campo: mostra tutta la lista
+  const input = e.target.closest('.cliente-search-input');
+  if (input) {
+    const list = input.closest('[data-cliente-search]').querySelector('.cliente-search-list');
+    list.querySelectorAll('.cliente-search-item').forEach(it => it.classList.remove('hidden'));
+    list.classList.remove('hidden');
+    return;
+  }
+  // Click fuori: chiudi le liste aperte
+  document.querySelectorAll('[data-cliente-search]').forEach(wrap => {
+    if (!wrap.contains(e.target)) wrap.querySelector('.cliente-search-list').classList.add('hidden');
+  });
+});
+// Impedisce l'invio senza un cliente valido (l'input hidden deve essere pieno)
+document.addEventListener('submit', (e) => {
+  const wrap = e.target.querySelector ? e.target.querySelector('[data-cliente-search]') : null;
+  if (wrap && !wrap.querySelector('input[type=hidden]').value) {
+    e.preventDefault();
+    toast('Seleziona un cliente dalla lista', 'error');
+    wrap.querySelector('.cliente-search-input').focus();
+  }
+});
+
 // --- ANTEPRIMA DOCUMENTI ----------------------------------------------------
 function previewDoc(id, filename, isImg, isPdf) {
   let body = `<div class="modal-header"><h3>${filename}</h3>
