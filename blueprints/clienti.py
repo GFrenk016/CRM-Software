@@ -5,7 +5,7 @@ from flask import (Blueprint, flash, redirect, render_template, request, url_for
 from sqlalchemy import and_
 
 from extensions import db
-from models import Cliente, Compagnia, Contratto
+from models import STADI_LEAD, Cliente, Contratto, Lead
 from utils import parse_date
 
 bp = Blueprint("clienti", __name__, url_prefix="/clienti")
@@ -89,7 +89,12 @@ def form(cliente_id=None):
         if cliente is None:
             cliente = Cliente(**data)
             db.session.add(cliente)
-            flash("Cliente creato.", "success")
+            # Il lead nasce automaticamente con il cliente ed entra nel primo
+            # stadio della pipeline. Avviene SOLO alla creazione (non in modifica),
+            # così non si generano lead duplicati a ogni aggiornamento anagrafica.
+            db.session.add(Lead(cliente=cliente, stadio=STADI_LEAD[0],
+                                fonte="altro"))
+            flash("Cliente creato. Lead aggiunto in pipeline.", "success")
         else:
             for k, v in data.items():
                 setattr(cliente, k, v)

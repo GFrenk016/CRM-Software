@@ -3,7 +3,7 @@
 {% block title %}Anagrafica{% endblock %}
 {% block page_title %}Anagrafica clienti{% endblock %}
 {% block actions %}
-  <button class="btn btn-secondary btn-sm" onclick="apriEditorMessaggio()">
+  <button class="btn btn-secondary btn-sm" onclick="apriMessaggio(getSelectedClienti())">
     <svg class="icon icon-sm"><use href="#i-message"/></svg> Messaggio
   </button>
   <button class="btn btn-primary btn-sm" onclick="openTemplate('tpl-nuovo-cliente', true)">

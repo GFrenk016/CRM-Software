@@ -52,6 +52,13 @@
         <span class="nav-label">{{ label }}</span>
       </a>
       {% endfor %}
+      <!-- Azione globale: apre la modale di invio messaggio (WhatsApp/Email).
+           Non è una pagina, quindi è un pulsante e non un link di navigazione. -->
+      <button type="button" class="nav-item nav-btn" title="Messaggio"
+              onclick="apriMessaggio()">
+        <svg class="icon"><use href="#i-message"/></svg>
+        <span class="nav-label">Messaggio</span>
+      </button>
     </nav>
     <div class="sidebar-footer">
       <div class="user-avatar">TT</div>

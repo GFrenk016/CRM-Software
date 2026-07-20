@@ -41,7 +41,7 @@ def carica(cliente_id):
 
     doc = Documento(
         cliente_id=cliente.id,
-        tipo=request.form.get("tipo", "").strip() or "Documento",
+        tipo=request.form.get("tipo", "").strip() or "Altro",
         filename=original,
         stored_name=stored,
         mime=file.mimetype or mimetypes.guess_type(original)[0],

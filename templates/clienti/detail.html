@@ -63,12 +63,20 @@
     <div class="section-title">
       <span class="st-left"><svg class="icon icon-sm"><use href="#i-file-text"/></svg> Documenti</span>
     </div>
+    {# Tipi documento standard, allineati ai valori usati per tipo_documento
+       nell'anagrafica. Uniti agli eventuali tipi già presenti sui documenti
+       (retro-compatibilità con file caricati prima con tipo libero). #}
+    {% set tipi_std = ['Carta identità', 'Patente', 'Passaporto', 'Altro'] %}
+    {% set tipi_presenti = c.documenti|map(attribute='tipo')|select|list %}
+    {% set tipi_doc = (tipi_std + tipi_presenti)|unique|list %}
     <form class="card" method="post" enctype="multipart/form-data"
           action="{{ url_for('documenti.carica', cliente_id=c.id) }}" style="padding:14px">
       <div class="form-row">
         <div class="form-group" style="margin-bottom:8px">
           <label>Tipo</label>
-          <input class="form-input" name="tipo" placeholder="es. Carta identità, Modulo firmato">
+          <select class="form-input" name="tipo">
+            {% for t in tipi_std %}<option value="{{ t }}" {{ 'selected' if t == 'Altro' }}>{{ t }}</option>{% endfor %}
+          </select>
         </div>
         <div class="form-group" style="margin-bottom:8px">
           <label>File</label>
@@ -77,12 +85,22 @@
       </div>
       <button class="btn btn-primary btn-sm"><svg class="icon icon-sm"><use href="#i-upload"/></svg> Carica</button>
     </form>
-    <div class="related-list" style="margin-top:10px">
+
+    {# Filtro per tipo: i documenti sono già tutti nel template, quindi il filtro
+       è lato client (mostra/nasconde le voci per data-tipo, nessuna ricarica). #}
+    <div class="form-group" style="margin:10px 0 4px">
+      <label>Filtra per tipo documento</label>
+      <select class="form-input" id="doc-tipo-filtro" onchange="filtraDocumenti(this.value)">
+        <option value="">Tutti i tipi</option>
+        {% for t in tipi_doc %}<option value="{{ t }}">{{ t }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="related-list" id="doc-list" style="margin-top:6px">
       {% for d in c.documenti %}
-      <div class="related-item">
+      <div class="related-item" data-tipo="{{ d.tipo or 'Altro' }}">
         <div>
           <div style="font-weight:600">{{ d.filename }}</div>
-          <div class="muted" style="font-size:11px">{{ d.tipo }} · {{ (d.size / 1024)|round|int }} KB</div>
+          <div class="muted" style="font-size:11px">{{ d.tipo or 'Altro' }} · {{ (d.size / 1024)|round|int }} KB</div>
         </div>
         <div class="table-actions">
           <button class="btn-icon" title="Anteprima"
@@ -95,6 +113,7 @@
         </div>
       </div>
       {% else %}<div class="related-empty">Nessun documento caricato.</div>{% endfor %}
+      <div class="related-empty hidden" id="doc-empty-filtro">Nessun documento di questo tipo.</div>
     </div>
   </div>
 
