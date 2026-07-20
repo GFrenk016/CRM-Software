@@ -17,7 +17,7 @@
   <span><span class="legend-dot" style="background:#8b91a8"></span>Da incassare</span>
   <span><span class="legend-dot" style="background:var(--danger)"></span>In ritardo</span>
   <span><span class="legend-dot" style="background:var(--success)"></span>Incassato</span>
-  <span class="muted" style="margin-left:auto;font-size:12px">Clicca su una cella di stato per cambiarla</span>
+  <span class="muted" style="margin-left:auto;font-size:12px">Scegli lo stato dal menu a tendina di ogni riga</span>
 </div>
 
 <div class="table-wrapper">
@@ -32,15 +32,18 @@
         {% for i in incassi %}
         <tr>
           <td class="font-bold"><a href="{{ url_for('clienti.detail', cliente_id=i.cliente_id) }}">{{ i.cliente.nome_completo }}</a></td>
-          <td class="mono">{{ i.contratto.numero_polizza }}</td>
+          <td class="mono"><a href="{{ url_for('contratti.detail', contratto_id=i.contratto_id) }}" title="Apri contratto">{{ i.contratto.numero_polizza }}</a></td>
           <td>{{ i.descrizione or '—' }}</td>
           <td class="text-right mono font-bold">{{ i.importo|eur }}</td>
           <td class="mono">{{ i.data_prevista|data_it }}</td>
           <td class="mono data-incasso" data-incasso-id="{{ i.id }}">{{ i.data_incasso|data_it }}</td>
           <td>
-            <span class="mono-cell mc-{{ i.stato }}" data-incasso-id="{{ i.id }}" data-stato="{{ i.stato }}" onclick="cicloIncasso(this)">
-              {{ {'da_incassare':'Da incassare','in_ritardo':'In ritardo','incassato':'Incassato'}[i.stato] }}
-            </span>
+            <select class="mono-cell mc-{{ i.stato }}" data-incasso-id="{{ i.id }}"
+                    onchange="cambiaStatoIncasso(this)" title="Cambia stato incasso">
+              {% for s in stati %}
+              <option value="{{ s }}" {{ 'selected' if s == i.stato }}>{{ {'da_incassare':'Da incassare','in_ritardo':'In ritardo','incassato':'Incassato'}[s] }}</option>
+              {% endfor %}
+            </select>
           </td>
           <td><form method="post" action="{{ url_for('incassi.elimina', inc_id=i.id) }}" onsubmit="return confirm('Eliminare?')"><button class="btn-icon"><svg class="icon icon-sm"><use href="#i-trash"/></svg></button></form></td>
         </tr>
