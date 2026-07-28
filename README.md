@@ -12,7 +12,9 @@ con **incassi/provvigioni** collegati ai contratti.
 - **Backend:** Python + **Flask** (sincrono, server-rendered — più semplice da
   mantenere di FastAPI per un'app locale mono-utente senza API pubblica).
 - **Database:** **SQLite** (un unico file `crm.db`) con schema relazionale vero
-  (chiavi esterne coerenti), tramite Flask-SQLAlchemy.
+  (chiavi esterne coerenti), tramite Flask-SQLAlchemy. Lo schema è gestito con
+  **Flask-Migrate** (Alembic): all'avvio l'app applica automaticamente le
+  migrazioni fino all'ultima revisione.
 - **Frontend:** template **Jinja** serviti da Flask + piccoli endpoint JSON per
   le parti interattive (drag&drop pipeline, celle stato incassi, anteprima
   documenti, messaggistica). Nessun build step, nessun framework JS.
@@ -56,6 +58,20 @@ del database:
 ```bash
 rm crm.db      # Windows: del crm.db
 python app.py
+```
+
+> Se aggiorni da una versione precedente all'introduzione di Flask-Migrate,
+> elimina una volta il vecchio `crm.db` (contiene solo dati di esempio): non ha
+> la cronologia delle migrazioni e verrà ricreato aggiornato al primo avvio.
+
+### Modificare lo schema (migrazioni)
+
+Dopo aver cambiato i modelli in `models.py`, genera e applica la migrazione:
+
+```bash
+export FLASK_APP=app.py CRM_SKIP_STARTUP_UPGRADE=1   # Windows: set ...
+flask db migrate -m "descrizione della modifica"
+flask db upgrade                                     # oppure riavvia l'app
 ```
 
 ## Struttura del progetto
