@@ -49,7 +49,7 @@
         <div class="detail-item"><label>Cellulare</label><span>{{ c.cellulare or '—' }}</span></div>
         <div class="detail-item"><label>Telefono</label><span>{{ c.telefono or '—' }}</span></div>
         <div class="detail-item" style="grid-column:span 2"><label>Email</label><span>{{ c.email or '—' }}</span></div>
-        <div class="detail-item" style="grid-column:span 2"><label>Indirizzo</label><span>{{ c.indirizzo or '—' }}{% if c.cap %}, {{ c.cap }}{% endif %} {{ c.citta or '' }} {% if c.provincia %}({{ c.provincia }}){% endif %}</span></div>
+        <div class="detail-item" style="grid-column:span 2"><label>Indirizzo</label><span>{{ c.indirizzo_completo or '—' }}</span></div>
         <div class="detail-item"><label>Documento</label><span>{{ c.tipo_documento or '—' }}</span></div>
         <div class="detail-item"><label>N. documento</label><span class="mono">{{ c.numero_documento or '—' }}</span></div>
         <div class="detail-item"><label>Stato civile</label><span>{{ c.stato_civile or '—' }}</span></div>
@@ -57,6 +57,39 @@
         <div class="detail-item"><label>Figli</label><span>{{ c.num_figli or 0 }}</span></div>
       </div>
       {% if c.note %}<div class="detail-item" style="margin-top:12px"><label>Note</label><span>{{ c.note }}</span></div>{% endif %}
+    </div>
+
+    <!-- VEICOLI: elenco targhe collegate al cliente, con form di aggiunta rapida -->
+    <div class="section-title">
+      <span class="st-left"><svg class="icon icon-sm"><use href="#i-shield"/></svg> Veicoli</span>
+    </div>
+    <form class="card" method="post" action="{{ url_for('clienti.aggiungi_veicolo', cliente_id=c.id) }}" style="padding:14px">
+      <div class="form-row">
+        <div class="form-group" style="margin-bottom:8px">
+          <label>Targa</label>
+          <input class="form-input" name="targa" placeholder="AA123BB" required>
+        </div>
+        <div class="form-group" style="margin-bottom:8px">
+          <label>Marca</label>
+          <input class="form-input" name="marca">
+        </div>
+        <div class="form-group" style="margin-bottom:8px">
+          <label>Modello</label>
+          <input class="form-input" name="modello">
+        </div>
+      </div>
+      <button class="btn btn-primary btn-sm"><svg class="icon icon-sm"><use href="#i-shield"/></svg> Aggiungi veicolo</button>
+    </form>
+    <div class="related-list" style="margin-top:6px">
+      {% for v in c.veicoli %}
+      <div class="related-item">
+        <div><span class="mono">{{ v.targa }}</span> · {{ v.descrizione if (v.marca or v.modello) else '' }}</div>
+        <form method="post" action="{{ url_for('clienti.elimina_veicolo', cliente_id=c.id, veicolo_id=v.id) }}"
+              onsubmit="return confirm('Eliminare questo veicolo?')">
+          <button class="btn-icon" title="Elimina"><svg class="icon icon-sm"><use href="#i-trash"/></svg></button>
+        </form>
+      </div>
+      {% else %}<div class="related-empty">Nessun veicolo.</div>{% endfor %}
     </div>
 
     <!-- DOCUMENTI: upload / anteprima / download -->

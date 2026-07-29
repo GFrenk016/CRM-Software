@@ -81,6 +81,12 @@
         </div>
         <div class="form-group"><label>Oggetto</label><input class="form-input" name="oggetto" placeholder="es. RC Auto"></div>
       </div>
+      <div class="form-group"><label>Veicolo (per preventivi RC Auto)</label>
+        <select class="form-input" name="veicolo_id">
+          <option value="">—</option>
+          {% for v in veicoli %}<option value="{{ v.id }}">{{ v.targa }} · {{ v.cliente.nome_completo }}{% if v.marca or v.modello %} ({{ (v.marca or '') ~ ' ' ~ (v.modello or '') }}){% endif %}</option>{% endfor %}
+        </select>
+      </div>
       <div class="form-row-3">
         <div class="form-group"><label>Premio proposto (€)</label><input class="form-input" type="number" step="0.01" name="premio_proposto" value="0"></div>
         <div class="form-group"><label>Stato</label>

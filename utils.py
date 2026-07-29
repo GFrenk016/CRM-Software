@@ -44,6 +44,7 @@ def register_template_helpers(app):
         nav = [
             ("Bacheca", "dashboard.index", "grid"),
             ("Pipeline", "pipeline.index", "kanban"),
+            ("Pratiche", "pratiche.index", "inbox"),
             ("Anagrafica", "clienti.index", "users"),
             ("Preventivi", "preventivi.index", "file-text"),
             ("Contratti", "contratti.index", "shield"),

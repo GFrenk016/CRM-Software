@@ -6,7 +6,7 @@ from flask import (Blueprint, flash, redirect, render_template, request, url_for
 
 from extensions import db
 from models import (STATI_PREVENTIVO, Cliente, Compagnia, Contratto, Lead,
-                    Preventivo)
+                    Preventivo, Veicolo)
 from utils import parse_date
 
 bp = Blueprint("preventivi", __name__, url_prefix="/preventivi")
@@ -28,9 +28,11 @@ def index():
     clienti = Cliente.query.order_by(Cliente.cognome).all()
     compagnie = Compagnia.query.order_by(Compagnia.nome).all()
     lead = Lead.query.all()
+    veicoli = Veicolo.query.all()
     return render_template("preventivi/list.html", preventivi=preventivi,
                            stati=STATI_PREVENTIVO, stato_sel=stato,
-                           clienti=clienti, compagnie=compagnie, lead=lead)
+                           clienti=clienti, compagnie=compagnie, lead=lead,
+                           veicoli=veicoli)
 
 
 @bp.route("/nuovo", methods=["GET", "POST"])
@@ -45,6 +47,7 @@ def form(prev_id=None):
         prev.cliente_id = int(f["cliente_id"])
         prev.lead_id = int(f["lead_id"]) if f.get("lead_id") else None
         prev.compagnia_id = int(f["compagnia_id"]) if f.get("compagnia_id") else None
+        prev.veicolo_id = int(f["veicolo_id"]) if f.get("veicolo_id") else None
         prev.oggetto = f.get("oggetto", "").strip() or None
         prev.premio_proposto = float(f.get("premio_proposto") or 0)
         prev.stato = f.get("stato", "bozza")
@@ -55,11 +58,12 @@ def form(prev_id=None):
     clienti = Cliente.query.order_by(Cliente.cognome).all()
     compagnie = Compagnia.query.order_by(Compagnia.nome).all()
     lead = Lead.query.all()
+    veicoli = Veicolo.query.all()
     # Cliente pre-selezionato quando si crea "da scheda cliente" (?cliente_id=X)
     cliente_sel = request.args.get("cliente_id", type=int)
     return render_template("preventivi/form.html", p=prev, clienti=clienti,
-                           compagnie=compagnie, lead=lead, stati=STATI_PREVENTIVO,
-                           cliente_sel=cliente_sel)
+                           compagnie=compagnie, lead=lead, veicoli=veicoli,
+                           stati=STATI_PREVENTIVO, cliente_sel=cliente_sel)
 
 
 @bp.route("/<int:prev_id>/converti", methods=["POST"])

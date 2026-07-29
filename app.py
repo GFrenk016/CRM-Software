@@ -35,6 +35,7 @@ def create_app(config_class=Config):
     from blueprints.dashboard import bp as dashboard_bp
     from blueprints.clienti import bp as clienti_bp
     from blueprints.pipeline import bp as pipeline_bp
+    from blueprints.pratiche import bp as pratiche_bp
     from blueprints.preventivi import bp as preventivi_bp
     from blueprints.contratti import bp as contratti_bp
     from blueprints.scadenze import bp as scadenze_bp
@@ -45,9 +46,9 @@ def create_app(config_class=Config):
     from blueprints.documenti import bp as documenti_bp
     from blueprints.messaggi import bp as messaggi_bp
 
-    for bp in (dashboard_bp, clienti_bp, pipeline_bp, preventivi_bp, contratti_bp,
-               scadenze_bp, sinistri_bp, incassi_bp, compagnie_bp, compliance_bp,
-               documenti_bp, messaggi_bp):
+    for bp in (dashboard_bp, clienti_bp, pipeline_bp, pratiche_bp, preventivi_bp,
+               contratti_bp, scadenze_bp, sinistri_bp, incassi_bp, compagnie_bp,
+               compliance_bp, documenti_bp, messaggi_bp):
         app.register_blueprint(bp)
 
     # Filtri Jinja utili in tutte le pagine

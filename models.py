@@ -31,7 +31,7 @@ STATI_INCASSO = ["da_incassare", "incassato", "in_ritardo"]
 
 # Stato della Pratica: stessa impostazione delle altre entità (colonna String +
 # lista di valori ammessi), così i template/filtri restano coerenti col resto.
-STATI_PRATICA = ["aperta", "in lavorazione", "in attesa cliente",
+STATI_PRATICA = ["aperta", "in_lavorazione", "in_attesa_cliente",
                  "completata", "annullata"]
 
 # Regex di dominio -----------------------------------------------------------
@@ -241,6 +241,9 @@ class Lead(db.Model):
 
     cliente = db.relationship("Cliente", back_populates="lead")
     preventivi = db.relationship("Preventivo", back_populates="lead")
+    # FK nullable lato Pratica: se il lead viene eliminato le pratiche
+    # collegate NON vengono cancellate, il riferimento viene solo azzerato.
+    pratiche = db.relationship("Pratica", back_populates="lead")
 
     @property
     def giorni_nello_stadio(self):
@@ -284,6 +287,9 @@ class Preventivo(db.Model):
     cliente_id = db.Column(db.Integer, db.ForeignKey("clienti.id"), nullable=False)
     lead_id = db.Column(db.Integer, db.ForeignKey("lead.id"))            # opzionale
     compagnia_id = db.Column(db.Integer, db.ForeignKey("compagnie.id"))
+    # Veicolo di riferimento per preventivi RC Auto (opzionale: non tutti i
+    # preventivi riguardano un veicolo, es. Vita/Infortuni/Casa).
+    veicolo_id = db.Column(db.Integer, db.ForeignKey("veicoli.id"))
 
     oggetto = db.Column(db.String(200))         # es. "RC Auto", "Vita + Infortuni"
     premio_proposto = db.Column(db.Float, default=0.0)
@@ -294,6 +300,7 @@ class Preventivo(db.Model):
     cliente = db.relationship("Cliente", back_populates="preventivi")
     lead = db.relationship("Lead", back_populates="preventivi")
     compagnia = db.relationship("Compagnia", back_populates="preventivi")
+    veicolo = db.relationship("Veicolo")
     # Contratto generato da questo preventivo accettato (se esiste)
     contratto = db.relationship("Contratto", back_populates="preventivo",
                                 uselist=False)
@@ -487,6 +494,7 @@ class Pratica(db.Model):
     # Relazioni ------------------------------------------------------------
     cliente_id = db.Column(db.Integer, db.ForeignKey("clienti.id"),
                            nullable=False)                      # obbligatoria
+    lead_id = db.Column(db.Integer, db.ForeignKey("lead.id"))            # nullable
     contratto_id = db.Column(db.Integer, db.ForeignKey("contratti.id"))  # nullable
     sinistro_id = db.Column(db.Integer, db.ForeignKey("sinistri.id"))    # nullable
 
@@ -504,6 +512,7 @@ class Pratica(db.Model):
                                           onupdate=datetime.utcnow)
 
     cliente = db.relationship("Cliente", back_populates="pratiche")
+    lead = db.relationship("Lead", back_populates="pratiche")
     contratto = db.relationship("Contratto", back_populates="pratiche")
     sinistro = db.relationship("Sinistro", back_populates="pratiche")
 

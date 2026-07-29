@@ -3,9 +3,10 @@ from datetime import date
 
 from flask import (Blueprint, flash, redirect, render_template, request, url_for)
 from sqlalchemy import and_
+from sqlalchemy.exc import IntegrityError
 
 from extensions import db
-from models import STADI_LEAD, Cliente, Contratto, Lead
+from models import STADI_LEAD, Cliente, Contratto, Lead, Veicolo
 from utils import parse_date
 
 bp = Blueprint("clienti", __name__, url_prefix="/clienti")
@@ -111,6 +112,39 @@ def delete(cliente_id):
     db.session.commit()
     flash("Cliente eliminato.", "success")
     return redirect(url_for("clienti.index"))
+
+
+@bp.route("/<int:cliente_id>/veicoli/nuovo", methods=["POST"])
+def aggiungi_veicolo(cliente_id):
+    cliente = Cliente.query.get_or_404(cliente_id)
+    try:
+        # Il costruttore assegna gli attributi subito: @validates su targa
+        # scatta già qui (non solo al commit), quindi va incluso nel try.
+        veicolo = Veicolo(
+            cliente_id=cliente.id,
+            targa=request.form.get("targa", ""),
+            marca=request.form.get("marca", "").strip() or None,
+            modello=request.form.get("modello", "").strip() or None,
+        )
+        db.session.add(veicolo)
+        db.session.commit()
+        flash("Veicolo aggiunto.", "success")
+    except ValueError as e:
+        db.session.rollback()
+        flash(str(e), "error")
+    except IntegrityError:
+        db.session.rollback()
+        flash("Esiste già un veicolo con questa targa.", "error")
+    return redirect(url_for("clienti.detail", cliente_id=cliente.id))
+
+
+@bp.route("/<int:cliente_id>/veicoli/<int:veicolo_id>/elimina", methods=["POST"])
+def elimina_veicolo(cliente_id, veicolo_id):
+    veicolo = Veicolo.query.filter_by(id=veicolo_id, cliente_id=cliente_id).first_or_404()
+    db.session.delete(veicolo)
+    db.session.commit()
+    flash("Veicolo eliminato.", "success")
+    return redirect(url_for("clienti.detail", cliente_id=cliente_id))
 
 
 def _read_form(form):

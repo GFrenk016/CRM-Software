@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% set section = "pratiche" %}
+{% block title %}{{ 'Modifica' if p else 'Nuova' }} pratica{% endblock %}
+{% block page_title %}{{ 'Modifica pratica ' ~ p.numero_identificativo if p else 'Nuova pratica' }}{% endblock %}
+
+{% block content %}
+<form class="form-card" method="post">
+  <div class="form-row">
+    <div class="form-group"><label>Cliente *</label>
+      <select class="form-input" name="cliente_id" required>
+        {% for c in clienti %}<option value="{{ c.id }}" {{ 'selected' if (p and p.cliente_id == c.id) or (not p and cliente_sel == c.id) }}>{{ c.nome_completo }}</option>{% endfor %}
+      </select></div>
+    <div class="form-group"><label>Tipologia *</label>
+      <select class="form-input" name="tipologia" required>
+        {% for t in tipologia_opts %}<option value="{{ t.value }}" {{ 'selected' if p and p.tipologia == t.value }}>{{ t.label }}</option>{% endfor %}
+      </select></div>
+  </div>
+  <div class="form-row">
+    <div class="form-group"><label>Contratto collegato</label>
+      <select class="form-input" name="contratto_id">
+        <option value="">—</option>
+        {% for k in contratti %}<option value="{{ k.id }}" {{ 'selected' if p and p.contratto_id == k.id }}>{{ k.numero_polizza }} · {{ k.cliente.nome_completo }}</option>{% endfor %}
+      </select></div>
+    <div class="form-group"><label>Sinistro collegato</label>
+      <select class="form-input" name="sinistro_id">
+        <option value="">—</option>
+        {% for s in sinistri %}<option value="{{ s.id }}" {{ 'selected' if p and p.sinistro_id == s.id }}>{{ s.numero }} · {{ s.cliente.nome_completo }}</option>{% endfor %}
+      </select></div>
+  </div>
+  <div class="form-group"><label>Lead collegato</label>
+    <select class="form-input" name="lead_id">
+      <option value="">—</option>
+      {% for l in lead %}<option value="{{ l.id }}" {{ 'selected' if p and p.lead_id == l.id }}>{{ l.cliente.nome_completo }} · {{ l.stadio }}</option>{% endfor %}
+    </select></div>
+  <div class="form-row-3">
+    <div class="form-group"><label>Stato</label>
+      <select class="form-input" name="stato">{% for st in stati %}<option value="{{ st }}" {{ 'selected' if p and p.stato == st }}>{{ st|replace('_',' ') }}</option>{% endfor %}</select></div>
+    <div class="form-group"><label>Priorità</label>
+      <select class="form-input" name="priorita">
+        {% for pr in priorita_opts %}<option value="{{ pr.value }}" {{ 'selected' if (p and p.priorita == pr.value) or (not p and pr.name == 'MEDIA') }}>{{ pr.label }}</option>{% endfor %}
+      </select></div>
+    <div class="form-group"><label>Operatore</label><input class="form-input" name="operatore" value="{{ p.operatore or '' if p else '' }}" placeholder="es. Marco"></div>
+  </div>
+  <div class="form-group"><label>Note</label><textarea class="form-input" name="note">{{ p.note or '' if p else '' }}</textarea></div>
+  <div class="form-actions">
+    <a class="btn btn-secondary" href="{{ url_for('pratiche.index') }}">Annulla</a>
+    <button class="btn btn-primary" type="submit">Salva</button>
+  </div>
+</form>
+{% endblock %}

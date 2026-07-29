@@ -160,12 +160,18 @@ a.stat-card:hover { transform:translateY(-2px); box-shadow:var(--shadow);
 /* BADGE */
 .badge { display:inline-flex; align-items:center; padding:2px 9px; border-radius:20px;
   font-size:11px; font-weight:700; letter-spacing:.03em; }
-.badge-nuovo,.badge-bozza,.badge-da_incassare { background:rgba(139,145,168,.15); color:var(--text2); }
-.badge-contattato,.badge-inviato,.badge-attivo { background:var(--primary-dim); color:var(--primary); }
+.badge-nuovo,.badge-bozza,.badge-da_incassare,.badge-aperta { background:rgba(139,145,168,.15); color:var(--text2); }
+.badge-contattato,.badge-inviato,.badge-attivo,.badge-in_lavorazione { background:var(--primary-dim); color:var(--primary); }
 .badge-qualificato { background:var(--purple-dim); color:var(--purple); }
-.badge-proposta,.badge-perizia,.badge-in_scadenza,.badge-in_ritardo,.badge-in.attesa { background:var(--warning-dim); color:var(--warning); }
-.badge-vinto,.badge-accettato,.badge-incassato,.badge-chiuso,.badge-attiva { background:var(--success-dim); color:var(--success); }
-.badge-perso,.badge-rifiutato,.badge-aperto,.badge-scaduta,.badge-imminente,.badge-scaduto,.badge-disdetto { background:var(--danger-dim); color:var(--danger); }
+.badge-proposta,.badge-perizia,.badge-in_scadenza,.badge-in_ritardo,.badge-in.attesa,.badge-in_attesa_cliente { background:var(--warning-dim); color:var(--warning); }
+.badge-vinto,.badge-accettato,.badge-incassato,.badge-chiuso,.badge-attiva,.badge-completata { background:var(--success-dim); color:var(--success); }
+.badge-perso,.badge-rifiutato,.badge-aperto,.badge-scaduta,.badge-imminente,.badge-scaduto,.badge-disdetto,.badge-annullata { background:var(--danger-dim); color:var(--danger); }
+
+/* Priorità pratica */
+.badge-bassa { background:rgba(139,145,168,.15); color:var(--text2); }
+.badge-media { background:var(--primary-dim); color:var(--primary); }
+.badge-alta { background:var(--warning-dim); color:var(--warning); }
+.badge-urgente { background:var(--danger-dim); color:var(--danger); }
 
 /* TABELLE */
 .table-wrapper { background:var(--surface); border:1px solid var(--border);
