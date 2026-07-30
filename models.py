@@ -11,7 +11,7 @@ scadenza (vedi Contratto.giorni_alla_scadenza / query in blueprints/scadenze.py)
 """
 import enum
 import re
-from datetime import date, datetime
+from datetime import date, datetime, time
 
 from sqlalchemy import event
 from sqlalchemy.orm import validates
@@ -33,6 +33,19 @@ STATI_INCASSO = ["da_incassare", "incassato", "in_ritardo"]
 # lista di valori ammessi), così i template/filtri restano coerenti col resto.
 STATI_PRATICA = ["aperta", "in_lavorazione", "in_attesa_cliente",
                  "completata", "annullata"]
+
+# Appuntamento: tipo ed esito modellati come le altre entità (String + lista).
+# Il tipo "otp" copre l'appuntamento per la firma/verifica OTP previsto dal
+# flusso di lavorazione pratica. Valori senza spazi (finiscono come classi CSS).
+TIPI_APPUNTAMENTO = ["otp", "consulenza", "firma", "sopralluogo", "altro"]
+ESITI_APPUNTAMENTO = ["da_svolgere", "svolto", "annullato", "non_presentato"]
+
+# Comunicazione: canale di uscita ed esito registrato.
+# NB sull'esito: con i link wa.me/mailto non è possibile sapere se il messaggio
+# è stato davvero consegnato. "registrato" indica solo che la comunicazione è
+# stata tracciata a sistema (link generato), NON che sia stata recapitata.
+CANALI_COMUNICAZIONE = ["whatsapp", "email", "altro"]
+ESITI_COMUNICAZIONE = ["registrato", "inviato", "consegnato", "fallito"]
 
 # Regex di dominio -----------------------------------------------------------
 # Codice fiscale persona fisica (16 caratteri, formato standard italiano).
@@ -171,6 +184,10 @@ class Cliente(db.Model):
                               cascade="all, delete-orphan")
     pratiche = db.relationship("Pratica", back_populates="cliente",
                                cascade="all, delete-orphan")
+    appuntamenti = db.relationship("Appuntamento", back_populates="cliente",
+                                   cascade="all, delete-orphan")
+    comunicazioni = db.relationship("Comunicazione", back_populates="cliente",
+                                    cascade="all, delete-orphan")
 
     @validates("codice_fiscale")
     def _valida_codice_fiscale(self, key, value):
@@ -304,6 +321,9 @@ class Preventivo(db.Model):
     # Contratto generato da questo preventivo accettato (se esiste)
     contratto = db.relationship("Contratto", back_populates="preventivo",
                                 uselist=False)
+    # FK nullable lato Pratica: se il preventivo viene eliminato le pratiche
+    # collegate NON vengono cancellate, il riferimento viene solo azzerato.
+    pratiche = db.relationship("Pratica", back_populates="preventivo")
 
     def __repr__(self):
         return f"<Preventivo {self.numero} {self.stato}>"
@@ -423,6 +443,10 @@ class Documento(db.Model):
     __tablename__ = "documenti"
     id = db.Column(db.Integer, primary_key=True)
     cliente_id = db.Column(db.Integer, db.ForeignKey("clienti.id"), nullable=False)
+    # Collegamento opzionale a una pratica specifica (FK nullable, nessun
+    # cascade): serve per allegare documenti alla pratica e, in fase successiva,
+    # per l'invio del certificato a chiusura pratica.
+    pratica_id = db.Column(db.Integer, db.ForeignKey("pratiche.id"))     # nullable
 
     tipo = db.Column(db.String(60))             # "Carta identità", "Modulo firmato", ...
     filename = db.Column(db.String(255))        # nome originale mostrato all'utente
@@ -432,6 +456,7 @@ class Documento(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     cliente = db.relationship("Cliente", back_populates="documenti")
+    pratica = db.relationship("Pratica", back_populates="documenti")
 
     @property
     def is_immagine(self):
@@ -495,6 +520,7 @@ class Pratica(db.Model):
     cliente_id = db.Column(db.Integer, db.ForeignKey("clienti.id"),
                            nullable=False)                      # obbligatoria
     lead_id = db.Column(db.Integer, db.ForeignKey("lead.id"))            # nullable
+    preventivo_id = db.Column(db.Integer, db.ForeignKey("preventivi.id"))  # nullable
     contratto_id = db.Column(db.Integer, db.ForeignKey("contratti.id"))  # nullable
     sinistro_id = db.Column(db.Integer, db.ForeignKey("sinistri.id"))    # nullable
 
@@ -513,8 +539,14 @@ class Pratica(db.Model):
 
     cliente = db.relationship("Cliente", back_populates="pratiche")
     lead = db.relationship("Lead", back_populates="pratiche")
+    preventivo = db.relationship("Preventivo", back_populates="pratiche")
     contratto = db.relationship("Contratto", back_populates="pratiche")
     sinistro = db.relationship("Sinistro", back_populates="pratiche")
+    # Collegamenti opzionali (FK nullable lato figlio, nessun cascade): i
+    # documenti e gli appuntamenti possono esistere anche senza pratica.
+    documenti = db.relationship("Documento", back_populates="pratica")
+    appuntamenti = db.relationship("Appuntamento", back_populates="pratica")
+    comunicazioni = db.relationship("Comunicazione", back_populates="pratica")
 
     @validates("stato")
     def _valida_stato(self, key, value):
@@ -584,3 +616,168 @@ def _assegna_numeri_pratiche(session, flush_context, instances):
             prossimo[anno] = _ultimo_progressivo_anno(connection, anno) + 1
         pratica.numero_identificativo = f"PR-{anno}-{prossimo[anno]:04d}"
         prossimo[anno] += 1
+
+
+# --------------------------------------------------------------------------- #
+#  Appuntamento (agenda: es. appuntamento OTP nel flusso di lavorazione)       #
+# --------------------------------------------------------------------------- #
+class Appuntamento(db.Model):
+    __tablename__ = "appuntamenti"
+    id = db.Column(db.Integer, primary_key=True)
+
+    # Il cliente è obbligatorio (figlio del Cliente, cascade lato Cliente).
+    cliente_id = db.Column(db.Integer, db.ForeignKey("clienti.id"),
+                           nullable=False)
+    # La pratica è opzionale: un appuntamento può non essere ancora legato a una
+    # pratica specifica (FK nullable, nessun cascade).
+    pratica_id = db.Column(db.Integer, db.ForeignKey("pratiche.id"))     # nullable
+
+    data_ora = db.Column(db.DateTime)
+    tipo = db.Column(db.String(30))             # es. "otp", "consulenza", ...
+    note = db.Column(db.Text)
+    esito = db.Column(db.String(30))            # es. "da_svolgere", "svolto", ...
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    cliente = db.relationship("Cliente", back_populates="appuntamenti")
+    pratica = db.relationship("Pratica", back_populates="appuntamenti")
+
+    @validates("tipo")
+    def _valida_tipo(self, key, value):
+        if value and value not in TIPI_APPUNTAMENTO:
+            raise ValueError(f"Tipo appuntamento non valido: {value!r}")
+        return value or None
+
+    @validates("esito")
+    def _valida_esito(self, key, value):
+        if value and value not in ESITI_APPUNTAMENTO:
+            raise ValueError(f"Esito appuntamento non valido: {value!r}")
+        return value or None
+
+    def __repr__(self):
+        return f"<Appuntamento {self.id} {self.tipo}>"
+
+
+# --------------------------------------------------------------------------- #
+#  Comunicazione (storico messaggi inviati: WhatsApp / Email / altro)          #
+# --------------------------------------------------------------------------- #
+class Comunicazione(db.Model):
+    __tablename__ = "comunicazioni"
+    id = db.Column(db.Integer, primary_key=True)
+
+    # Cliente obbligatorio (figlio del Cliente, cascade lato Cliente).
+    cliente_id = db.Column(db.Integer, db.ForeignKey("clienti.id"),
+                           nullable=False)
+    # Pratica opzionale (FK nullable, nessun cascade).
+    pratica_id = db.Column(db.Integer, db.ForeignKey("pratiche.id"))     # nullable
+
+    canale = db.Column(db.String(20), nullable=False)   # whatsapp/email/altro
+    destinatario = db.Column(db.String(200))            # numero o indirizzo email
+    testo = db.Column(db.Text)
+    data_invio = db.Column(db.DateTime, default=datetime.utcnow)
+    # Esito: vedi nota su ESITI_COMUNICAZIONE. Con i link wa.me/mailto NON è
+    # possibile sapere se il messaggio è stato recapitato: il default onesto è
+    # "registrato" (link generato/tracciato), non "consegnato".
+    esito = db.Column(db.String(20), default="registrato")
+
+    cliente = db.relationship("Cliente", back_populates="comunicazioni")
+    pratica = db.relationship("Pratica", back_populates="comunicazioni")
+
+    @validates("canale")
+    def _valida_canale(self, key, value):
+        if value not in CANALI_COMUNICAZIONE:
+            raise ValueError(f"Canale comunicazione non valido: {value!r}")
+        return value
+
+    @validates("esito")
+    def _valida_esito(self, key, value):
+        if value and value not in ESITI_COMUNICAZIONE:
+            raise ValueError(f"Esito comunicazione non valido: {value!r}")
+        return value or None
+
+    def __repr__(self):
+        return f"<Comunicazione {self.id} {self.canale}>"
+
+
+def registra_comunicazione(cliente_id, canale, destinatario=None, testo=None,
+                           pratica_id=None, esito="registrato", data_invio=None,
+                           commit=True):
+    """Registra una comunicazione nello storico e la restituisce.
+
+    Helper unico da usare quando si genera un link wa.me/mailto (o si invia un
+    messaggio) così da tenere traccia di CHI è stato contattato, QUANDO, su QUALE
+    canale e con QUALE testo. NB: con i soli link cliccabili non è possibile
+    confermare la consegna, quindi l'esito di default è "registrato" (link
+    generato), NON "consegnato". Per registrare un invio effettivo servirebbe un
+    callback dal frontend (vedi report / TODO in blueprints/messaggi.py).
+
+    Passare commit=False per accodare la registrazione a una transazione più
+    ampia gestita dal chiamante.
+    """
+    com = Comunicazione(
+        cliente_id=cliente_id,
+        pratica_id=pratica_id,
+        canale=canale,
+        destinatario=destinatario,
+        testo=testo,
+        esito=esito,
+        data_invio=data_invio or datetime.utcnow(),
+    )
+    db.session.add(com)
+    if commit:
+        db.session.commit()
+    return com
+
+
+# --------------------------------------------------------------------------- #
+#  Impostazioni agenzia (tabella a riga singola: id fisso = 1)                 #
+# --------------------------------------------------------------------------- #
+# Scelta: una tabella a riga singola invece di costanti in config.py, così in
+# futuro i valori (IBAN, ragione sociale, finestre di emissione) saranno
+# editabili da UI senza toccare il codice/redeploy. L'accesso passa sempre da
+# get_impostazioni(), che garantisce l'esistenza dell'unica riga.
+# NB: gli orari delle due finestre di emissione polizze sono DEFAULT provvisori,
+# da confermare col cliente.
+FINESTRA1_INIZIO_DEFAULT = time(9, 0)
+FINESTRA1_FINE_DEFAULT = time(11, 0)
+FINESTRA2_INIZIO_DEFAULT = time(15, 0)
+FINESTRA2_FINE_DEFAULT = time(17, 0)
+
+
+class ImpostazioniAgenzia(db.Model):
+    __tablename__ = "impostazioni_agenzia"
+    id = db.Column(db.Integer, primary_key=True)
+
+    ragione_sociale = db.Column(db.String(200))
+    iban = db.Column(db.String(34))             # IBAN italiano: 27 caratteri
+
+    # Le due finestre giornaliere di emissione polizze (orari provvisori).
+    finestra1_inizio = db.Column(db.Time, default=FINESTRA1_INIZIO_DEFAULT)
+    finestra1_fine = db.Column(db.Time, default=FINESTRA1_FINE_DEFAULT)
+    finestra2_inizio = db.Column(db.Time, default=FINESTRA2_INIZIO_DEFAULT)
+    finestra2_fine = db.Column(db.Time, default=FINESTRA2_FINE_DEFAULT)
+
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow,
+                           onupdate=datetime.utcnow)
+
+    def __repr__(self):
+        return f"<ImpostazioniAgenzia {self.ragione_sociale or 'n/d'}>"
+
+
+def get_impostazioni():
+    """Restituisce l'unica riga di impostazioni, creandola con i default se assente.
+
+    Idempotente: la riga ha sempre id=1. Da usare come unico punto di accesso
+    alle impostazioni agenzia.
+    """
+    imp = db.session.get(ImpostazioniAgenzia, 1)
+    if imp is None:
+        imp = ImpostazioniAgenzia(
+            id=1,
+            finestra1_inizio=FINESTRA1_INIZIO_DEFAULT,
+            finestra1_fine=FINESTRA1_FINE_DEFAULT,
+            finestra2_inizio=FINESTRA2_INIZIO_DEFAULT,
+            finestra2_fine=FINESTRA2_FINE_DEFAULT,
+        )
+        db.session.add(imp)
+        db.session.commit()
+    return imp

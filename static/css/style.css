@@ -173,6 +173,16 @@ a.stat-card:hover { transform:translateY(-2px); box-shadow:var(--shadow);
 .badge-alta { background:var(--warning-dim); color:var(--warning); }
 .badge-urgente { background:var(--danger-dim); color:var(--danger); }
 
+/* Appuntamenti (tipo ed esito) e Comunicazioni (canale ed esito).
+   Nessuna vista li usa ancora in questa fase: predisposti per coerenza col
+   resto dei badge (valori senza spazi = classi CSS badge-{{ x }}). */
+.badge-otp,.badge-consulenza,.badge-registrato { background:var(--primary-dim); color:var(--primary); }
+.badge-firma,.badge-sopralluogo,.badge-altro,.badge-da_svolgere { background:rgba(139,145,168,.15); color:var(--text2); }
+.badge-svolto,.badge-consegnato { background:var(--success-dim); color:var(--success); }
+.badge-non_presentato,.badge-fallito,.badge-annullato { background:var(--danger-dim); color:var(--danger); }
+.badge-whatsapp { background:var(--success-dim); color:var(--success); }
+.badge-email { background:var(--primary-dim); color:var(--primary); }
+
 /* TABELLE */
 .table-wrapper { background:var(--surface); border:1px solid var(--border);
   border-radius:var(--radius); overflow:hidden; }
