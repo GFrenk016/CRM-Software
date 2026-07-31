@@ -186,8 +186,19 @@ class Cliente(db.Model):
                                cascade="all, delete-orphan")
     appuntamenti = db.relationship("Appuntamento", back_populates="cliente",
                                    cascade="all, delete-orphan")
-    comunicazioni = db.relationship("Comunicazione", back_populates="cliente",
-                                    cascade="all, delete-orphan")
+    # Le comunicazioni NON vengono cancellate con il cliente: sono la traccia di
+    # cosa è stato mandato e quando (utile in caso di contestazione). Tolto il
+    # cascade delete-orphan: alla cancellazione del cliente SQLAlchemy azzera
+    # (nullify) comunicazioni.cliente_id invece di eliminare le righe, che
+    # restano leggibili con cliente_id NULL.
+    #
+    # NB: NON si usa passive_deletes qui. Lo si userebbe per delegare l'azzeramento
+    # al vincolo DB ondelete="SET NULL" (dichiarato lato Comunicazione), ma questa
+    # app gira su SQLite con foreign_keys OFF (default, sia in locale sia su
+    # Render): il vincolo NON verrebbe applicato e si avrebbe un cliente_id
+    # "appeso". Lasciando fare il nullify a SQLalchemy il risultato (cliente_id
+    # NULL) è garantito a prescindere dall'enforcement delle FK.
+    comunicazioni = db.relationship("Comunicazione", back_populates="cliente")
 
     @validates("codice_fiscale")
     def _valida_codice_fiscale(self, key, value):
@@ -307,6 +318,10 @@ class Preventivo(db.Model):
     # Veicolo di riferimento per preventivi RC Auto (opzionale: non tutti i
     # preventivi riguardano un veicolo, es. Vita/Infortuni/Casa).
     veicolo_id = db.Column(db.Integer, db.ForeignKey("veicoli.id"))
+    # Pratica di origine (FK nullable, nessun cascade): una singola pratica di
+    # lavorazione (es. "nuovo preventivo") può generare PIÙ preventivi nel tempo
+    # (revisioni, riquotazioni dopo richieste del cliente). Vedi Pratica.preventivi.
+    pratica_id = db.Column(db.Integer, db.ForeignKey("pratiche.id"))      # nullable
 
     oggetto = db.Column(db.String(200))         # es. "RC Auto", "Vita + Infortuni"
     premio_proposto = db.Column(db.Float, default=0.0)
@@ -321,9 +336,8 @@ class Preventivo(db.Model):
     # Contratto generato da questo preventivo accettato (se esiste)
     contratto = db.relationship("Contratto", back_populates="preventivo",
                                 uselist=False)
-    # FK nullable lato Pratica: se il preventivo viene eliminato le pratiche
-    # collegate NON vengono cancellate, il riferimento viene solo azzerato.
-    pratiche = db.relationship("Pratica", back_populates="preventivo")
+    # Pratica di origine (lato "molti": molti preventivi → una pratica).
+    pratica = db.relationship("Pratica", back_populates="preventivi")
 
     def __repr__(self):
         return f"<Preventivo {self.numero} {self.stato}>"
@@ -520,7 +534,6 @@ class Pratica(db.Model):
     cliente_id = db.Column(db.Integer, db.ForeignKey("clienti.id"),
                            nullable=False)                      # obbligatoria
     lead_id = db.Column(db.Integer, db.ForeignKey("lead.id"))            # nullable
-    preventivo_id = db.Column(db.Integer, db.ForeignKey("preventivi.id"))  # nullable
     contratto_id = db.Column(db.Integer, db.ForeignKey("contratti.id"))  # nullable
     sinistro_id = db.Column(db.Integer, db.ForeignKey("sinistri.id"))    # nullable
 
@@ -539,9 +552,12 @@ class Pratica(db.Model):
 
     cliente = db.relationship("Cliente", back_populates="pratiche")
     lead = db.relationship("Lead", back_populates="pratiche")
-    preventivo = db.relationship("Preventivo", back_populates="pratiche")
     contratto = db.relationship("Contratto", back_populates="pratiche")
     sinistro = db.relationship("Sinistro", back_populates="pratiche")
+    # Storico preventivi generati dalla pratica (lato "uno": una pratica →
+    # molti preventivi). FK pratica_id lato Preventivo, nessun cascade: se la
+    # pratica viene eliminata i preventivi restano, il riferimento si azzera.
+    preventivi = db.relationship("Preventivo", back_populates="pratica")
     # Collegamenti opzionali (FK nullable lato figlio, nessun cascade): i
     # documenti e gli appuntamenti possono esistere anche senza pratica.
     documenti = db.relationship("Documento", back_populates="pratica")
@@ -635,7 +651,9 @@ class Appuntamento(db.Model):
     data_ora = db.Column(db.DateTime)
     tipo = db.Column(db.String(30))             # es. "otp", "consulenza", ...
     note = db.Column(db.Text)
-    esito = db.Column(db.String(30))            # es. "da_svolgere", "svolto", ...
+    # Default "da_svolgere": un appuntamento nasce ancora da svolgere, così si
+    # potranno filtrare quelli in sospeso senza gestire il caso NULL.
+    esito = db.Column(db.String(30), default="da_svolgere")   # svolto/annullato/...
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     cliente = db.relationship("Cliente", back_populates="appuntamenti")
@@ -664,9 +682,12 @@ class Comunicazione(db.Model):
     __tablename__ = "comunicazioni"
     id = db.Column(db.Integer, primary_key=True)
 
-    # Cliente obbligatorio (figlio del Cliente, cascade lato Cliente).
-    cliente_id = db.Column(db.Integer, db.ForeignKey("clienti.id"),
-                           nullable=False)
+    # Cliente NULLABLE con ondelete SET NULL: se il cliente viene cancellato la
+    # comunicazione resta a registro (destinatario/testo/data intatti) con
+    # cliente_id azzerato. Il registro deve sopravvivere all'anagrafica.
+    cliente_id = db.Column(db.Integer,
+                           db.ForeignKey("clienti.id", ondelete="SET NULL"),
+                           nullable=True)
     # Pratica opzionale (FK nullable, nessun cascade).
     pratica_id = db.Column(db.Integer, db.ForeignKey("pratiche.id"))     # nullable
 
