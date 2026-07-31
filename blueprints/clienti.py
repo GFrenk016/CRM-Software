@@ -6,7 +6,8 @@ from sqlalchemy import and_
 from sqlalchemy.exc import IntegrityError
 
 from extensions import db
-from models import STADI_LEAD, Cliente, Contratto, Lead, Veicolo
+from models import (STADI_LEAD, Cliente, Contratto, Lead, Pratica,
+                    TipologiaPratica, Veicolo)
 from utils import parse_date
 
 bp = Blueprint("clienti", __name__, url_prefix="/clienti")
@@ -93,16 +94,33 @@ def form(cliente_id=None):
             # Il lead nasce automaticamente con il cliente ed entra nel primo
             # stadio della pipeline. Avviene SOLO alla creazione (non in modifica),
             # così non si generano lead duplicati a ogni aggiornamento anagrafica.
-            db.session.add(Lead(cliente=cliente, stadio=STADI_LEAD[0],
-                                fonte="altro"))
-            flash("Cliente creato. Lead aggiunto in pipeline.", "success")
+            lead = Lead(cliente=cliente, stadio=STADI_LEAD[0], fonte="altro")
+            db.session.add(lead)
+
+            # "Ogni contatto genera una pratica": la tipologia è OPZIONALE perché
+            # al primo contatto può non essere ancora nota. Se l'utente la
+            # seleziona, creiamo la Pratica insieme al Lead; altrimenti nasce solo
+            # il Lead (nessuna tipologia inventata di default).
+            tipologia = (request.form.get("tipologia_pratica") or "").strip()
+            if tipologia:
+                if tipologia not in TipologiaPratica.valori():
+                    db.session.rollback()
+                    flash("Tipologia pratica non valida.", "error")
+                    return render_template("clienti/form.html", c=None,
+                                           tipologie=TipologiaPratica)
+                db.session.add(Pratica(cliente=cliente, lead=lead,
+                                       tipologia=tipologia))
+                flash("Cliente creato. Lead e pratica aggiunti.", "success")
+            else:
+                flash("Cliente creato. Lead aggiunto in pipeline.", "success")
         else:
             for k, v in data.items():
                 setattr(cliente, k, v)
             flash("Cliente aggiornato.", "success")
         db.session.commit()
         return redirect(url_for("clienti.detail", cliente_id=cliente.id))
-    return render_template("clienti/form.html", c=cliente)
+    return render_template("clienti/form.html", c=cliente,
+                           tipologie=TipologiaPratica)
 
 
 @bp.route("/<int:cliente_id>/elimina", methods=["POST"])

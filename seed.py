@@ -9,7 +9,7 @@ from datetime import date, datetime, timedelta
 
 from extensions import db
 from models import (Cliente, Compagnia, Contratto, Incasso, Lead, Preventivo,
-                    Sinistro)
+                    Sinistro, get_impostazioni)
 
 
 def _d(days_from_today):
@@ -18,6 +18,10 @@ def _d(days_from_today):
 
 def seed():
     """Crea un set coerente di dati di esempio. Presuppone tabelle già create."""
+    # Impostazioni agenzia: riga singola con default provvisori. Garantita SEMPRE
+    # (anche su DB già popolato di clienti) e idempotente al secondo avvio.
+    get_impostazioni()
+
     if Cliente.query.first():
         return  # già popolato
 

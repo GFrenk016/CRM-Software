@@ -52,6 +52,19 @@
     <label for="conv" style="text-transform:none">Convivenza</label>
   </div>
   <div class="form-group"><label>Note</label><textarea class="form-input" name="note">{{ c.note or '' if c else '' }}</textarea></div>
+  {% if not c %}
+  {# Solo in creazione: ogni contatto può generare subito una pratica. La
+     tipologia è OPZIONALE (al primo contatto può non essere ancora nota): se
+     lasciata vuota nasce solo il lead, senza pratica. #}
+  <div class="form-group">
+    <label>Tipologia pratica (opzionale)</label>
+    <select class="form-input" name="tipologia_pratica">
+      <option value="">— Nessuna pratica per ora —</option>
+      {% for t in tipologie %}
+      <option value="{{ t.value }}">{{ t.label }}</option>{% endfor %}
+    </select>
+  </div>
+  {% endif %}
   <div class="form-actions">
     <a class="btn btn-secondary" href="{{ url_for('clienti.index') }}">Annulla</a>
     <button class="btn btn-primary" type="submit">Salva</button>
