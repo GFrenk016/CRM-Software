@@ -344,7 +344,14 @@ class Cliente(db.Model):
     # applicate (nessun PRAGMA foreign_keys=ON), quindi l'azzeramento in memoria
     # dell'ORM è ciò che garantisce cliente_id = NULL su questo DB; l'ondelete
     # "SET NULL" sulla FK copre invece i DB che applicano i vincoli (Postgres).
-    comunicazioni = db.relationship("Comunicazione", back_populates="cliente")
+    # Conseguenza: le comunicazioni ORFANE (cliente_id NULL) non compaiono in
+    # nessuna scheda cliente — restano visibili sulla pratica, dove il
+    # destinatario si legge da Comunicazione.cliente_label.
+    # Ordinate dalla più recente: sulla scheda cliente interessa l'ultimo
+    # contatto, non il primo (ordinamento nella relazione, non nel template,
+    # così vale ovunque la si usi).
+    comunicazioni = db.relationship("Comunicazione", back_populates="cliente",
+                                    order_by="Comunicazione.data_invio.desc()")
 
     @validates("codice_fiscale")
     def _valida_codice_fiscale(self, key, value):
@@ -1093,6 +1100,16 @@ class Comunicazione(db.Model):
 
     cliente = db.relationship("Cliente", back_populates="comunicazioni")
     pratica = db.relationship("Pratica", back_populates="comunicazioni")
+
+    @property
+    def cliente_label(self):
+        """Nome del cliente, o l'indicazione che l'anagrafica non c'è più.
+
+        cliente_id è nullable per scelta (la comunicazione sopravvive alla
+        cancellazione del cliente): le viste devono poter stampare qualcosa
+        anche in quel caso, senza andare in errore su cliente.nome_completo.
+        """
+        return self.cliente.nome_completo if self.cliente else "cliente eliminato"
 
     @validates("canale")
     def _valida_canale(self, key, value):

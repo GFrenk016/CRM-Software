@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import appuntamenti_list, appuntamento_nuovo %}
+{% from "_macros.html" import appuntamenti_list, appuntamento_nuovo, comunicazioni_list %}
 {% set section = "pratiche" %}
 {% block title %}Pratica {{ p.numero_identificativo }}{% endblock %}
 {% block page_title %}Dettaglio pratica{% endblock %}
@@ -159,17 +159,11 @@
     {{ appuntamenti_list(p.appuntamenti, next_url, esiti_appuntamento) }}
     {{ appuntamento_nuovo(p.cliente_id, next_url, tipi_appuntamento, pratica_id=p.id) }}
 
-    <!-- COMUNICAZIONI (storico/audit) -->
+    <!-- COMUNICAZIONI (storico/audit). Stesso macro della scheda cliente: le
+         comunicazioni di una pratica possono essere orfane del cliente
+         (cliente_id nullable), quindi il nome si legge da cliente_label. -->
     <div class="section-title"><span class="st-left"><svg class="icon icon-sm"><use href="#i-message"/></svg> Comunicazioni</span></div>
-    <div class="related-list">
-      {% for com in p.comunicazioni %}
-      <div class="related-item">
-        <div><span class="badge badge-{{ com.canale }}">{{ com.canale }}</span>
-          <span class="muted" style="font-size:12px"> · {{ com.destinatario or '—' }}</span></div>
-        <div><span class="mono">{{ com.data_invio|data_it }}</span> {% if com.esito %}<span class="badge badge-{{ com.esito }}">{{ com.esito }}</span>{% endif %}</div>
-      </div>
-      {% else %}<div class="related-empty">Nessuna comunicazione registrata.</div>{% endfor %}
-    </div>
+    {{ comunicazioni_list(p.comunicazioni|sort(attribute='data_invio', reverse=true), mostra_cliente=true) }}
 
     <!-- PREVENTIVI collegati (una pratica → molti preventivi): storico delle
          quotazioni con compagnia scelta, premio e confronto fra le consultate. -->

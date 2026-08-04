@@ -303,6 +303,11 @@ textarea.form-input { resize:vertical; min-height:70px; }
   border-radius:8px; padding:10px 12px; display:flex; align-items:center;
   justify-content:space-between; gap:10px; }
 .related-empty { color:var(--text3); font-size:12px; padding:8px 0; }
+/* Comunicazioni: il testo inviato va letto per intero (è la traccia di cosa si
+   è scritto al cliente), ma non deve sfondare la colonna. */
+.com-item { align-items:flex-start; }
+.com-testo { font-size:12px; color:var(--text2); margin-top:4px;
+  white-space:pre-wrap; overflow-wrap:anywhere; }
 
 /* PIPELINE KANBAN */
 .pipeline-board { display:grid; grid-template-columns:repeat(6,minmax(180px,1fr));

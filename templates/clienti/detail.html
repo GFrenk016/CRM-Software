@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import appuntamenti_list, appuntamento_nuovo %}
+{% from "_macros.html" import appuntamenti_list, appuntamento_nuovo, comunicazioni_list %}
 {% set section = "clienti" %}
 {% block title %}{{ c.nome_completo }}{% endblock %}
 {% block page_title %}Scheda cliente{% endblock %}
@@ -184,6 +184,12 @@
     {% set next_url = url_for('clienti.detail', cliente_id=c.id) %}
     {{ appuntamenti_list(c.appuntamenti, next_url, esiti_appuntamento) }}
     {{ appuntamento_nuovo(c.id, next_url, tipi_appuntamento) }}
+
+    <!-- COMUNICAZIONI (storico/audit): cosa è stato mandato, quando e su quale
+         canale. Sola lettura: le comunicazioni si registrano da dove si inviano
+         (modale Messaggio, richiesta documenti sulla pratica). -->
+    <div class="section-title"><span class="st-left"><svg class="icon icon-sm"><use href="#i-message"/></svg> Comunicazioni</span></div>
+    {{ comunicazioni_list(c.comunicazioni) }}
 
     <!-- PREVENTIVI -->
     <div class="section-title"><span class="st-left"><svg class="icon icon-sm"><use href="#i-file-text"/></svg> Preventivi</span></div>
