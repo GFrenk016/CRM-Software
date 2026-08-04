@@ -166,6 +166,18 @@
       {% else %}<div class="related-empty">Nessun lead.</div>{% endfor %}
     </div>
 
+    <!-- PRATICHE (unità di lavoro operativa) -->
+    <div class="section-title"><span class="st-left"><svg class="icon icon-sm"><use href="#i-inbox"/></svg> Pratiche</span></div>
+    <div class="related-list">
+      {% for p in c.pratiche %}
+      <div class="related-item">
+        <div><a href="{{ url_for('pratiche.detail', pratica_id=p.id) }}"><span class="mono">{{ p.numero_identificativo }}</span></a>
+          · {{ p.tipologia_label }}</div>
+        <div><span class="badge badge-{{ p.priorita }}">{{ p.priorita_label }}</span> <span class="badge badge-{{ p.stato }}">{{ p.stato|replace('_',' ') }}</span></div>
+      </div>
+      {% else %}<div class="related-empty">Nessuna pratica.</div>{% endfor %}
+    </div>
+
     <!-- PREVENTIVI -->
     <div class="section-title"><span class="st-left"><svg class="icon icon-sm"><use href="#i-file-text"/></svg> Preventivi</span></div>
     <div class="related-list">

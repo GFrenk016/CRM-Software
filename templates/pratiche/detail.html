@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% set section = "pratiche" %}
+{% block title %}Pratica {{ p.numero_identificativo }}{% endblock %}
+{% block page_title %}Dettaglio pratica{% endblock %}
+{% block actions %}
+  <a class="btn btn-secondary btn-sm" href="{{ url_for('pratiche.index') }}">← Elenco</a>
+  <a class="btn btn-primary btn-sm" href="{{ url_for('pratiche.form', pratica_id=p.id) }}"><svg class="icon icon-sm"><use href="#i-edit"/></svg> Modifica</a>
+{% endblock %}
+
+{% block content %}
+<div class="detail-cols">
+  <!-- Colonna sinistra: dati pratica + avanzamento -->
+  <div>
+    <div class="card">
+      <div class="section-title" style="margin-top:0">
+        <span class="st-left">{{ p.numero_identificativo }}</span>
+        <span class="badge badge-{{ p.stato }}">{{ p.stato|replace('_',' ') }}</span>
+      </div>
+      <div class="detail-grid">
+        <div class="detail-item"><label>Cliente</label><span><a href="{{ url_for('clienti.detail', cliente_id=p.cliente_id) }}">{{ p.cliente.nome_completo }}</a></span></div>
+        <div class="detail-item"><label>Tipologia</label><span>{{ p.tipologia_label }}</span></div>
+        <div class="detail-item"><label>Priorità</label><span class="badge badge-{{ p.priorita }}">{{ p.priorita_label }}</span></div>
+        <div class="detail-item"><label>Operatore</label><span>{{ p.operatore or '—' }}</span></div>
+        <div class="detail-item"><label>Apertura</label><span class="mono">{{ p.data_apertura|data_it }}</span></div>
+        <div class="detail-item"><label>Ultimo aggiornamento</label><span class="mono">{{ p.data_ultimo_aggiornamento|data_it }}</span></div>
+      </div>
+      {% if p.note %}<div class="detail-item" style="margin-top:12px"><label>Note</label><span>{{ p.note }}</span></div>{% endif %}
+    </div>
+
+    <!-- COLLEGAMENTI: le altre entità agganciate alla pratica -->
+    <div class="section-title"><span class="st-left"><svg class="icon icon-sm"><use href="#i-shield"/></svg> Collegamenti</span></div>
+    <div class="related-list">
+      <div class="related-item">
+        <div>Contratto</div>
+        <div>{% if p.contratto %}<a href="{{ url_for('contratti.detail', contratto_id=p.contratto.id) }}"><span class="mono">{{ p.contratto.numero_polizza }}</span></a>{% else %}<span class="muted">—</span>{% endif %}</div>
+      </div>
+      <div class="related-item">
+        <div>Lead</div>
+        <div>{% if p.lead %}{{ p.lead.cliente.nome_completo }} · {{ p.lead.stadio }}{% else %}<span class="muted">—</span>{% endif %}</div>
+      </div>
+      <div class="related-item">
+        <div>Sinistro</div>
+        <div>{% if p.sinistro %}<span class="mono">{{ p.sinistro.numero }}</span>{% else %}<span class="muted">—</span>{% endif %}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Colonna destra: lavorazione (documenti, appuntamenti, comunicazioni, preventivi) -->
+  <div>
+    <!-- DOCUMENTI collegati alla pratica.
+         NB: i file si caricano dalla scheda cliente (Documento sta sul cliente);
+         qui si mostrano solo quelli agganciati a questa pratica (pratica_id). -->
+    <div class="section-title" style="margin-top:0"><span class="st-left"><svg class="icon icon-sm"><use href="#i-file-text"/></svg> Documenti collegati</span></div>
+    <div class="related-list">
+      {% for d in p.documenti %}
+      <div class="related-item">
+        <div><span style="font-weight:600">{{ d.filename }}</span> <span class="muted" style="font-size:11px">· {{ d.tipo or 'Altro' }}</span></div>
+        <div class="table-actions">
+          <a class="btn-icon" href="{{ url_for('documenti.download', doc_id=d.id) }}" title="Scarica"><svg class="icon icon-sm"><use href="#i-download"/></svg></a>
+        </div>
+      </div>
+      {% else %}<div class="related-empty">Nessun documento collegato.</div>{% endfor %}
+    </div>
+
+    <!-- APPUNTAMENTI -->
+    <div class="section-title"><span class="st-left"><svg class="icon icon-sm"><use href="#i-calendar"/></svg> Appuntamenti</span></div>
+    <div class="related-list">
+      {% for a in p.appuntamenti %}
+      <div class="related-item">
+        <div><span class="mono">{{ a.data_ora|data_it }}</span> {% if a.tipo %}<span class="badge badge-{{ a.tipo }}">{{ a.tipo }}</span>{% endif %}
+          {% if a.note %}<span class="muted" style="font-size:12px"> · {{ a.note }}</span>{% endif %}</div>
+        <div>{% if a.esito %}<span class="badge badge-{{ a.esito }}">{{ a.esito|replace('_',' ') }}</span>{% endif %}</div>
+      </div>
+      {% else %}<div class="related-empty">Nessun appuntamento.</div>{% endfor %}
+    </div>
+
+    <!-- COMUNICAZIONI (storico/audit) -->
+    <div class="section-title"><span class="st-left"><svg class="icon icon-sm"><use href="#i-message"/></svg> Comunicazioni</span></div>
+    <div class="related-list">
+      {% for com in p.comunicazioni %}
+      <div class="related-item">
+        <div><span class="badge badge-{{ com.canale }}">{{ com.canale }}</span>
+          <span class="muted" style="font-size:12px"> · {{ com.destinatario or '—' }}</span></div>
+        <div><span class="mono">{{ com.data_invio|data_it }}</span> {% if com.esito %}<span class="badge badge-{{ com.esito }}">{{ com.esito }}</span>{% endif %}</div>
+      </div>
+      {% else %}<div class="related-empty">Nessuna comunicazione registrata.</div>{% endfor %}
+    </div>
+
+    <!-- PREVENTIVI collegati (una pratica → molti preventivi) -->
+    <div class="section-title"><span class="st-left"><svg class="icon icon-sm"><use href="#i-file-text"/></svg> Preventivi collegati</span></div>
+    <div class="related-list">
+      {% for prev in p.preventivi %}
+      <div class="related-item">
+        <div><span class="mono">{{ prev.numero }}</span> · {{ prev.oggetto or '—' }}
+          <span class="muted">{{ prev.compagnia.nome if prev.compagnia else '' }}</span></div>
+        <div><span class="badge badge-{{ prev.stato }}">{{ prev.stato }}</span> <span class="mono">{{ prev.premio_proposto|eur }}</span></div>
+      </div>
+      {% else %}<div class="related-empty">Nessun preventivo collegato.</div>{% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

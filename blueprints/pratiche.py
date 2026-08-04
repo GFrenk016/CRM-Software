@@ -40,6 +40,16 @@ def index():
     )
 
 
+@bp.route("/<int:pratica_id>")
+def detail(pratica_id):
+    """Scheda della singola pratica: è la pagina dove vive tutta la lavorazione
+    (avanzamento, documenti, appuntamenti, comunicazioni, preventivi collegati).
+    Da qui passeranno gli automatismi e il flusso guidato degli step successivi.
+    """
+    p = Pratica.query.get_or_404(pratica_id)
+    return render_template("pratiche/detail.html", p=p)
+
+
 @bp.route("/nuovo", methods=["GET", "POST"])
 @bp.route("/<int:pratica_id>/modifica", methods=["GET", "POST"])
 def form(pratica_id=None):

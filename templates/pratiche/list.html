@@ -43,7 +43,7 @@
       <tbody>
         {% for p in pratiche %}
         <tr>
-          <td class="mono font-bold">{{ p.numero_identificativo }}</td>
+          <td class="mono font-bold"><a href="{{ url_for('pratiche.detail', pratica_id=p.id) }}">{{ p.numero_identificativo }}</a></td>
           <td><a href="{{ url_for('clienti.detail', cliente_id=p.cliente_id) }}">{{ p.cliente.nome_completo }}</a></td>
           <td>{{ p.tipologia_label }}</td>
           <td>{{ p.operatore or '—' }}</td>
@@ -51,6 +51,7 @@
           <td class="text-center"><span class="badge badge-{{ p.stato }}">{{ p.stato|replace('_',' ') }}</span></td>
           <td class="mono">{{ p.data_apertura|data_it }}</td>
           <td><div class="table-actions">
+            <a class="btn-icon" href="{{ url_for('pratiche.detail', pratica_id=p.id) }}" title="Apri"><svg class="icon icon-sm"><use href="#i-eye"/></svg></a>
             <a class="btn-icon" href="{{ url_for('pratiche.form', pratica_id=p.id) }}" title="Modifica"><svg class="icon icon-sm"><use href="#i-edit"/></svg></a>
             <form method="post" action="{{ url_for('pratiche.elimina', pratica_id=p.id) }}" onsubmit="return confirm('Eliminare questa pratica?')"><button class="btn-icon"><svg class="icon icon-sm"><use href="#i-trash"/></svg></button></form>
           </div></td>
