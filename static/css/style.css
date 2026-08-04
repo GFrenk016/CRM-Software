@@ -167,6 +167,14 @@ a.stat-card:hover { transform:translateY(-2px); box-shadow:var(--shadow);
 .badge-vinto,.badge-accettato,.badge-incassato,.badge-chiuso,.badge-attiva,.badge-completata { background:var(--success-dim); color:var(--success); }
 .badge-perso,.badge-rifiutato,.badge-aperto,.badge-scaduta,.badge-imminente,.badge-scaduto,.badge-disdetto,.badge-annullata { background:var(--danger-dim); color:var(--danger); }
 
+/* Stati emissione pratica (Fase B). Riusa le famiglie di colore esistenti:
+   attese → warning, fasi in corso → primario, esito positivo → success,
+   perdita → danger. */
+.badge-documentazione_da_integrare,.badge-attesa_pagamento,.badge-attesa_otp { background:var(--warning-dim); color:var(--warning); }
+.badge-pagamento_verificato,.badge-in_coda_emissione { background:var(--primary-dim); color:var(--primary); }
+.badge-emessa,.badge-certificato_inviato { background:var(--success-dim); color:var(--success); }
+.badge-persa { background:var(--danger-dim); color:var(--danger); }
+
 /* Priorità pratica */
 .badge-bassa { background:rgba(139,145,168,.15); color:var(--text2); }
 .badge-media { background:var(--primary-dim); color:var(--primary); }

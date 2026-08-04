@@ -31,8 +31,45 @@ STATI_INCASSO = ["da_incassare", "incassato", "in_ritardo"]
 
 # Stato della Pratica: stessa impostazione delle altre entità (colonna String +
 # lista di valori ammessi), così i template/filtri restano coerenti col resto.
-STATI_PRATICA = ["aperta", "in_lavorazione", "in_attesa_cliente",
-                 "completata", "annullata"]
+# Stati "generici", validi per QUALSIASI tipologia di pratica.
+STATI_PRATICA_BASE = ["aperta", "in_lavorazione", "in_attesa_cliente",
+                      "completata", "annullata"]
+
+# Stati della catena di emissione polizza (Fase B). Hanno senso solo per le
+# tipologie che arrivano davvero all'emissione (vedi STATI_PER_TIPOLOGIA): per
+# sinistro/consulenza/nuovo_preventivo non vanno mostrati. Valori senza spazi
+# (finiscono come classi CSS badge-{{ x }}).
+STATI_PRATICA_EMISSIONE = ["documentazione_da_integrare", "attesa_pagamento",
+                           "pagamento_verificato", "attesa_otp",
+                           "in_coda_emissione", "emessa", "certificato_inviato",
+                           "persa"]
+
+# Unione: tutti i valori ammessi a livello di validazione della colonna. La
+# validazione resta permissiva (accetta ogni stato valido); a filtrare quali
+# stati mostrare per una data tipologia ci pensa STATI_PER_TIPOLOGIA nella UI.
+STATI_PRATICA = STATI_PRATICA_BASE + STATI_PRATICA_EMISSIONE
+
+# Posizione di ciascuno stato nella scala di avanzamento (0 = inizio). Serve a
+# mostrare a che punto è la pratica e a proporre lo stato successivo (flusso
+# guidato). Solo la catena LINEARE di emissione ha un "dopo" univoco: gli stati
+# di servizio (in_lavorazione, in_attesa_cliente) e gli esiti finali non
+# compaiono qui perché non hanno una posizione unica nella scala.
+ORDINE_STATI_PRATICA = {
+    "aperta": 0,
+    "documentazione_da_integrare": 1,
+    "attesa_pagamento": 2,
+    "pagamento_verificato": 3,
+    "attesa_otp": 4,
+    "in_coda_emissione": 5,
+    "emessa": 6,
+    "certificato_inviato": 7,
+}
+
+# Motivi per cui una pratica si chiude senza emissione (stato "persa"). Default
+# ragionevole, da confermare/estendere col cliente.
+# TODO CLIENTE: validare l'elenco dei motivi di perdita.
+MOTIVI_PERDITA = ["premio_troppo_alto", "rimasto_con_attuale", "non_risponde",
+                  "veicolo_non_acquistato", "documentazione_mancante", "altro"]
 
 # Appuntamento: tipo ed esito modellati come le altre entità (String + lista).
 # Il tipo "otp" copre l'appuntamento per la firma/verifica OTP previsto dal
@@ -110,6 +147,37 @@ _LABEL_TIPOLOGIA = {
     TipologiaPratica.CONSULENZA: "Consulenza",
     TipologiaPratica.SINISTRO: "Sinistro",
 }
+
+
+# Il flusso a 8 step di emissione vale SOLO per queste tipologie. Le altre non
+# devono vedere gli stati di emissione nei select (restano sugli stati generici).
+# TODO CLIENTE: sospensione e riattivazione qui NON hanno emissione (scelta
+# conservativa); confermare se debbano invece seguire la catena.
+TIPOLOGIE_CON_EMISSIONE = {
+    TipologiaPratica.BERSANI.value,
+    TipologiaPratica.RINNOVO.value,
+    TipologiaPratica.NUOVO_ACQUISTO.value,
+    TipologiaPratica.SOSTITUZIONE_VEICOLO.value,
+    TipologiaPratica.PAGAMENTO_POLIZZA_RATA.value,
+}
+
+
+def _stati_ammessi_tipologia(tipologia):
+    """Stati selezionabili per una tipologia, in ordine di lavorazione.
+
+    Per le tipologie con emissione: prima la scala lineare (aperta → catena di
+    emissione), poi gli stati/esiti fuori catena. Per le altre: solo i generici.
+    """
+    if tipologia in TIPOLOGIE_CON_EMISSIONE:
+        scala = sorted(ORDINE_STATI_PRATICA, key=ORDINE_STATI_PRATICA.get)
+        fuori_scala = [s for s in STATI_PRATICA if s not in scala]
+        return scala + fuori_scala
+    return list(STATI_PRATICA_BASE)
+
+
+# Mappa tipologia → stati mostrabili nei select. Costruita una volta sola.
+STATI_PER_TIPOLOGIA = {t: _stati_ammessi_tipologia(t)
+                       for t in TipologiaPratica.valori()}
 
 
 # --------------------------------------------------------------------------- #
@@ -539,6 +607,9 @@ class Pratica(db.Model):
     lead_id = db.Column(db.Integer, db.ForeignKey("lead.id"))            # nullable
     contratto_id = db.Column(db.Integer, db.ForeignKey("contratti.id"))  # nullable
     sinistro_id = db.Column(db.Integer, db.ForeignKey("sinistri.id"))    # nullable
+    # Veicolo di riferimento (FK nullable, nessun cascade): oggi il veicolo sta
+    # solo su Preventivo, ma qui serve la targa nella lista "da ricontattare".
+    veicolo_id = db.Column(db.Integer, db.ForeignKey("veicoli.id"))      # nullable
 
     # Attributi operativi --------------------------------------------------
     stato = db.Column(db.String(30), default="aperta", nullable=False)
@@ -547,6 +618,21 @@ class Pratica(db.Model):
     tipologia = db.Column(db.String(40), nullable=False)
     operatore = db.Column(db.String(120))       # campo libero: app mono-utente
     note = db.Column(db.Text)
+
+    # Date di passaggio di stato (nullable): lo stato è UNA colonna sola e da
+    # solo non conserva lo storico, quindi i momenti chiave si fissano qui quando
+    # si avanza (vedi flusso guidato).
+    data_pagamento_verificato = db.Column(db.Date)
+    data_emissione = db.Column(db.Date)
+    data_invio_certificato = db.Column(db.Date)
+
+    # Esito negativo (stato "persa"):
+    #  - motivo_perdita: validato contro MOTIVI_PERDITA.
+    #  - data_scadenza_riferimento: scadenza della polizza ATTUALE del cliente,
+    #    inserita a mano perché può stare presso un'altra compagnia e quindi NON
+    #    è derivabile dai contratti in CRM. Serve alla lista "da ricontattare".
+    motivo_perdita = db.Column(db.String(40))
+    data_scadenza_riferimento = db.Column(db.Date)
 
     # Timestamp ------------------------------------------------------------
     data_apertura = db.Column(db.DateTime, default=datetime.utcnow)
@@ -557,6 +643,13 @@ class Pratica(db.Model):
     lead = db.relationship("Lead", back_populates="pratiche")
     contratto = db.relationship("Contratto", back_populates="pratiche")
     sinistro = db.relationship("Sinistro", back_populates="pratiche")
+    # Veicolo di riferimento (sola lettura lato Pratica, come Preventivo.veicolo).
+    veicolo = db.relationship("Veicolo")
+    # Checklist dei documenti attesi: figlia della pratica (cascade), sparisce
+    # con essa. Distinta dai Documento (file caricati), vedi ChecklistDocumento.
+    checklist_documenti = db.relationship("ChecklistDocumento",
+                                          back_populates="pratica",
+                                          cascade="all, delete-orphan")
     # Storico preventivi generati da questa pratica (una pratica → molti
     # preventivi). Relazione inversa di Preventivo.pratica; nessun cascade:
     # eliminando la pratica i preventivi restano, con pratica_id azzerato.
@@ -584,6 +677,13 @@ class Pratica(db.Model):
         if value not in TipologiaPratica.valori():
             raise ValueError(f"Tipologia pratica non valida: {value!r}")
         return value
+
+    @validates("motivo_perdita")
+    def _valida_motivo_perdita(self, key, value):
+        # Opzionale: valorizzato solo quando la pratica è "persa".
+        if value and value not in MOTIVI_PERDITA:
+            raise ValueError(f"Motivo perdita non valido: {value!r}")
+        return value or None
 
     @property
     def tipologia_label(self):
@@ -635,6 +735,34 @@ def _assegna_numeri_pratiche(session, flush_context, instances):
             prossimo[anno] = _ultimo_progressivo_anno(connection, anno) + 1
         pratica.numero_identificativo = f"PR-{anno}-{prossimo[anno]:04d}"
         prossimo[anno] += 1
+
+
+# --------------------------------------------------------------------------- #
+#  ChecklistDocumento (cosa DEVE arrivare per lavorare la pratica)             #
+# --------------------------------------------------------------------------- #
+class ChecklistDocumento(db.Model):
+    """Traccia i documenti ATTESI su una pratica (cosa deve arrivare).
+
+    Distinto da Documento, che rappresenta il file effettivamente caricato (cosa
+    È arrivato): qui si elenca cosa manca ancora. Serve a comporre la richiesta
+    documenti al cliente e a capire a colpo d'occhio cosa resta da ricevere.
+    """
+    __tablename__ = "checklist_documenti"
+    id = db.Column(db.Integer, primary_key=True)
+    # Figlia della pratica: senza pratica non ha senso, quindi FK obbligatoria e
+    # cascade lato Pratica (eliminando la pratica la checklist sparisce).
+    pratica_id = db.Column(db.Integer, db.ForeignKey("pratiche.id"),
+                           nullable=False)
+
+    tipo = db.Column(db.String(80), nullable=False)   # es. "Carta identità"
+    ricevuto = db.Column(db.Boolean, default=False, nullable=False)
+    note = db.Column(db.Text)
+
+    pratica = db.relationship("Pratica", back_populates="checklist_documenti")
+
+    def __repr__(self):
+        stato = "ricevuto" if self.ricevuto else "atteso"
+        return f"<ChecklistDocumento {self.tipo} {stato}>"
 
 
 # --------------------------------------------------------------------------- #
