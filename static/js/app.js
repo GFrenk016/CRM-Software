@@ -48,6 +48,78 @@ function filtraStatiPratica(tipoSel) {
   }
 }
 
+// --- PREVENTIVO: righe ripetibili delle compagnie consultate ----------------
+// Il subagente interpella più compagnie e ne confronta i premi: le righe si
+// aggiungono/rimuovono in pagina e vengono inviate col form (niente fetch, gli
+// indici vivi viaggiano nei campi ripetuti cc_idx). Nessuna libreria esterna:
+// si clona il <template> già presente nella pagina, come per i modali.
+let _ccProssimoIdx = null;
+
+function aggiungiRigaCompagnia() {
+  const tpl = document.getElementById('tpl-riga-compagnia');
+  const cont = document.getElementById('cc-rows');
+  if (!tpl || !cont) return;
+  // Il primo indice libero si calcola dalle righe già in pagina: quelle salvate
+  // sono numerate da 0, e riusare un indice sovrascriverebbe i campi di un'altra riga.
+  if (_ccProssimoIdx === null) _ccProssimoIdx = cont.querySelectorAll('.cc-row').length;
+  const idx = _ccProssimoIdx++;
+  cont.insertAdjacentHTML('beforeend', tpl.innerHTML.replace(/__IDX__/g, idx));
+  aggiornaConfrontoCompagnie();
+}
+
+function rimuoviRigaCompagnia(riga) {
+  riga.remove();
+  aggiornaConfrontoCompagnie();
+}
+
+// Evidenzia la riga col premio più basso. Un premio a zero/vuoto significa
+// "compagnia interpellata ma non ancora quotata" e resta fuori dal confronto
+// (stessa regola di Preventivo.premio_piu_basso lato server).
+function aggiornaConfrontoCompagnie() {
+  const righe = Array.from(document.querySelectorAll('#cc-rows .cc-row'));
+  const vuoto = document.querySelector('.cc-empty');
+  if (vuoto) vuoto.classList.toggle('hidden', righe.length > 0);
+  let migliore = null, minimo = Infinity;
+  righe.forEach(r => {
+    const v = parseFloat(r.querySelector('.cc-premio').value);
+    if (!isNaN(v) && v > 0 && v < minimo) { minimo = v; migliore = r; }
+  });
+  righe.forEach(r => {
+    const ok = r === migliore;
+    r.classList.toggle('is-migliore', ok);
+    r.querySelector('.cc-migliore').classList.toggle('hidden', !ok);
+  });
+}
+
+// Spuntare "Scelta" su una riga promuove quella compagnia: allinea subito i
+// campi in alto (compagnia scelta + premio proposto) così si vede cosa si sta
+// salvando. Lato server la riga spuntata vince comunque su quei campi.
+function promuoviRigaCompagnia(riga) {
+  const compagnia = riga.querySelector('.cc-compagnia').value;
+  const premio = riga.querySelector('.cc-premio').value;
+  const selScelta = document.getElementById('compagnia-scelta');
+  const inpPremio = document.getElementById('premio-proposto');
+  if (selScelta && compagnia) selScelta.value = compagnia;
+  if (inpPremio && premio) inpPremio.value = premio;
+}
+
+document.addEventListener('click', (e) => {
+  const rimuovi = e.target.closest('.cc-rimuovi');
+  if (rimuovi) return rimuoviRigaCompagnia(rimuovi.closest('.cc-row'));
+});
+document.addEventListener('change', (e) => {
+  const scelta = e.target.closest('.cc-scelta');
+  if (scelta && scelta.checked) promuoviRigaCompagnia(scelta.closest('.cc-row'));
+});
+document.addEventListener('input', (e) => {
+  const premio = e.target.closest('.cc-premio');
+  if (!premio) return;
+  aggiornaConfrontoCompagnie();
+  // Se la riga è quella scelta, il premio proposto la segue senza risalvare.
+  const riga = premio.closest('.cc-row');
+  if (riga.querySelector('.cc-scelta').checked) promuoviRigaCompagnia(riga);
+});
+
 // --- TOAST ------------------------------------------------------------------
 function toast(msg, type) {
   const tc = document.getElementById('toast-container');
@@ -373,4 +445,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // Form pratica a pagina piena: filtra gli stati per la tipologia già scelta.
   document.querySelectorAll('form select[name="tipologia"][data-filtra-stati]')
     .forEach(filtraStatiPratica);
+  // Form preventivo: evidenzia subito il premio più basso fra quelli salvati.
+  if (document.getElementById('cc-rows')) aggiornaConfrontoCompagnie();
 });

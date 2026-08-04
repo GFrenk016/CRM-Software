@@ -3,6 +3,38 @@
 {% block title %}{{ 'Modifica' if p else 'Nuovo' }} preventivo{% endblock %}
 {% block page_title %}{{ 'Modifica preventivo' if p else 'Nuovo preventivo' }}{% endblock %}
 
+{# Riga "compagnia consultata". Lo stesso markup serve sia per le righe già
+   salvate sia per il <template> clonato da JS quando se ne aggiunge una: lì
+   l'indice è il segnaposto __IDX__, sostituito lato client (vedi app.js). #}
+{% macro riga_compagnia(idx, compagnie, garanzie, riga=None, scelta=false) %}
+<div class="cc-row" data-idx="{{ idx }}">
+  <input type="hidden" name="cc_idx" value="{{ idx }}">
+  <div class="cc-row-top">
+    <select class="form-input cc-compagnia" name="cc_compagnia_id_{{ idx }}">
+      <option value="">— compagnia —</option>
+      {% for co in compagnie %}<option value="{{ co.id }}" {{ 'selected' if riga and riga.compagnia_id == co.id }}>{{ co.nome }}</option>{% endfor %}
+    </select>
+    <input class="form-input cc-premio" type="number" step="0.01" min="0"
+           name="cc_premio_{{ idx }}" placeholder="Premio €"
+           value="{{ riga.premio if riga and riga.premio else '' }}">
+    <label class="radio-row" title="Promuovi questa compagnia a compagnia scelta">
+      <input type="radio" name="cc_scelta" value="{{ idx }}" class="cc-scelta" {{ 'checked' if scelta }}> Scelta
+    </label>
+    <span class="cc-migliore hidden">premio più basso</span>
+    <button type="button" class="btn-icon cc-rimuovi" title="Rimuovi questa compagnia">
+      <svg class="icon icon-sm"><use href="#i-trash"/></svg></button>
+  </div>
+  <div class="cc-garanzie">
+    {% for g in garanzie %}
+    <label class="radio-row"><input type="checkbox" name="cc_garanzie_{{ idx }}" value="{{ g }}"
+      {{ 'checked' if riga and g in riga.garanzie_lista }}> {{ g|replace('_',' ') }}</label>
+    {% endfor %}
+  </div>
+  <input class="form-input" name="cc_note_{{ idx }}" placeholder="Note sulla quotazione (franchigie, massimali, ...)"
+         value="{{ riga.note or '' if riga else '' }}">
+</div>
+{% endmacro %}
+
 {% block content %}
 <form class="form-card" method="post">
   <div class="form-row">
@@ -19,8 +51,8 @@
     </div>
   </div>
   <div class="form-row">
-    <div class="form-group"><label>Compagnia</label>
-      <select class="form-input" name="compagnia_id">
+    <div class="form-group"><label>Compagnia scelta</label>
+      <select class="form-input" id="compagnia-scelta" name="compagnia_id">
         <option value="">—</option>
         {% for co in compagnie %}<option value="{{ co.id }}" {{ 'selected' if p and p.compagnia_id == co.id }}>{{ co.nome }}</option>{% endfor %}
       </select>
@@ -34,15 +66,38 @@
     </select>
   </div>
   <div class="form-row-3">
-    <div class="form-group"><label>Premio proposto (€)</label><input class="form-input" type="number" step="0.01" name="premio_proposto" value="{{ p.premio_proposto if p else 0 }}"></div>
+    <div class="form-group"><label>Premio proposto (€)</label><input class="form-input" id="premio-proposto" type="number" step="0.01" name="premio_proposto" value="{{ p.premio_proposto if p else 0 }}"></div>
     <div class="form-group"><label>Stato</label>
       <select class="form-input" name="stato">{% for s in stati %}<option value="{{ s }}" {{ 'selected' if p and p.stato == s }}>{{ s }}</option>{% endfor %}</select>
     </div>
     <div class="form-group"><label>Data invio</label><input class="form-input" type="date" name="data_invio" value="{{ p.data_invio.isoformat() if p and p.data_invio else '' }}"></div>
   </div>
+  <div class="form-group"><label>Note</label>
+    <textarea class="form-input" name="note" rows="3" placeholder="Note interne sul preventivo">{{ p.note or '' if p else '' }}</textarea></div>
+
+  <!-- CONFRONTO COMPAGNIE: una riga per compagnia interpellata. La compagnia
+       scelta in alto si valorizza spuntando "Scelta" sulla riga vincente. -->
+  <div class="section-title"><span class="st-left"><svg class="icon icon-sm"><use href="#i-building"/></svg> Compagnie consultate</span></div>
+  <div id="cc-rows">
+    {% for riga in (p.compagnie_consultate if p else []) %}
+    {{ riga_compagnia(loop.index0, compagnie, garanzie, riga,
+                      scelta=(p.compagnia_id and p.compagnia_id == riga.compagnia_id)) }}
+    {% endfor %}
+  </div>
+  <div class="cc-empty {{ 'hidden' if p and p.compagnie_consultate }}">
+    Nessuna compagnia consultata: il preventivo proporrà solo la compagnia scelta qui sopra.
+  </div>
+  <button type="button" class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="aggiungiRigaCompagnia()">
+    <svg class="icon icon-sm"><use href="#i-plus"/></svg> Aggiungi compagnia consultata</button>
+
   <div class="form-actions">
     <a class="btn btn-secondary" href="{{ url_for('preventivi.index') }}">Annulla</a>
     <button class="btn btn-primary" type="submit">Salva</button>
   </div>
 </form>
+
+{# Riga vuota clonata da JS: __IDX__ diventa un indice progressivo. #}
+<template id="tpl-riga-compagnia">
+  {{ riga_compagnia('__IDX__', compagnie, garanzie) }}
+</template>
 {% endblock %}

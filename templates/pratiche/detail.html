@@ -171,13 +171,24 @@
       {% else %}<div class="related-empty">Nessuna comunicazione registrata.</div>{% endfor %}
     </div>
 
-    <!-- PREVENTIVI collegati (una pratica → molti preventivi) -->
+    <!-- PREVENTIVI collegati (una pratica → molti preventivi): storico delle
+         quotazioni con compagnia scelta, premio e confronto fra le consultate. -->
     <div class="section-title"><span class="st-left"><svg class="icon icon-sm"><use href="#i-file-text"/></svg> Preventivi collegati</span></div>
     <div class="related-list">
       {% for prev in p.preventivi %}
       <div class="related-item">
-        <div><span class="mono">{{ prev.numero }}</span> · {{ prev.oggetto or '—' }}
-          <span class="muted">{{ prev.compagnia.nome if prev.compagnia else '' }}</span></div>
+        <div>
+          <div><a href="{{ url_for('preventivi.form', prev_id=prev.id) }}"><span class="mono">{{ prev.numero }}</span></a> · {{ prev.oggetto or '—' }}</div>
+          <div class="muted" style="font-size:11px">
+            Scelta: {{ prev.compagnia.nome if prev.compagnia else 'nessuna' }}
+            {% if prev.compagnie_consultate %}
+              · {{ prev.compagnie_consultate|length }} consultate, migliore
+              {{ prev.compagnia_piu_economica.nome if prev.compagnia_piu_economica else 'n/d' }}
+              {{ prev.premio_piu_basso|eur if prev.premio_piu_basso is not none else '' }}
+              {% if prev.risparmio_sulla_scelta %}(+{{ prev.risparmio_sulla_scelta|eur }} sulla scelta){% endif %}
+            {% endif %}
+          </div>
+        </div>
         <div><span class="badge badge-{{ prev.stato }}">{{ prev.stato }}</span> <span class="mono">{{ prev.premio_proposto|eur }}</span></div>
       </div>
       {% else %}<div class="related-empty">Nessun preventivo collegato.</div>{% endfor %}

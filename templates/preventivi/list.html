@@ -26,8 +26,10 @@
   <div class="table-scroll">
     <table>
       <thead><tr>
-        <th>Numero</th><th>Cliente</th><th>Oggetto</th><th>Compagnia</th>
-        <th class="text-right">Premio</th><th>Scad. polizza</th><th class="text-center">Stato</th><th></th>
+        <th>Numero</th><th>Cliente</th><th>Oggetto</th><th>Compagnia scelta</th>
+        <th class="text-right">Premio</th><th class="text-center">Consultate</th>
+        <th class="text-right">Premio più basso</th>
+        <th>Scad. polizza</th><th class="text-center">Stato</th><th></th>
       </tr></thead>
       <tbody>
         {% for p in preventivi %}
@@ -37,6 +39,14 @@
           <td>{{ p.oggetto or '—' }}</td>
           <td>{{ p.compagnia.nome if p.compagnia else '—' }}</td>
           <td class="text-right mono">{{ p.premio_proposto|eur }}</td>
+          {# Confronto premi: quante compagnie sono state interpellate e qual è
+             stata la quotazione migliore (property derivate sul Preventivo). #}
+          <td class="text-center">{{ p.compagnie_consultate|length or '—' }}</td>
+          <td class="text-right mono">
+            {% if p.premio_piu_basso is not none %}{{ p.premio_piu_basso|eur }}
+              <span class="muted" style="font-size:11px">{{ p.compagnia_piu_economica.nome }}</span>
+            {% else %}—{% endif %}
+          </td>
           <td class="mono">{{ scadenze_rif[p.id]|data_it }}</td>
           <td class="text-center"><span class="badge badge-{{ p.stato }}">{{ p.stato }}</span></td>
           <td>
@@ -54,7 +64,7 @@
             </div>
           </td>
         </tr>
-        {% else %}<tr><td colspan="8"><div class="empty-state"><svg class="icon"><use href="#i-file-text"/></svg><h3>Nessun preventivo</h3></div></td></tr>{% endfor %}
+        {% else %}<tr><td colspan="10"><div class="empty-state"><svg class="icon"><use href="#i-file-text"/></svg><h3>Nessun preventivo</h3></div></td></tr>{% endfor %}
       </tbody>
     </table>
   </div>
@@ -79,7 +89,7 @@
         </div>
       </div>
       <div class="form-row">
-        <div class="form-group"><label>Compagnia</label>
+        <div class="form-group"><label>Compagnia scelta</label>
           <select class="form-input" name="compagnia_id">
             <option value="">—</option>
             {% for co in compagnie %}<option value="{{ co.id }}">{{ co.nome }}</option>{% endfor %}
@@ -100,6 +110,9 @@
         </div>
         <div class="form-group"><label>Data invio</label><input class="form-input" type="date" name="data_invio"></div>
       </div>
+      {# Creazione rapida: il confronto fra più compagnie si compila dal form
+         completo (Modifica), dove le righe sono ripetibili. #}
+      <p class="muted" style="font-size:11px">Le compagnie consultate e il confronto premi si aggiungono dal form completo, con <svg class="icon icon-sm" style="vertical-align:middle"><use href="#i-edit"/></svg> Modifica.</p>
       <div class="form-actions">
         <button type="button" class="btn btn-secondary" onclick="closeModal()">Annulla</button>
         <button type="submit" class="btn btn-primary">Salva</button>
