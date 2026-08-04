@@ -25,28 +25,28 @@
 > Modelli e collegamenti che le Fasi B e C danno per esistenti ma che nessuna task creava.
 > Da fare **prima** di B e C, altrimenti quelle fasi si bloccano a metà.
 
-- [ ] **Collegamento Pratica ↔ Preventivo**
+- [X] **Collegamento Pratica ↔ Preventivo**
       Oggi Pratica ha `contratto_id` e `sinistro_id` ma **non** `preventivo_id`,
       mentre "nuovo preventivo" è la prima tipologia di pratica e la Fase C
       richiede lo storico preventivi sulla Pratica.
 
-- [ ] **Modello Appuntamento** (cliente, pratica, data/ora, tipo, note, esito)
+- [X] **Modello Appuntamento** (cliente, pratica, data/ora, tipo, note, esito)
       Richiesto dal flusso Fase B ("appuntamento OTP") e dalla scheda cliente Fase C.
       Oggi non esiste.
 
-- [ ] **Modello Comunicazione** (pratica, cliente, canale, destinatario, testo, data, esito)
+- [X] **Modello Comunicazione** (pratica, cliente, canale, destinatario, testo, data, esito)
       La Fase C deve mostrare le comunicazioni nella scheda cliente, ma `messaggi.py`
       genera solo link `wa.me`/`mailto` e **non registra niente**.
 
-- [ ] **Aggiungere `pratica_id` a Documento** (nullable)
+- [X] **Aggiungere `pratica_id` a Documento** (nullable)
       Serve per "registrazione dei documenti mancanti" di quella pratica e per
       "invio certificato" alla chiusura. Oggi Documento è legato solo al Cliente.
 
-- [ ] **Impostazioni agenzia** (IBAN, ragione sociale, orari finestre emissione)
+- [X] **Impostazioni agenzia** (IBAN, ragione sociale, orari finestre emissione)
       Il flusso prevede "invio IBAN" ma l'IBAN non esiste da nessuna parte nel modello.
       Tabella impostazioni a riga singola o costanti in `config.py`.
 
-- [ ] **Punto d'ingresso: ogni contatto genera una pratica**
+- [X] **Punto d'ingresso: ogni contatto genera una pratica**
       Prima frase del metodo operativo del cliente. Oggi creando un Cliente nasce
       automaticamente un **Lead**, non una Pratica. Va allineato.
 
