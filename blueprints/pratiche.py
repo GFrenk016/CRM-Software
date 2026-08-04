@@ -1,14 +1,23 @@
 """Pratiche: unità di lavoro operativa collegata a cliente/contratto/sinistro."""
+from datetime import date
+
 from flask import (Blueprint, flash, jsonify, redirect, render_template,
                    request, url_for)
+from sqlalchemy import func
 
 from extensions import db
 # _numero_intl vive in messaggi.py (normalizzazione numero per wa.me): la
 # riusiamo per comporre il link della richiesta documenti, invece di duplicarla.
 from blueprints.messaggi import _numero_intl
-from models import (STATI_PRATICA, ChecklistDocumento, Cliente, Contratto, Lead,
-                    Pratica, PrioritaPratica, Sinistro, TipologiaPratica,
+from models import (ESITI_APPUNTAMENTO, FAMIGLIE_STATI_PRATICA,
+                    LABEL_FAMIGLIA_PRATICA, MOTIVI_PERDITA, ORDINE_STATI_PRATICA,
+                    SCALA_AVANZAMENTO, STATI_DATA_PASSAGGIO, STATI_PER_TIPOLOGIA,
+                    STATI_PRATICA, STATI_VINCOLO_FINESTRA, TIPI_APPUNTAMENTO,
+                    ChecklistDocumento, Cliente, Contratto, Lead, Pratica,
+                    PrioritaPratica, Sinistro, TipologiaPratica, Veicolo,
+                    get_impostazioni, in_finestra_emissione,
                     registra_comunicazione)
+from utils import parse_date
 
 bp = Blueprint("pratiche", __name__, url_prefix="/pratiche")
 
@@ -32,20 +41,26 @@ def _testo_richiesta_documenti(p):
 
 @bp.route("/")
 def index():
-    stato = (request.args.get("stato") or "").strip()
+    # Con 13 stati i chip di filtro sarebbero troppi: si filtra per FAMIGLIA di
+    # stato (aperte / in attesa / in emissione / chiuse), non per singolo stato.
+    famiglia = (request.args.get("famiglia") or "").strip()
     priorita = (request.args.get("priorita") or "").strip()
     tipologia = (request.args.get("tipologia") or "").strip()
 
     q = Pratica.query
-    if stato:
-        q = q.filter_by(stato=stato)
+    if famiglia in FAMIGLIE_STATI_PRATICA:
+        q = q.filter(Pratica.stato.in_(FAMIGLIE_STATI_PRATICA[famiglia]))
     if priorita:
         q = q.filter_by(priorita=priorita)
     if tipologia:
         q = q.filter_by(tipologia=tipologia)
     pratiche = q.order_by(Pratica.data_apertura.desc()).all()
 
-    conteggi = {s: Pratica.query.filter_by(stato=s).count() for s in STATI_PRATICA}
+    # Conteggi per famiglia con UNA sola query (GROUP BY stato), non 13 COUNT.
+    per_stato = dict(db.session.query(Pratica.stato, func.count(Pratica.id))
+                     .group_by(Pratica.stato).all())
+    conteggi = {fam: sum(per_stato.get(s, 0) for s in stati)
+                for fam, stati in FAMIGLIE_STATI_PRATICA.items()}
 
     # Dati per i <select> del modale "Nuova pratica"
     clienti = Cliente.query.order_by(Cliente.cognome).all()
@@ -55,10 +70,11 @@ def index():
 
     return render_template(
         "pratiche/list.html", pratiche=pratiche, stati=STATI_PRATICA,
-        stato_sel=stato, priorita_sel=priorita, tipologia_sel=tipologia,
+        famiglie=FAMIGLIE_STATI_PRATICA, label_famiglia=LABEL_FAMIGLIA_PRATICA,
+        famiglia_sel=famiglia, priorita_sel=priorita, tipologia_sel=tipologia,
         conteggi=conteggi, clienti=clienti, lead=lead, contratti=contratti,
         sinistri=sinistri, priorita_opts=PrioritaPratica,
-        tipologia_opts=TipologiaPratica,
+        tipologia_opts=TipologiaPratica, stati_per_tipologia=STATI_PER_TIPOLOGIA,
     )
 
 
@@ -73,7 +89,42 @@ def detail(pratica_id):
     return render_template("pratiche/detail.html", p=p,
                            testo_richiesta=testo_richiesta,
                            documenti_mancanti=documenti_mancanti,
-                           wa_number=wa_number)
+                           wa_number=wa_number, scala=SCALA_AVANZAMENTO,
+                           pos_corrente=ORDINE_STATI_PRATICA.get(p.stato),
+                           tipi_appuntamento=TIPI_APPUNTAMENTO,
+                           esiti_appuntamento=ESITI_APPUNTAMENTO)
+
+
+@bp.route("/<int:pratica_id>/avanza", methods=["POST"])
+def avanza(pratica_id):
+    """Avanzamento guidato: porta la pratica allo stato successivo della scala.
+
+    Valorizza la data del passaggio (pagamento_verificato / emessa /
+    certificato_inviato) e, se si entra nella coda/emissione fuori dalle finestre
+    di emissione, mostra un avviso NON bloccante (l'avanzamento avviene comunque).
+    """
+    p = Pratica.query.get_or_404(pratica_id)
+    prossimo = p.stato_successivo
+    if not prossimo:
+        flash("Nessuno step successivo per questa pratica.", "error")
+        return redirect(url_for("pratiche.detail", pratica_id=p.id))
+
+    p.stato = prossimo
+    # Fissa la data del passaggio se non già presente (non la si sovrascrive).
+    campo_data = STATI_DATA_PASSAGGIO.get(prossimo)
+    if campo_data and getattr(p, campo_data) is None:
+        setattr(p, campo_data, date.today())
+
+    # Vincolo finestre di emissione: avviso non bloccante fuori orario.
+    if prossimo in STATI_VINCOLO_FINESTRA and \
+            not in_finestra_emissione(get_impostazioni()):
+        flash("Passaggio a '%s' fuori dalle finestre di emissione: verifica gli "
+              "orari prima di procedere in compagnia." % prossimo.replace("_", " "),
+              "warning")
+
+    db.session.commit()
+    flash("Pratica avanzata a: %s." % prossimo.replace("_", " "), "success")
+    return redirect(url_for("pratiche.detail", pratica_id=p.id))
 
 
 # --------------------------------------------------------------------------- #
@@ -152,13 +203,17 @@ def form(pratica_id=None):
             p.contratto_id = int(f["contratto_id"]) if f.get("contratto_id") else None
             p.sinistro_id = int(f["sinistro_id"]) if f.get("sinistro_id") else None
             p.lead_id = int(f["lead_id"]) if f.get("lead_id") else None
+            p.veicolo_id = int(f["veicolo_id"]) if f.get("veicolo_id") else None
             p.stato = f.get("stato", "aperta")
             p.priorita = f.get("priorita", PrioritaPratica.MEDIA.value)
             p.operatore = f.get("operatore", "").strip() or None
             p.note = f.get("note", "").strip() or None
+            # Esito negativo (compilato solo quando la pratica è "persa").
+            p.motivo_perdita = f.get("motivo_perdita", "").strip() or None
+            p.data_scadenza_riferimento = parse_date(f.get("data_scadenza_riferimento"))
             db.session.commit()
             flash("Pratica salvata.", "success")
-            return redirect(url_for("pratiche.index"))
+            return redirect(url_for("pratiche.detail", pratica_id=p.id))
         except ValueError as e:
             db.session.rollback()
             flash(str(e), "error")
@@ -167,11 +222,14 @@ def form(pratica_id=None):
     lead = Lead.query.all()
     contratti = Contratto.query.order_by(Contratto.numero_polizza).all()
     sinistri = Sinistro.query.order_by(Sinistro.numero).all()
+    veicoli = Veicolo.query.all()
     cliente_sel = request.args.get("cliente_id", type=int)
     return render_template(
         "pratiche/form.html", p=p, clienti=clienti, lead=lead, contratti=contratti,
-        sinistri=sinistri, stati=STATI_PRATICA, priorita_opts=PrioritaPratica,
+        sinistri=sinistri, veicoli=veicoli, stati=STATI_PRATICA,
+        motivi_perdita=MOTIVI_PERDITA, priorita_opts=PrioritaPratica,
         tipologia_opts=TipologiaPratica, cliente_sel=cliente_sel,
+        stati_per_tipologia=STATI_PER_TIPOLOGIA,
     )
 
 

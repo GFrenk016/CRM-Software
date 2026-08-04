@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_macros.html" import appuntamenti_list, appuntamento_nuovo %}
 {% set section = "pratiche" %}
 {% block title %}Pratica {{ p.numero_identificativo }}{% endblock %}
 {% block page_title %}Dettaglio pratica{% endblock %}
@@ -34,6 +35,39 @@
       </div>
       {% if p.note %}<div class="detail-item" style="margin-top:12px"><label>Note</label><span>{{ p.note }}</span></div>{% endif %}
     </div>
+
+    <!-- AVANZAMENTO: scala di emissione + step guidato (solo tipologie con emissione) -->
+    {% if p.segue_emissione %}
+    <div class="section-title"><span class="st-left"><svg class="icon icon-sm"><use href="#i-arrow-right"/></svg> Avanzamento</span></div>
+    <div class="card">
+      <div class="step-ladder">
+        {% for s in scala %}
+        <span class="step-pill {{ 'current' if loop.index0 == pos_corrente else ('done' if pos_corrente is not none and loop.index0 < pos_corrente else '') }}">{{ s|replace('_',' ') }}</span>
+        {% endfor %}
+      </div>
+      {% if pos_corrente is none %}
+      <p class="muted" style="font-size:12px">Stato attuale "{{ p.stato|replace('_',' ') }}" fuori dalla scala di emissione.</p>
+      {% endif %}
+      {% if p.stato_successivo %}
+      <form method="post" action="{{ url_for('pratiche.avanza', pratica_id=p.id) }}">
+        <button class="btn btn-primary btn-sm"><svg class="icon icon-sm"><use href="#i-arrow-right"/></svg> Prossimo step: {{ p.stato_successivo|replace('_',' ') }}</button>
+      </form>
+      {% endif %}
+      <div class="detail-grid" style="margin-top:12px">
+        <div class="detail-item"><label>Pagamento verificato</label><span class="mono">{{ p.data_pagamento_verificato|data_it }}</span></div>
+        <div class="detail-item"><label>Emessa</label><span class="mono">{{ p.data_emissione|data_it }}</span></div>
+        <div class="detail-item"><label>Certificato inviato</label><span class="mono">{{ p.data_invio_certificato|data_it }}</span></div>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if p.stato == 'persa' %}
+    <div class="notice notice-danger" style="margin-top:12px">
+      <svg class="icon icon-sm"><use href="#i-x"/></svg>
+      <div><strong>Pratica persa.</strong> Motivo: {{ (p.motivo_perdita or '—')|replace('_',' ') }}.
+        {% if p.data_scadenza_riferimento %} Scadenza polizza attuale del cliente: {{ p.data_scadenza_riferimento|data_it }} — ricontattare prima di allora.{% endif %}</div>
+    </div>
+    {% endif %}
 
     <!-- COLLEGAMENTI: le altre entità agganciate alla pratica -->
     <div class="section-title"><span class="st-left"><svg class="icon icon-sm"><use href="#i-shield"/></svg> Collegamenti</span></div>
@@ -119,17 +153,11 @@
       {% else %}<div class="related-empty">Nessun documento collegato.</div>{% endfor %}
     </div>
 
-    <!-- APPUNTAMENTI -->
+    <!-- APPUNTAMENTI (creazione e gestione, tipo "otp" per la firma) -->
     <div class="section-title"><span class="st-left"><svg class="icon icon-sm"><use href="#i-calendar"/></svg> Appuntamenti</span></div>
-    <div class="related-list">
-      {% for a in p.appuntamenti %}
-      <div class="related-item">
-        <div><span class="mono">{{ a.data_ora|data_it }}</span> {% if a.tipo %}<span class="badge badge-{{ a.tipo }}">{{ a.tipo }}</span>{% endif %}
-          {% if a.note %}<span class="muted" style="font-size:12px"> · {{ a.note }}</span>{% endif %}</div>
-        <div>{% if a.esito %}<span class="badge badge-{{ a.esito }}">{{ a.esito|replace('_',' ') }}</span>{% endif %}</div>
-      </div>
-      {% else %}<div class="related-empty">Nessun appuntamento.</div>{% endfor %}
-    </div>
+    {% set next_url = url_for('pratiche.detail', pratica_id=p.id) %}
+    {{ appuntamenti_list(p.appuntamenti, next_url, esiti_appuntamento) }}
+    {{ appuntamento_nuovo(p.cliente_id, next_url, tipi_appuntamento, pratica_id=p.id) }}
 
     <!-- COMUNICAZIONI (storico/audit) -->
     <div class="section-title"><span class="st-left"><svg class="icon icon-sm"><use href="#i-message"/></svg> Comunicazioni</span></div>

@@ -53,5 +53,6 @@ def register_template_helpers(app):
             ("Incassi", "incassi.index", "wallet"),
             ("Compagnie", "compagnie.index", "building"),
             ("Compliance", "compliance.index", "check-shield"),
+            ("Impostazioni", "impostazioni.index", "settings"),
         ]
         return {"NAV_ITEMS": nav, "oggi": date.today()}

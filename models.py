@@ -179,6 +179,37 @@ def _stati_ammessi_tipologia(tipologia):
 STATI_PER_TIPOLOGIA = {t: _stati_ammessi_tipologia(t)
                        for t in TipologiaPratica.valori()}
 
+# Scala di avanzamento (catena di emissione) in ordine, per mostrare i passi e
+# proporre lo stato successivo sul dettaglio pratica.
+SCALA_AVANZAMENTO = sorted(ORDINE_STATI_PRATICA, key=ORDINE_STATI_PRATICA.get)
+# Mappa inversa posizione → stato (per trovare lo stato successivo).
+_STATO_PER_POSIZIONE = {v: k for k, v in ORDINE_STATI_PRATICA.items()}
+
+# Passaggi di stato che fissano una data (lo stato è una colonna sola e non
+# conserva lo storico: la data del passaggio va salvata quando avviene).
+STATI_DATA_PASSAGGIO = {
+    "pagamento_verificato": "data_pagamento_verificato",
+    "emessa": "data_emissione",
+    "certificato_inviato": "data_invio_certificato",
+}
+
+# Passaggi soggetti al vincolo (non bloccante) delle finestre di emissione.
+STATI_VINCOLO_FINESTRA = {"in_coda_emissione", "emessa"}
+
+# Le 13 combinazioni di stato sono troppe per dei chip di filtro: si raggruppano
+# in famiglie (aperte / in attesa / in emissione / chiuse).
+# TODO CLIENTE: confermare l'assegnazione dei singoli stati alle famiglie.
+FAMIGLIE_STATI_PRATICA = {
+    "aperte": ["aperta", "in_lavorazione", "documentazione_da_integrare"],
+    "in_attesa": ["in_attesa_cliente", "attesa_pagamento", "attesa_otp"],
+    "in_emissione": ["pagamento_verificato", "in_coda_emissione", "emessa"],
+    "chiuse": ["certificato_inviato", "completata", "annullata", "persa"],
+}
+LABEL_FAMIGLIA_PRATICA = {
+    "aperte": "Aperte", "in_attesa": "In attesa",
+    "in_emissione": "In emissione", "chiuse": "Chiuse",
+}
+
 
 # Tipologie che nascono URGENTI (priorità automatica alla creazione).
 TIPOLOGIE_PRIORITA_URGENTE = {
@@ -731,6 +762,25 @@ class Pratica(db.Model):
         return PrioritaPratica(self.priorita).label if self.priorita else ""
 
     @property
+    def segue_emissione(self):
+        """True se la tipologia segue la catena di emissione a 8 step."""
+        return self.tipologia in TIPOLOGIE_CON_EMISSIONE
+
+    @property
+    def stato_successivo(self):
+        """Prossimo stato proposto nella scala di avanzamento, filtrato per tipologia.
+
+        None se la tipologia non segue la catena di emissione, se lo stato
+        attuale è fuori dalla scala (es. in_attesa_cliente) o se è già l'ultimo.
+        """
+        if self.tipologia not in TIPOLOGIE_CON_EMISSIONE:
+            return None
+        pos = ORDINE_STATI_PRATICA.get(self.stato)
+        if pos is None:
+            return None
+        return _STATO_PER_POSIZIONE.get(pos + 1)
+
+    @property
     def campi_mancanti(self):
         """Campi anagrafici richiesti dalla tipologia ma NON compilati sul cliente.
 
@@ -1011,3 +1061,18 @@ def get_impostazioni():
         db.session.add(imp)
         db.session.commit()
     return imp
+
+
+def _entro_finestra(t, inizio, fine):
+    return bool(inizio and fine and inizio <= t <= fine)
+
+
+def in_finestra_emissione(imp, momento=None):
+    """True se l'ora indicata (default: adesso) cade in una delle due finestre.
+
+    Usa l'ora LOCALE della macchina (app mono-utente in agenzia). Gli orari di
+    default (9-11 / 15-17) sono provvisori.  # TODO CLIENTE: confermare gli orari.
+    """
+    t = (momento or datetime.now()).time()
+    return (_entro_finestra(t, imp.finestra1_inizio, imp.finestra1_fine) or
+            _entro_finestra(t, imp.finestra2_inizio, imp.finestra2_fine))

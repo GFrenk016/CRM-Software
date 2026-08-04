@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_macros.html" import appuntamenti_list, appuntamento_nuovo %}
 {% set section = "clienti" %}
 {% block title %}{{ c.nome_completo }}{% endblock %}
 {% block page_title %}Scheda cliente{% endblock %}
@@ -177,6 +178,12 @@
       </div>
       {% else %}<div class="related-empty">Nessuna pratica.</div>{% endfor %}
     </div>
+
+    <!-- APPUNTAMENTI (creazione/gestione dalla scheda cliente) -->
+    <div class="section-title"><span class="st-left"><svg class="icon icon-sm"><use href="#i-calendar"/></svg> Appuntamenti</span></div>
+    {% set next_url = url_for('clienti.detail', cliente_id=c.id) %}
+    {{ appuntamenti_list(c.appuntamenti, next_url, esiti_appuntamento) }}
+    {{ appuntamento_nuovo(c.id, next_url, tipi_appuntamento) }}
 
     <!-- PREVENTIVI -->
     <div class="section-title"><span class="st-left"><svg class="icon icon-sm"><use href="#i-file-text"/></svg> Preventivi</span></div>

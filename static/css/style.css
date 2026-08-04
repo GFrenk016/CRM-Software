@@ -178,6 +178,17 @@ a.stat-card:hover { transform:translateY(-2px); box-shadow:var(--shadow);
 .notice-danger { background:var(--danger-dim); color:var(--danger);
   border:1px solid rgba(247,82,79,.25); }
 
+/* Card-famiglia usata come filtro attivo nella lista pratiche. */
+a.stat-card.active-filter { outline:2px solid var(--primary); outline-offset:-1px; }
+
+/* Scala di avanzamento (step pill) sul dettaglio pratica. */
+.step-ladder { display:flex; flex-wrap:wrap; gap:6px; margin:2px 0 10px; }
+.step-pill { font-size:10.5px; font-weight:600; padding:4px 9px; border-radius:20px;
+  background:var(--surface2); color:var(--text3); border:1px solid var(--border);
+  text-transform:capitalize; white-space:nowrap; }
+.step-pill.done { background:var(--primary-dim); color:var(--primary); border-color:transparent; }
+.step-pill.current { background:var(--primary); color:#fff; border-color:transparent; }
+
 /* Stati emissione pratica (Fase B). Riusa le famiglie di colore esistenti:
    attese → warning, fasi in corso → primario, esito positivo → success,
    perdita → danger. */
@@ -371,6 +382,7 @@ select.mono-cell option { background:var(--surface2); color:var(--text);
   font-size:13px; font-weight:500; animation:slideIn .2s ease; }
 .toast.success { border-left:3px solid var(--success); }
 .toast.error { border-left:3px solid var(--danger); }
+.toast.warning { border-left:3px solid var(--warning); }
 @keyframes slideIn { from { transform:translateX(20px); opacity:0; } to { transform:translateX(0); opacity:1; } }
 
 /* CHECK ICON */

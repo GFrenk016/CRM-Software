@@ -6,8 +6,8 @@ from sqlalchemy import and_
 from sqlalchemy.exc import IntegrityError
 
 from extensions import db
-from models import (STADI_LEAD, Cliente, Contratto, Lead, Pratica,
-                    TipologiaPratica, Veicolo)
+from models import (ESITI_APPUNTAMENTO, STADI_LEAD, TIPI_APPUNTAMENTO, Cliente,
+                    Contratto, Lead, Pratica, TipologiaPratica, Veicolo)
 from utils import parse_date
 
 bp = Blueprint("clienti", __name__, url_prefix="/clienti")
@@ -79,7 +79,9 @@ def index():
 def detail(cliente_id):
     """Scheda 360°: cliente + tutte le entità collegate via FK."""
     cliente = Cliente.query.get_or_404(cliente_id)
-    return render_template("clienti/detail.html", c=cliente, oggi=date.today())
+    return render_template("clienti/detail.html", c=cliente, oggi=date.today(),
+                           tipi_appuntamento=TIPI_APPUNTAMENTO,
+                           esiti_appuntamento=ESITI_APPUNTAMENTO)
 
 
 @bp.route("/nuovo", methods=["GET", "POST"])

@@ -7,21 +7,23 @@
 {% endblock %}
 
 {% block content %}
-<div class="stats-grid" style="grid-template-columns:repeat(5,1fr)">
-  <div class="stat-card"><div class="stat-icon"><svg class="icon"><use href="#i-inbox"/></svg></div><div class="stat-value">{{ conteggi.aperta }}</div><div class="stat-label">Aperte</div></div>
-  <div class="stat-card"><div class="stat-icon"><svg class="icon"><use href="#i-inbox"/></svg></div><div class="stat-value">{{ conteggi.in_lavorazione }}</div><div class="stat-label">In lavorazione</div></div>
-  <div class="stat-card amber"><div class="stat-icon amber"><svg class="icon"><use href="#i-inbox"/></svg></div><div class="stat-value">{{ conteggi.in_attesa_cliente }}</div><div class="stat-label">In attesa cliente</div></div>
-  <div class="stat-card green"><div class="stat-icon green"><svg class="icon"><use href="#i-check"/></svg></div><div class="stat-value">{{ conteggi.completata }}</div><div class="stat-label">Completate</div></div>
-  <div class="stat-card red"><div class="stat-icon red"><svg class="icon"><use href="#i-x"/></svg></div><div class="stat-value">{{ conteggi.annullata }}</div><div class="stat-label">Annullate</div></div>
+{# 13 stati sarebbero troppi chip: si filtra per FAMIGLIA. Le card sono anche
+   filtri (toggle): riclicco la famiglia attiva per azzerarla. #}
+{% set colori_fam = {'aperte':'blue','in_attesa':'amber','in_emissione':'purple','chiuse':'green'} %}
+<div class="stats-grid">
+  {% for fam, label in label_famiglia.items() %}
+  <a class="stat-card {{ colori_fam[fam] }} {{ 'active-filter' if famiglia_sel == fam }}"
+     href="{{ url_for('pratiche.index', famiglia=(none if famiglia_sel == fam else fam), priorita=priorita_sel or none, tipologia=tipologia_sel or none) }}">
+    <div class="stat-value">{{ conteggi[fam] }}</div>
+    <div class="stat-label">{{ label }}</div>
+  </a>
+  {% endfor %}
 </div>
 
 <div class="table-wrapper">
   <div class="table-toolbar">
     <form method="get" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-      <select class="form-input" name="stato" onchange="this.form.submit()" style="width:auto">
-        <option value="">Tutti gli stati</option>
-        {% for s in stati %}<option value="{{ s }}" {{ 'selected' if stato_sel == s }}>{{ s|replace('_',' ') }}</option>{% endfor %}
-      </select>
+      <input type="hidden" name="famiglia" value="{{ famiglia_sel }}">
       <select class="form-input" name="priorita" onchange="this.form.submit()" style="width:auto">
         <option value="">Tutte le priorità</option>
         {% for pr in priorita_opts %}<option value="{{ pr.value }}" {{ 'selected' if priorita_sel == pr.value }}>{{ pr.label }}</option>{% endfor %}
@@ -30,6 +32,7 @@
         <option value="">Tutte le tipologie</option>
         {% for t in tipologia_opts %}<option value="{{ t.value }}" {{ 'selected' if tipologia_sel == t.value }}>{{ t.label }}</option>{% endfor %}
       </select>
+      {% if famiglia_sel or priorita_sel or tipologia_sel %}<a class="btn btn-secondary btn-sm" href="{{ url_for('pratiche.index') }}">Azzera filtri</a>{% endif %}
     </form>
     <span class="muted" style="margin-left:auto">{{ pratiche|length }} pratiche</span>
   </div>
@@ -72,7 +75,7 @@
             {% for c in clienti %}<option value="{{ c.id }}">{{ c.nome_completo }}</option>{% endfor %}
           </select></div>
         <div class="form-group"><label>Tipologia *</label>
-          <select class="form-input" name="tipologia" required>
+          <select class="form-input" name="tipologia" required onchange="filtraStatiPratica(this)">
             {% for t in tipologia_opts %}<option value="{{ t.value }}">{{ t.label }}</option>{% endfor %}
           </select></div>
       </div>
@@ -95,7 +98,7 @@
         </select></div>
       <div class="form-row-3">
         <div class="form-group"><label>Stato</label>
-          <select class="form-input" name="stato">{% for st in stati %}<option value="{{ st }}">{{ st|replace('_',' ') }}</option>{% endfor %}</select></div>
+          <select class="form-input" name="stato" data-stati-pratica>{% for st in stati %}<option value="{{ st }}">{{ st|replace('_',' ') }}</option>{% endfor %}</select></div>
         <div class="form-group"><label>Priorità</label>
           <select class="form-input" name="priorita">
             {% for pr in priorita_opts %}<option value="{{ pr.value }}" {{ 'selected' if pr.name == 'MEDIA' }}>{{ pr.label }}</option>{% endfor %}
@@ -110,4 +113,8 @@
     </form>
   </div>
 </template>
+{% endblock %}
+
+{% block scripts %}
+<script>window.STATI_PER_TIPOLOGIA = {{ stati_per_tipologia|tojson }};</script>
 {% endblock %}

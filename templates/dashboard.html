@@ -78,6 +78,32 @@
 
 </div>
 
+<!-- DA RICONTATTARE QUESTO MESE: pratiche perse con polizza attuale in scadenza -->
+<div class="section-title"><span class="st-left"><svg class="icon icon-sm"><use href="#i-inbox"/></svg> Da ricontattare questo mese</span></div>
+<div class="table-wrapper" style="margin-bottom:24px">
+  <div class="table-scroll">
+    <table>
+      <thead><tr>
+        <th>Nome</th><th>Cognome</th><th>Codice fiscale</th><th>Targa</th>
+        <th>Scadenza</th><th>Motivo perdita</th><th>Note</th>
+      </tr></thead>
+      <tbody>
+        {% for p in da_ricontattare %}
+        <tr>
+          <td><a href="{{ url_for('pratiche.detail', pratica_id=p.id) }}">{{ p.cliente.nome }}</a></td>
+          <td>{{ p.cliente.cognome }}</td>
+          <td class="mono">{{ p.cliente.codice_fiscale or '—' }}</td>
+          <td class="mono">{{ p.veicolo.targa if p.veicolo else '—' }}</td>
+          <td class="mono">{{ p.data_scadenza_riferimento|data_it }}</td>
+          <td>{{ (p.motivo_perdita or '—')|replace('_',' ') }}</td>
+          <td class="muted">{{ p.note or '—' }}</td>
+        </tr>
+        {% else %}<tr><td colspan="7"><div class="empty-state"><svg class="icon"><use href="#i-check"/></svg><h3>Nessuno da ricontattare questo mese</h3></div></td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
 <div class="stats-grid">
   <a class="stat-card blue" href="{{ url_for('clienti.index') }}">
     <div class="stat-icon blue"><svg class="icon"><use href="#i-users"/></svg></div>

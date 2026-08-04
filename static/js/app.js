@@ -22,6 +22,30 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal
 function openTemplate(id, large) {
   const tpl = document.getElementById(id);
   if (tpl) openModal(tpl.innerHTML, large);
+  // Il contenuto è iniettato ora: filtra subito gli stati in base alla tipologia
+  // pre-selezionata (l'onchange inline copre le modifiche successive).
+  document.querySelectorAll('#modal-body select[name="tipologia"]').forEach(filtraStatiPratica);
+}
+
+// --- PRATICA: stati ammessi filtrati per tipologia --------------------------
+// sinistro/consulenza/nuovo_preventivo non devono vedere gli stati di emissione.
+// La mappa tipologia→stati arriva dal server in window.STATI_PER_TIPOLOGIA.
+function filtraStatiPratica(tipoSel) {
+  const map = window.STATI_PER_TIPOLOGIA || {};
+  const scope = tipoSel.closest('form') || document;
+  const statoSel = scope.querySelector('[data-stati-pratica]');
+  if (!statoSel) return;
+  const ammessi = map[tipoSel.value];
+  const corrente = statoSel.value;
+  Array.from(statoSel.options).forEach(o => {
+    const ok = !ammessi || ammessi.includes(o.value);
+    o.hidden = !ok; o.disabled = !ok;
+  });
+  // Se lo stato selezionato non è più ammesso, ripiega sul primo disponibile.
+  if (ammessi && !ammessi.includes(corrente)) {
+    const primo = Array.from(statoSel.options).find(o => !o.disabled);
+    if (primo) statoSel.value = primo.value;
+  }
 }
 
 // --- TOAST ------------------------------------------------------------------
@@ -346,4 +370,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (selAll) selAll.addEventListener('change', (e) => {
     document.querySelectorAll('.sel-cliente').forEach(cb => cb.checked = e.target.checked);
   });
+  // Form pratica a pagina piena: filtra gli stati per la tipologia già scelta.
+  document.querySelectorAll('form select[name="tipologia"][data-filtra-stati]')
+    .forEach(filtraStatiPratica);
 });
