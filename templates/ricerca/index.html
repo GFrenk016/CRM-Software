@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+{% from "_macros.html" import comunicazioni_list %}
+{% set section = "ricerca" %}
+{% block title %}Ricerca per codice fiscale{% endblock %}
+{% block page_title %}Ricerca per codice fiscale{% endblock %}
+
+{% block content %}
+<form class="card" method="get" style="padding:14px;margin-bottom:16px">
+  <div class="form-row">
+    <div class="form-group" style="margin-bottom:0">
+      <label>Codice fiscale (anche parziale)</label>
+      <input class="form-input mono" name="cf" value="{{ cf }}" autofocus
+             placeholder="RSSMRC80A01F205X" autocomplete="off">
+    </div>
+    <div class="form-group" style="margin-bottom:0;justify-content:flex-end">
+      <button class="btn btn-primary"><svg class="icon icon-sm"><use href="#i-search"/></svg> Cerca</button>
+    </div>
+  </div>
+</form>
+
+{% if not cercato %}
+<div class="empty-state">
+  <svg class="icon"><use href="#i-search"/></svg>
+  <h3>Inserisci un codice fiscale</h3>
+  <p>Da un CF si arriva a tutto ciò che è collegato al cliente: pratiche, polizze,
+     preventivi, targhe, documenti, comunicazioni e appuntamenti in una schermata sola.</p>
+</div>
+
+{% elif risultati is not none and risultati|length == 0 %}
+{# Nessun cliente: messaggio esplicito, non una pagina vuota. #}
+<div class="notice notice-warn">
+  <svg class="icon icon-sm"><use href="#i-alert"/></svg>
+  <div><strong>Nessun cliente con codice fiscale «{{ cf }}».</strong>
+    Controlla il codice oppure <a href="{{ url_for('clienti.index', nome=cf) }}">cercalo in anagrafica</a>
+    (la ricerca in anagrafica guarda anche nome, email e cellulare), o
+    <a href="{{ url_for('clienti.form') }}">crea il cliente</a>.</div>
+</div>
+
+{% elif risultati %}
+{# CF parziale: più clienti corrispondono, si sceglie da qui. #}
+<div class="notice notice-warn">
+  <svg class="icon icon-sm"><use href="#i-alert"/></svg>
+  <div>{{ risultati|length }} clienti corrispondono a «{{ cf }}»: scegli quale visualizzare.</div>
+</div>
+<div class="related-list">
+  {% for r in risultati %}
+  <div class="related-item">
+    <div><a href="{{ url_for('ricerca.index', cliente_id=r.id, cf=cf) }}"><strong>{{ r.nome_completo }}</strong></a>
+      <span class="muted" style="font-size:12px"> · {{ r.citta or '—' }}</span></div>
+    <div class="mono">{{ r.codice_fiscale }}</div>
+  </div>
+  {% endfor %}
+</div>
+
+{% else %}
+{# Vista aggregata: SOLA LETTURA. Tutto arriva dalle relationship già esistenti
+   (nessuna logica duplicata dalla scheda cliente, che resta il posto dove si
+   modifica). #}
+<div class="detail-header">
+  <div class="detail-avatar">{{ cliente.iniziali }}</div>
+  <div>
+    <h3 style="font-size:20px">{{ cliente.nome_completo }}</h3>
+    <div class="muted mono">{{ cliente.codice_fiscale or 'CF non registrato' }}</div>
+  </div>
+  <a class="btn btn-primary btn-sm" style="margin-left:auto" href="{{ url_for('clienti.detail', cliente_id=cliente.id) }}">
+    <svg class="icon icon-sm"><use href="#i-users"/></svg> Apri scheda cliente</a>
+</div>
+
+<div class="card" style="margin-bottom:16px">
+  <div class="detail-grid">
+    <div class="detail-item"><label>Nato il</label><span>{{ cliente.data_nascita|data_it }}</span></div>
+    <div class="detail-item"><label>Cellulare</label><span>{{ cliente.cellulare or cliente.telefono or '—' }}</span></div>
+    <div class="detail-item"><label>Email</label><span>{{ cliente.email or '—' }}</span></div>
+    <div class="detail-item"><label>Indirizzo</label><span>{{ cliente.indirizzo_completo or '—' }}</span></div>
+  </div>
+</div>
+
+<div class="detail-cols">
+  <div>
+    <!-- PRATICHE -->
+    <div class="section-title" style="margin-top:0"><span class="st-left"><svg class="icon icon-sm"><use href="#i-inbox"/></svg> Pratiche</span></div>
+    <div class="related-list">
+      {% for p in cliente.pratiche %}
+      <div class="related-item">
+        <div><a href="{{ url_for('pratiche.detail', pratica_id=p.id) }}"><span class="mono">{{ p.numero_identificativo }}</span></a>
+          · {{ p.tipologia_label }}</div>
+        <div><span class="badge badge-{{ p.priorita }}">{{ p.priorita_label }}</span>
+          <span class="badge badge-{{ p.stato }}">{{ p.stato|replace('_',' ') }}</span></div>
+      </div>
+      {% else %}<div class="related-empty">Nessuna pratica.</div>{% endfor %}
+    </div>
+
+    <!-- POLIZZE -->
+    <div class="section-title"><span class="st-left"><svg class="icon icon-sm"><use href="#i-shield"/></svg> Polizze</span></div>
+    <div class="related-list">
+      {% for k in cliente.contratti %}
+      <div class="related-item">
+        <div><a href="{{ url_for('contratti.detail', contratto_id=k.id) }}"><span class="mono">{{ k.numero_polizza }}</span></a>
+          · {{ k.ramo or '—' }} <span class="muted">{{ k.compagnia.nome if k.compagnia else '' }}</span></div>
+        <div><span class="badge badge-{{ k.stato }}">{{ k.stato }}</span>
+          <span class="muted">scad. {{ k.data_scadenza|data_it }}</span></div>
+      </div>
+      {% else %}<div class="related-empty">Nessuna polizza.</div>{% endfor %}
+    </div>
+
+    <!-- PREVENTIVI (con il confronto compagnie della Fase C) -->
+    <div class="section-title"><span class="st-left"><svg class="icon icon-sm"><use href="#i-file-text"/></svg> Preventivi</span></div>
+    <div class="related-list">
+      {% for prev in cliente.preventivi %}
+      <div class="related-item">
+        <div>
+          <div><a href="{{ url_for('preventivi.form', prev_id=prev.id) }}"><span class="mono">{{ prev.numero }}</span></a> · {{ prev.oggetto or '—' }}</div>
+          <div class="muted" style="font-size:11px">
+            Scelta: {{ prev.compagnia.nome if prev.compagnia else 'nessuna' }}
+            {% if prev.compagnie_consultate %} · {{ prev.compagnie_consultate|length }} compagnie consultate,
+              migliore {{ prev.premio_piu_basso|eur }}{% endif %}
+          </div>
+        </div>
+        <div><span class="badge badge-{{ prev.stato }}">{{ prev.stato }}</span>
+          <span class="mono">{{ prev.premio_proposto|eur }}</span></div>
+      </div>
+      {% else %}<div class="related-empty">Nessun preventivo.</div>{% endfor %}
+    </div>
+
+    <!-- TARGHE -->
+    <div class="section-title"><span class="st-left"><svg class="icon icon-sm"><use href="#i-shield"/></svg> Targhe</span></div>
+    <div class="related-list">
+      {% for v in cliente.veicoli %}
+      <div class="related-item">
+        <div><span class="mono">{{ v.targa }}</span> <span class="muted">{{ v.descrizione if (v.marca or v.modello) else '' }}</span></div>
+      </div>
+      {% else %}<div class="related-empty">Nessun veicolo.</div>{% endfor %}
+    </div>
+  </div>
+
+  <div>
+    <!-- DOCUMENTI -->
+    <div class="section-title" style="margin-top:0"><span class="st-left"><svg class="icon icon-sm"><use href="#i-file-text"/></svg> Documenti</span></div>
+    <div class="related-list">
+      {% for d in cliente.documenti %}
+      <div class="related-item">
+        <div><span style="font-weight:600">{{ d.filename }}</span>
+          <span class="muted" style="font-size:11px">· {{ d.tipo or 'Altro' }}</span></div>
+        <a class="btn-icon" href="{{ url_for('documenti.download', doc_id=d.id) }}" title="Scarica"><svg class="icon icon-sm"><use href="#i-download"/></svg></a>
+      </div>
+      {% else %}<div class="related-empty">Nessun documento.</div>{% endfor %}
+    </div>
+
+    <!-- APPUNTAMENTI -->
+    <div class="section-title"><span class="st-left"><svg class="icon icon-sm"><use href="#i-calendar"/></svg> Appuntamenti</span></div>
+    <div class="related-list">
+      {% for a in cliente.appuntamenti %}
+      <div class="related-item">
+        <div><span class="mono">{{ a.data_ora|data_it }}</span>
+          {% if a.tipo %}<span class="badge badge-{{ a.tipo }}">{{ a.tipo }}</span>{% endif %}
+          {% if a.note %}<span class="muted" style="font-size:12px"> · {{ a.note }}</span>{% endif %}</div>
+        <div>{% if a.esito %}<span class="badge badge-{{ a.esito }}">{{ a.esito|replace('_',' ') }}</span>{% endif %}</div>
+      </div>
+      {% else %}<div class="related-empty">Nessun appuntamento.</div>{% endfor %}
+    </div>
+
+    <!-- COMUNICAZIONI -->
+    <div class="section-title"><span class="st-left"><svg class="icon icon-sm"><use href="#i-message"/></svg> Comunicazioni</span></div>
+    {{ comunicazioni_list(cliente.comunicazioni) }}
+
+    <!-- SINISTRI -->
+    <div class="section-title"><span class="st-left"><svg class="icon icon-sm"><use href="#i-alert"/></svg> Sinistri</span></div>
+    <div class="related-list">
+      {% for s in cliente.sinistri %}
+      <div class="related-item">
+        <div><span class="mono">{{ s.numero }}</span> · {{ s.tipo }}</div>
+        <div><span class="badge badge-{{ s.stato }}">{{ s.stato }}</span>
+          <span class="mono">{{ s.importo_stimato|eur }}</span></div>
+      </div>
+      {% else %}<div class="related-empty">Nessun sinistro.</div>{% endfor %}
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
