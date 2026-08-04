@@ -320,6 +320,10 @@ class Preventivo(db.Model):
     # Veicolo di riferimento per preventivi RC Auto (opzionale: non tutti i
     # preventivi riguardano un veicolo, es. Vita/Infortuni/Casa).
     veicolo_id = db.Column(db.Integer, db.ForeignKey("veicoli.id"))
+    # Pratica di origine (FK nullable, nessun cascade): una singola pratica di
+    # lavorazione (es. "nuovo preventivo") può generare PIÙ preventivi nel tempo
+    # (revisioni, riquotazioni dopo richieste del cliente). Vedi Pratica.preventivi.
+    pratica_id = db.Column(db.Integer, db.ForeignKey("pratiche.id"))      # nullable
 
     oggetto = db.Column(db.String(200))         # es. "RC Auto", "Vita + Infortuni"
     premio_proposto = db.Column(db.Float, default=0.0)
