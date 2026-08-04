@@ -169,10 +169,19 @@ def form(prev_id=None):
     veicoli = Veicolo.query.all()
     # Cliente pre-selezionato quando si crea "da scheda cliente" (?cliente_id=X)
     cliente_sel = request.args.get("cliente_id", type=int)
+    # Cross selling: altri veicoli del cliente senza copertura attiva. L'avviso
+    # si riferisce al cliente NOTO all'apertura della pagina (quello del
+    # preventivo, o quello pre-selezionato); cambiando cliente dal menu a tendina
+    # non si aggiorna, perché il dato è calcolato lato server sulle relazioni.
+    cliente_avviso = prev.cliente if prev else (
+        db.session.get(Cliente, cliente_sel) if cliente_sel else None)
+    veicoli_scoperti = (cliente_avviso.altri_veicoli_scoperti(
+        prev.veicolo_id if prev else None) if cliente_avviso else [])
     return render_template("preventivi/form.html", p=prev, clienti=clienti,
                            compagnie=compagnie, lead=lead, veicoli=veicoli,
                            stati=STATI_PREVENTIVO, cliente_sel=cliente_sel,
-                           garanzie=GARANZIE)
+                           garanzie=GARANZIE, cliente_avviso=cliente_avviso,
+                           veicoli_scoperti=veicoli_scoperti)
 
 
 @bp.route("/<int:prev_id>/converti", methods=["POST"])

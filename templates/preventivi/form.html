@@ -36,6 +36,16 @@
 {% endmacro %}
 
 {% block content %}
+{% if veicoli_scoperti %}
+{# Cross selling: gli ALTRI mezzi del cliente senza contratto attivo. Avviso non
+   bloccante, stesso stile dei campi mancanti sulla pratica (Fase B). #}
+<div class="notice notice-warn">
+  <svg class="icon icon-sm"><use href="#i-alert"/></svg>
+  <div><strong>Altri veicoli di {{ cliente_avviso.nome_completo }} senza copertura attiva:</strong>
+    {{ veicoli_scoperti|map(attribute='descrizione')|join(', ') }}.
+    Occasione per un preventivo aggiuntivo.</div>
+</div>
+{% endif %}
 <form class="form-card" method="post">
   <div class="form-row">
     <div class="form-group"><label>Cliente *</label>

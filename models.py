@@ -399,6 +399,44 @@ class Cliente(db.Model):
         """Scadenze = contratti attivi con una data di scadenza (derivate)."""
         return [c for c in self.contratti if c.data_scadenza]
 
+    @property
+    def veicoli_scoperti(self):
+        """Veicoli del cliente che NON risultano coperti da un contratto attivo.
+
+        Serve al cross selling: mentre si lavora una pratica o un preventivo su
+        un veicolo si vedono subito gli altri mezzi in famiglia da assicurare.
+
+        Come si deduce la copertura: NON esiste un legame diretto
+        Veicolo ↔ Contratto (il contratto ha ramo e premio, non la targa), quindi
+        si risale per le due strade disponibili — il preventivo che ha generato
+        il contratto (Preventivo.veicolo_id) e la pratica che lo ha emesso
+        (Pratica.veicolo_id). Un contratto attivo caricato a mano, senza
+        preventivo né pratica, non è associabile ad alcuna targa: il veicolo
+        risulterà scoperto anche se in realtà è assicurato.
+        # TODO CLIENTE: se questi falsi positivi danno fastidio serve una targa
+        # (o un veicolo_id) sul Contratto — è una modifica di schema, quindi va
+        # decisa, non inventata qui. Nel dubbio si segnala: un'occasione persa
+        # costa più di un avviso di troppo.
+        """
+        coperti = set()
+        for k in self.contratti:
+            if k.stato != "attivo":
+                continue
+            if k.preventivo and k.preventivo.veicolo_id:
+                coperti.add(k.preventivo.veicolo_id)
+            for p in k.pratiche:
+                if p.veicolo_id:
+                    coperti.add(p.veicolo_id)
+        return [v for v in self.veicoli if v.id not in coperti]
+
+    def altri_veicoli_scoperti(self, veicolo_id=None):
+        """veicoli_scoperti senza il veicolo su cui si sta già lavorando.
+
+        Sugli avvisi "cross selling" il mezzo in lavorazione non è una novità
+        per l'operatore: mostrarlo distrarrebbe dagli ALTRI.
+        """
+        return [v for v in self.veicoli_scoperti if v.id != veicolo_id]
+
     def __repr__(self):
         return f"<Cliente {self.nome_completo}>"
 

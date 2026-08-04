@@ -17,6 +17,16 @@
     <a href="{{ url_for('clienti.form', cliente_id=p.cliente_id) }}">Completa la scheda cliente</a>.</div>
 </div>
 {% endif %}
+{% if veicoli_scoperti %}
+{# Cross selling: gli ALTRI mezzi del cliente senza contratto attivo, mentre si
+   lavora questa pratica. Avviso non bloccante, come i campi mancanti. #}
+<div class="notice notice-warn">
+  <svg class="icon icon-sm"><use href="#i-alert"/></svg>
+  <div><strong>Altri veicoli del cliente senza copertura attiva:</strong>
+    {{ veicoli_scoperti|map(attribute='descrizione')|join(', ') }}.
+    <a href="{{ url_for('preventivi.form', cliente_id=p.cliente_id) }}">Prepara un preventivo</a>.</div>
+</div>
+{% endif %}
 <div class="detail-cols">
   <!-- Colonna sinistra: dati pratica + avanzamento -->
   <div>
