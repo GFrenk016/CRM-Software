@@ -5,8 +5,8 @@ from flask import Blueprint, render_template
 from sqlalchemy import func
 
 from extensions import db
-from models import (STADI_LEAD, Cliente, Contratto, Incasso, Lead, Preventivo,
-                    Sinistro)
+from models import (STADI_LEAD, Cliente, Contratto, Incasso, Lead, Pratica,
+                    Preventivo, Sinistro)
 
 bp = Blueprint("dashboard", __name__)
 
@@ -99,6 +99,18 @@ def index():
     urg_sinistri = sinistri_q.limit(LIMITE).all()
     urg_sinistri_tot = sinistri_q.count()
 
+    # 4) Da ricontattare questo mese: pratiche PERSE la cui polizza attuale
+    # (data_scadenza_riferimento, inserita a mano) scade nel mese corrente.
+    inizio_mese = oggi.replace(day=1)
+    fine_mese = (date(oggi.year + 1, 1, 1) if oggi.month == 12
+                 else date(oggi.year, oggi.month + 1, 1))
+    da_ricontattare = Pratica.query.filter(
+        Pratica.stato == "persa",
+        Pratica.data_scadenza_riferimento != None,          # noqa: E711
+        Pratica.data_scadenza_riferimento >= inizio_mese,
+        Pratica.data_scadenza_riferimento < fine_mese,
+    ).order_by(Pratica.data_scadenza_riferimento.asc()).all()
+
     return render_template(
         "dashboard.html",
         valore_pipeline=valore_pipeline, tot_lead=tot_lead,
@@ -112,5 +124,5 @@ def index():
         urg_incassi=urg_incassi, urg_incassi_tot=urg_incassi_tot,
         ritardi=ritardi,
         urg_sinistri=urg_sinistri, urg_sinistri_tot=urg_sinistri_tot,
-        limite_urgenze=LIMITE,
+        limite_urgenze=LIMITE, da_ricontattare=da_ricontattare,
     )

@@ -16,3 +16,49 @@
   </div>
 </div>
 {% endmacro %}
+
+{# Elenco appuntamenti con controlli inline (esito + elimina). Usato sia sul
+   dettaglio pratica sia sulla scheda cliente: le azioni tornano a `next_url`. #}
+{% macro appuntamenti_list(appuntamenti, next_url, esiti) %}
+<div class="related-list">
+  {% for a in appuntamenti %}
+  <div class="related-item">
+    <div><span class="mono">{{ a.data_ora|data_it }}</span>
+      {% if a.tipo %}<span class="badge badge-{{ a.tipo }}">{{ a.tipo }}</span>{% endif %}
+      {% if a.note %}<span class="muted" style="font-size:12px"> · {{ a.note }}</span>{% endif %}</div>
+    <div style="display:flex;gap:4px;align-items:center">
+      <form method="post" action="{{ url_for('appuntamenti.esito', appuntamento_id=a.id) }}" style="display:inline">
+        <input type="hidden" name="next" value="{{ next_url }}">
+        <select class="form-input" name="esito" onchange="this.form.submit()" style="width:auto;padding:3px 8px;font-size:11px">
+          {% for e in esiti %}<option value="{{ e }}" {{ 'selected' if a.esito == e }}>{{ e|replace('_',' ') }}</option>{% endfor %}
+        </select>
+      </form>
+      <form method="post" action="{{ url_for('appuntamenti.elimina', appuntamento_id=a.id) }}" style="display:inline" onsubmit="return confirm('Eliminare questo appuntamento?')">
+        <input type="hidden" name="next" value="{{ next_url }}">
+        <button class="btn-icon" title="Elimina"><svg class="icon icon-sm"><use href="#i-trash"/></svg></button>
+      </form>
+    </div>
+  </div>
+  {% else %}<div class="related-empty">Nessun appuntamento.</div>{% endfor %}
+</div>
+{% endmacro %}
+
+{# Form di creazione appuntamento. pratica_id opzionale: se passato l'appuntamento
+   nasce già agganciato alla pratica. Il tipo "otp" copre lo step di firma. #}
+{% macro appuntamento_nuovo(cliente_id, next_url, tipi, pratica_id=None) %}
+<form class="card" method="post" action="{{ url_for('appuntamenti.nuovo') }}" style="padding:12px;margin-top:8px">
+  <input type="hidden" name="cliente_id" value="{{ cliente_id }}">
+  <input type="hidden" name="next" value="{{ next_url }}">
+  {% if pratica_id %}<input type="hidden" name="pratica_id" value="{{ pratica_id }}">{% endif %}
+  <div class="form-row">
+    <div class="form-group" style="margin-bottom:8px"><label>Data e ora</label>
+      <input class="form-input" type="datetime-local" name="data_ora"></div>
+    <div class="form-group" style="margin-bottom:8px"><label>Tipo</label>
+      <select class="form-input" name="tipo">
+        {% for t in tipi %}<option value="{{ t }}">{{ t }}</option>{% endfor %}
+      </select></div>
+  </div>
+  <div class="form-group" style="margin-bottom:8px"><label>Note</label><input class="form-input" name="note"></div>
+  <button class="btn btn-primary btn-sm"><svg class="icon icon-sm"><use href="#i-calendar"/></svg> Aggiungi appuntamento</button>
+</form>
+{% endmacro %}

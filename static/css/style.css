@@ -167,6 +167,36 @@ a.stat-card:hover { transform:translateY(-2px); box-shadow:var(--shadow);
 .badge-vinto,.badge-accettato,.badge-incassato,.badge-chiuso,.badge-attiva,.badge-completata { background:var(--success-dim); color:var(--success); }
 .badge-perso,.badge-rifiutato,.badge-aperto,.badge-scaduta,.badge-imminente,.badge-scaduto,.badge-disdetto,.badge-annullata { background:var(--danger-dim); color:var(--danger); }
 
+/* AVVISI (notice) — box informativi non bloccanti (campi mancanti, finestre
+   di emissione fuori orario, ...). Riusano le famiglie di colore esistenti. */
+.notice { display:flex; gap:8px; align-items:flex-start; padding:10px 12px;
+  border-radius:8px; font-size:12.5px; margin-bottom:12px; line-height:1.45; }
+.notice .icon { flex-shrink:0; margin-top:1px; }
+.notice a { text-decoration:underline; }
+.notice-warn { background:var(--warning-dim); color:var(--warning);
+  border:1px solid rgba(247,178,79,.25); }
+.notice-danger { background:var(--danger-dim); color:var(--danger);
+  border:1px solid rgba(247,82,79,.25); }
+
+/* Card-famiglia usata come filtro attivo nella lista pratiche. */
+a.stat-card.active-filter { outline:2px solid var(--primary); outline-offset:-1px; }
+
+/* Scala di avanzamento (step pill) sul dettaglio pratica. */
+.step-ladder { display:flex; flex-wrap:wrap; gap:6px; margin:2px 0 10px; }
+.step-pill { font-size:10.5px; font-weight:600; padding:4px 9px; border-radius:20px;
+  background:var(--surface2); color:var(--text3); border:1px solid var(--border);
+  text-transform:capitalize; white-space:nowrap; }
+.step-pill.done { background:var(--primary-dim); color:var(--primary); border-color:transparent; }
+.step-pill.current { background:var(--primary); color:#fff; border-color:transparent; }
+
+/* Stati emissione pratica (Fase B). Riusa le famiglie di colore esistenti:
+   attese → warning, fasi in corso → primario, esito positivo → success,
+   perdita → danger. */
+.badge-documentazione_da_integrare,.badge-attesa_pagamento,.badge-attesa_otp { background:var(--warning-dim); color:var(--warning); }
+.badge-pagamento_verificato,.badge-in_coda_emissione { background:var(--primary-dim); color:var(--primary); }
+.badge-emessa,.badge-certificato_inviato { background:var(--success-dim); color:var(--success); }
+.badge-persa { background:var(--danger-dim); color:var(--danger); }
+
 /* Priorità pratica */
 .badge-bassa { background:rgba(139,145,168,.15); color:var(--text2); }
 .badge-media { background:var(--primary-dim); color:var(--primary); }
@@ -352,6 +382,7 @@ select.mono-cell option { background:var(--surface2); color:var(--text);
   font-size:13px; font-weight:500; animation:slideIn .2s ease; }
 .toast.success { border-left:3px solid var(--success); }
 .toast.error { border-left:3px solid var(--danger); }
+.toast.warning { border-left:3px solid var(--warning); }
 @keyframes slideIn { from { transform:translateX(20px); opacity:0; } to { transform:translateX(0); opacity:1; } }
 
 /* CHECK ICON */

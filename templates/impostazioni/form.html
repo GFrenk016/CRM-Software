@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% set section = "impostazioni" %}
+{% block title %}Impostazioni agenzia{% endblock %}
+{% block page_title %}Impostazioni agenzia{% endblock %}
+
+{% block content %}
+<form class="form-card" method="post">
+  <div class="section-title" style="margin-top:0"><span class="st-left">Dati agenzia</span></div>
+  <div class="form-group"><label>Ragione sociale</label>
+    <input class="form-input" name="ragione_sociale" value="{{ imp.ragione_sociale or '' }}" placeholder="es. Rossi Assicurazioni S.r.l."></div>
+  <div class="form-group"><label>IBAN (per lo step 'invio IBAN')</label>
+    <input class="form-input mono" name="iban" value="{{ imp.iban or '' }}" placeholder="IT60X0542811101000000123456" maxlength="34"></div>
+
+  <div class="section-title"><span class="st-left"><svg class="icon icon-sm"><use href="#i-clock"/></svg> Finestre di emissione polizze</span></div>
+  <p class="muted" style="font-size:12px;margin-bottom:12px">Orari in cui è possibile emettere in compagnia. Fuori da queste finestre il passaggio a "in coda emissione" / "emessa" mostra un avviso (non bloccante).</p>
+  <div class="form-row">
+    <div class="form-group"><label>Finestra 1 · dalle</label>
+      <input class="form-input" type="time" name="finestra1_inizio" value="{{ imp.finestra1_inizio.strftime('%H:%M') if imp.finestra1_inizio else '' }}"></div>
+    <div class="form-group"><label>Finestra 1 · alle</label>
+      <input class="form-input" type="time" name="finestra1_fine" value="{{ imp.finestra1_fine.strftime('%H:%M') if imp.finestra1_fine else '' }}"></div>
+  </div>
+  <div class="form-row">
+    <div class="form-group"><label>Finestra 2 · dalle</label>
+      <input class="form-input" type="time" name="finestra2_inizio" value="{{ imp.finestra2_inizio.strftime('%H:%M') if imp.finestra2_inizio else '' }}"></div>
+    <div class="form-group"><label>Finestra 2 · alle</label>
+      <input class="form-input" type="time" name="finestra2_fine" value="{{ imp.finestra2_fine.strftime('%H:%M') if imp.finestra2_fine else '' }}"></div>
+  </div>
+
+  <div class="form-actions">
+    <button class="btn btn-primary" type="submit">Salva impostazioni</button>
+  </div>
+</form>
+{% endblock %}
