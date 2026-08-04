@@ -295,6 +295,39 @@ async function inviaMessaggi() {
   if (inviati) toast(`${inviati} messaggio/i aperti in nuove schede`);
 }
 
+// --- PRATICA: richiesta documenti al cliente --------------------------------
+// Compone il link wa.me/mailto dai documenti mancanti (testo già pronto lato
+// server) e lo apre, poi REGISTRA la comunicazione a sistema. Nessun invio
+// automatico: il CRM prepara, l'operatore invia (stessa filosofia di messaggi).
+async function richiediDocumenti(e) {
+  e.preventDefault();
+  const form = e.target;
+  const testo = form.querySelector('.rich-doc-testo').value.trim();
+  if (!testo) { toast('Nessun documento da richiedere', 'error'); return false; }
+  const canale = form.querySelector('input[name="rich-doc-canale"]:checked').value;
+  const wa = form.dataset.wa, email = form.dataset.email;
+  let url, destinatario;
+  if (canale === 'whatsapp') {
+    if (!wa) { toast('Numero WhatsApp mancante per questo cliente', 'error'); return false; }
+    destinatario = wa;
+    url = `https://wa.me/${wa}?text=${encodeURIComponent(testo)}`;
+  } else {
+    if (!email) { toast('Email mancante per questo cliente', 'error'); return false; }
+    destinatario = email;
+    url = `mailto:${email}?subject=${encodeURIComponent('Documenti richiesti')}&body=${encodeURIComponent(testo)}`;
+  }
+  window.open(url, '_blank');
+  try {
+    await fetch(`/pratiche/${form.dataset.praticaId}/richiesta-documenti`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ canale, destinatario, testo })
+    });
+    toast('Richiesta preparata e registrata');
+    setTimeout(() => location.reload(), 700);
+  } catch (_) { toast('Link aperto, ma registrazione non riuscita', 'error'); }
+  return false;
+}
+
 // --- INIT -------------------------------------------------------------------
 document.addEventListener('DOMContentLoaded', () => {
   if (document.querySelector('.pipeline-board')) initPipeline();

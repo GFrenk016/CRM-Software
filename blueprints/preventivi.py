@@ -17,20 +17,47 @@ def _prossimo_numero():
     return f"PRV-{n:04d}"
 
 
+def _scadenza_riferimento(prev):
+    """Scadenza a cui ordinare un preventivo: la più vicina tra i contratti
+    ATTIVI del suo cliente.
+
+    Il Preventivo NON ha una data di scadenza propria (un preventivo non "scade"
+    come una polizza): la si risale dal cliente → contratti attivi →
+    data_scadenza. Ritorna None se il cliente non ha contratti attivi datati.
+    """
+    scadenze = [k.data_scadenza for k in prev.cliente.contratti
+                if k.stato == "attivo" and k.data_scadenza]
+    return min(scadenze) if scadenze else None
+
+
 @bp.route("/")
 def index():
     stato = (request.args.get("stato") or "").strip()
+    ordina = (request.args.get("ordina") or "").strip()
     q = Preventivo.query
     if stato:
         q = q.filter_by(stato=stato)
-    preventivi = q.order_by(Preventivo.created_at.desc()).all()
+    if ordina == "scadenza":
+        # Ordinamento per scadenza della polizza attuale del cliente, crescente,
+        # con i preventivi senza scadenza in fondo. Si risale via relazione
+        # (vedi _scadenza_riferimento), quindi si ordina in Python: None-last si
+        # ottiene con una chiave-tupla (prima il flag "senza scadenza").
+        preventivi = q.all()
+        preventivi.sort(key=lambda p: (_scadenza_riferimento(p) is None,
+                                       _scadenza_riferimento(p) or date.max))
+    else:
+        preventivi = q.order_by(Preventivo.created_at.desc()).all()
     # Dati per i <select> del modale "Nuovo preventivo"
     clienti = Cliente.query.order_by(Cliente.cognome).all()
     compagnie = Compagnia.query.order_by(Compagnia.nome).all()
     lead = Lead.query.all()
     veicoli = Veicolo.query.all()
+    # Scadenza di riferimento per riga (derivata dai contratti attivi del
+    # cliente): mostrata in colonna così l'ordinamento è leggibile.
+    scadenze_rif = {p.id: _scadenza_riferimento(p) for p in preventivi}
     return render_template("preventivi/list.html", preventivi=preventivi,
                            stati=STATI_PREVENTIVO, stato_sel=stato,
+                           ordina_sel=ordina, scadenze_rif=scadenze_rif,
                            clienti=clienti, compagnie=compagnie, lead=lead,
                            veicoli=veicoli)
 

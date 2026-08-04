@@ -180,6 +180,42 @@ STATI_PER_TIPOLOGIA = {t: _stati_ammessi_tipologia(t)
                        for t in TipologiaPratica.valori()}
 
 
+# Tipologie che nascono URGENTI (priorità automatica alla creazione).
+TIPOLOGIE_PRIORITA_URGENTE = {
+    TipologiaPratica.BERSANI.value,
+    TipologiaPratica.NUOVO_ACQUISTO.value,
+    TipologiaPratica.SOSTITUZIONE_VEICOLO.value,
+}
+
+
+# Campi anagrafici del cliente richiesti per lavorare la pratica, per tipologia.
+# Il requisito "veicolo" è speciale: non è un campo del cliente ma la presenza
+# di almeno un veicolo con targa. Default ragionevole, da confermare col cliente.
+# TODO CLIENTE: validare i requisiti anagrafici per ciascuna tipologia.
+CAMPI_RICHIESTI_PER_TIPOLOGIA = {
+    TipologiaPratica.BERSANI.value:
+        ["codice_fiscale", "data_nascita", "indirizzo", "cellulare", "veicolo"],
+    TipologiaPratica.RINNOVO.value:
+        ["codice_fiscale", "data_nascita", "indirizzo", "cellulare", "veicolo"],
+    TipologiaPratica.SOSTITUZIONE_VEICOLO.value:
+        ["codice_fiscale", "data_nascita", "indirizzo", "cellulare", "veicolo"],
+    TipologiaPratica.NUOVO_ACQUISTO.value:
+        ["codice_fiscale", "data_nascita", "indirizzo", "cellulare", "veicolo"],
+    TipologiaPratica.PAGAMENTO_POLIZZA_RATA.value:
+        ["codice_fiscale", "cellulare"],
+}
+
+# Label leggibili dei campi richiesti (per l'avviso sul dettaglio pratica).
+_LABEL_CAMPO_RICHIESTO = {
+    "codice_fiscale": "Codice fiscale",
+    "data_nascita": "Data di nascita",
+    "indirizzo": "Indirizzo",
+    "cellulare": "Cellulare",
+    "email": "Email",
+    "veicolo": "Veicolo con targa",
+}
+
+
 # --------------------------------------------------------------------------- #
 #  Compagnie (i mandati del plurimandatario)                                   #
 # --------------------------------------------------------------------------- #
@@ -694,6 +730,27 @@ class Pratica(db.Model):
     def priorita_label(self):
         return PrioritaPratica(self.priorita).label if self.priorita else ""
 
+    @property
+    def campi_mancanti(self):
+        """Campi anagrafici richiesti dalla tipologia ma NON compilati sul cliente.
+
+        Ritorna le label leggibili dei campi mancanti, così il dettaglio pratica
+        può avvisare cosa manca prima di procedere. Il requisito "veicolo" è
+        speciale: chiede che il cliente abbia almeno un veicolo con targa.
+        """
+        richiesti = CAMPI_RICHIESTI_PER_TIPOLOGIA.get(self.tipologia, [])
+        if not richiesti or not self.cliente:
+            return []
+        c = self.cliente
+        mancanti = []
+        for campo in richiesti:
+            if campo == "veicolo":
+                if not any(v.targa for v in c.veicoli):
+                    mancanti.append(_LABEL_CAMPO_RICHIESTO["veicolo"])
+            elif not getattr(c, campo, None):
+                mancanti.append(_LABEL_CAMPO_RICHIESTO.get(campo, campo))
+        return mancanti
+
     def __repr__(self):
         return f"<Pratica {self.numero_identificativo} {self.stato}>"
 
@@ -735,6 +792,25 @@ def _assegna_numeri_pratiche(session, flush_context, instances):
             prossimo[anno] = _ultimo_progressivo_anno(connection, anno) + 1
         pratica.numero_identificativo = f"PR-{anno}-{prossimo[anno]:04d}"
         prossimo[anno] += 1
+
+
+@event.listens_for(db.session.__class__, "before_flush")
+def _priorita_automatica_pratiche(session, flush_context, instances):
+    """Priorità URGENTE automatica alla CREAZIONE per le tipologie critiche.
+
+    Vale solo sulle pratiche nuove e solo se la priorità non è stata scelta a
+    mano: in before_flush il default lato colonna non è ancora applicato, quindi
+    una priorità "non scelta" è None (oppure il valore neutro MEDIA inviato dal
+    form). Qualsiasi altro valore è una scelta esplicita dell'operatore e va
+    rispettata (nessuna sovrascrittura).
+    """
+    _neutre = (None, PrioritaPratica.MEDIA.value)
+    for pratica in session.new:
+        if not isinstance(pratica, Pratica):
+            continue
+        if pratica.tipologia in TIPOLOGIE_PRIORITA_URGENTE \
+                and pratica.priorita in _neutre:
+            pratica.priorita = PrioritaPratica.URGENTE.value
 
 
 # --------------------------------------------------------------------------- #

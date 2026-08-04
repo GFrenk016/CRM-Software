@@ -9,11 +9,16 @@
 {% block content %}
 <div class="table-wrapper">
   <div class="table-toolbar">
-    <form method="get" style="display:flex;gap:8px;align-items:center">
+    <form method="get" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
       <label class="muted" style="font-size:12px">Stato:</label>
       <select class="form-input" name="stato" onchange="this.form.submit()" style="width:auto">
         <option value="">Tutti</option>
         {% for s in stati %}<option value="{{ s }}" {{ 'selected' if stato_sel == s }}>{{ s }}</option>{% endfor %}
+      </select>
+      <label class="muted" style="font-size:12px">Ordina:</label>
+      <select class="form-input" name="ordina" onchange="this.form.submit()" style="width:auto">
+        <option value="">Più recenti</option>
+        <option value="scadenza" {{ 'selected' if ordina_sel == 'scadenza' }}>Scadenza polizza attuale</option>
       </select>
     </form>
     <span class="muted" style="margin-left:auto">{{ preventivi|length }} preventivi</span>
@@ -22,7 +27,7 @@
     <table>
       <thead><tr>
         <th>Numero</th><th>Cliente</th><th>Oggetto</th><th>Compagnia</th>
-        <th class="text-right">Premio</th><th class="text-center">Stato</th><th></th>
+        <th class="text-right">Premio</th><th>Scad. polizza</th><th class="text-center">Stato</th><th></th>
       </tr></thead>
       <tbody>
         {% for p in preventivi %}
@@ -32,6 +37,7 @@
           <td>{{ p.oggetto or '—' }}</td>
           <td>{{ p.compagnia.nome if p.compagnia else '—' }}</td>
           <td class="text-right mono">{{ p.premio_proposto|eur }}</td>
+          <td class="mono">{{ scadenze_rif[p.id]|data_it }}</td>
           <td class="text-center"><span class="badge badge-{{ p.stato }}">{{ p.stato }}</span></td>
           <td>
             <div class="table-actions">
@@ -48,7 +54,7 @@
             </div>
           </td>
         </tr>
-        {% else %}<tr><td colspan="7"><div class="empty-state"><svg class="icon"><use href="#i-file-text"/></svg><h3>Nessun preventivo</h3></div></td></tr>{% endfor %}
+        {% else %}<tr><td colspan="8"><div class="empty-state"><svg class="icon"><use href="#i-file-text"/></svg><h3>Nessun preventivo</h3></div></td></tr>{% endfor %}
       </tbody>
     </table>
   </div>

@@ -8,6 +8,14 @@
 {% endblock %}
 
 {% block content %}
+{% if p.campi_mancanti %}
+<div class="notice notice-warn">
+  <svg class="icon icon-sm"><use href="#i-alert"/></svg>
+  <div><strong>Dati anagrafici mancanti</strong> per una pratica di tipo
+    {{ p.tipologia_label }}: {{ p.campi_mancanti|join(', ') }}.
+    <a href="{{ url_for('clienti.form', cliente_id=p.cliente_id) }}">Completa la scheda cliente</a>.</div>
+</div>
+{% endif %}
 <div class="detail-cols">
   <!-- Colonna sinistra: dati pratica + avanzamento -->
   <div>
@@ -47,6 +55,55 @@
 
   <!-- Colonna destra: lavorazione (documenti, appuntamenti, comunicazioni, preventivi) -->
   <div>
+    <!-- CHECKLIST DOCUMENTI: cosa DEVE ancora arrivare (distinta dai file
+         caricati sotto). Da qui si compone la richiesta al cliente. -->
+    <div class="section-title" style="margin-top:0"><span class="st-left"><svg class="icon icon-sm"><use href="#i-check"/></svg> Checklist documenti</span></div>
+    <div class="related-list">
+      {% for cd in p.checklist_documenti %}
+      <div class="related-item">
+        <div>
+          <form method="post" action="{{ url_for('pratiche.checklist_toggle', pratica_id=p.id, item_id=cd.id) }}" style="display:inline">
+            <button class="btn-icon" title="{{ 'Segna come atteso' if cd.ricevuto else 'Segna come ricevuto' }}"><svg class="icon icon-sm"><use href="#i-check"/></svg></button>
+          </form>
+          <span style="{{ 'text-decoration:line-through;opacity:.6' if cd.ricevuto }}">{{ cd.tipo }}</span>
+          {% if cd.note %}<span class="muted" style="font-size:11px"> · {{ cd.note }}</span>{% endif %}
+        </div>
+        <div>
+          <span class="badge badge-{{ 'svolto' if cd.ricevuto else 'da_svolgere' }}">{{ 'ricevuto' if cd.ricevuto else 'atteso' }}</span>
+          <form method="post" action="{{ url_for('pratiche.checklist_elimina', pratica_id=p.id, item_id=cd.id) }}" style="display:inline" onsubmit="return confirm('Eliminare la voce?')">
+            <button class="btn-icon" title="Elimina"><svg class="icon icon-sm"><use href="#i-trash"/></svg></button>
+          </form>
+        </div>
+      </div>
+      {% else %}<div class="related-empty">Checklist vuota.</div>{% endfor %}
+    </div>
+    <form class="card" method="post" action="{{ url_for('pratiche.checklist_aggiungi', pratica_id=p.id) }}" style="padding:12px;margin-top:8px">
+      <div class="form-row">
+        <div class="form-group" style="margin-bottom:8px"><label>Documento atteso</label><input class="form-input" name="tipo" placeholder="es. Carta identità" required></div>
+        <div class="form-group" style="margin-bottom:8px"><label>Note</label><input class="form-input" name="note"></div>
+      </div>
+      <button class="btn btn-primary btn-sm"><svg class="icon icon-sm"><use href="#i-plus"/></svg> Aggiungi alla checklist</button>
+    </form>
+
+    {% if documenti_mancanti %}
+    <!-- RICHIESTA DOCUMENTI: compone il link wa.me/mailto dai documenti ancora
+         attesi. Il CRM prepara e registra; l'operatore invia (niente automatismi). -->
+    <form class="card" style="padding:12px;margin-top:8px" onsubmit="return richiediDocumenti(event)"
+          data-pratica-id="{{ p.id }}" data-wa="{{ wa_number or '' }}" data-email="{{ p.cliente.email or '' }}">
+      <div class="form-group" style="margin-bottom:8px">
+        <label>Richiedi documenti mancanti via</label>
+        <div class="radio-group">
+          <label class="radio-row"><input type="radio" name="rich-doc-canale" value="whatsapp" checked> WhatsApp</label>
+          <label class="radio-row"><input type="radio" name="rich-doc-canale" value="email"> Email</label>
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:8px"><label>Testo (modificabile)</label>
+        <textarea class="form-input rich-doc-testo" rows="5">{{ testo_richiesta }}</textarea></div>
+      <button class="btn btn-primary btn-sm"><svg class="icon icon-sm"><use href="#i-message"/></svg> Prepara richiesta</button>
+      <p class="muted" style="font-size:11px;margin-top:6px">Apre WhatsApp/Email con il testo pronto e registra la comunicazione. Nessun invio automatico.</p>
+    </form>
+    {% endif %}
+
     <!-- DOCUMENTI collegati alla pratica.
          NB: i file si caricano dalla scheda cliente (Documento sta sul cliente);
          qui si mostrano solo quelli agganciati a questa pratica (pratica_id). -->
