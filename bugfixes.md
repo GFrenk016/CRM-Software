@@ -52,42 +52,42 @@
 
 ---
 
-## 🅱️ Fase B — Logica di business sulla Pratica 
+## 🅱️ Fase B — Logica di business sulla Pratica ✅ COMPLETATA
 
-- [ ] Stato **"documentazione_da_integrare"** su Pratica (+ badge CSS)
+- [X] Stato **"documentazione_da_integrare"** su Pratica (+ badge CSS)
 
-- [ ] **Elenco documenti mancanti** collegato alla pratica
+- [X] **Elenco documenti mancanti** collegato alla pratica
       Nuovo modello checklist (pratica, tipo documento, ricevuto sì/no),
       distinto da `Documento` che rappresenta il file caricato.
       ↳ dipende da: `pratica_id` su Documento (A2)
 
-- [ ] **Verifica dei dati anagrafici ricevuti**
+- [X] **Verifica dei dati anagrafici ricevuti**
       Il documento dice "verifica dei dati ricevuti", non solo dei documenti.
       Segnalare campi obbligatori mancanti/incompleti sulla pratica.
 
-- [ ] **Invio richiesta documentazione al cliente**
+- [X] **Invio richiesta documentazione al cliente**
       Il documento dice "invio della richiesta al cliente" — non "automatico".
       Il CRM prepara il messaggio, l'operatore lo invia.
       ↳ dipende da: modello Comunicazione (A2)
 
-- [ ] **Priorità automatica**: massima per Bersani, nuovi acquisti, sostituzioni veicolo
+- [X] **Priorità automatica**: massima per Bersani, nuovi acquisti, sostituzioni veicolo
 
-- [ ] **Ordinamento preventivi ordinari per scadenza polizza**
+- [X] **Ordinamento preventivi ordinari per scadenza polizza**
 
-- [ ] **Flusso esito positivo** (8 step)
+- [X] **Flusso esito positivo** (8 step)
       richiesta doc mancante → invio IBAN → verifica pagamento → appuntamento OTP
       → coda emissioni → emissione polizza → invio certificato → chiusura pratica
       ↳ dipende da: Appuntamento (A2), Impostazioni/IBAN (A2), decisione tecnica #1
 
-- [ ] **Vincolo due finestre giornaliere di emissione**
+- [X] **Vincolo due finestre giornaliere di emissione**
       ↳ dipende da: domanda cliente #1 (orari)
 
-- [ ] **Flusso esito negativo → "Clienti da ricontattare"**
+- [X] **Flusso esito negativo → "Clienti da ricontattare"**
       Campi richiesti dal cliente: Nome, Cognome, CF, Targa, data scadenza,
       motivo perdita, note.
       ↳ dipende da: decisione tecnica #2
 
-- [ ] **Ricontatto alla scadenza successiva**
+- [X] **Ricontatto alla scadenza successiva**
       Come lista "da ricontattare questo mese" che compare all'apertura del CRM.
       Un invio che parte a CRM chiuso richiede il gestionale online → fuori scope Fase 1.
 
@@ -95,23 +95,26 @@
 
 ## 🅲 Fase C — Arricchimento vista
 
-- [ ] **Preventivo: compagnie consultate (più di una), garanzie, note**
-      ⚠️ `premio_proposto` e `stato` (bozza/inviato/accettato/rifiutato) **esistono già** —
-      non rifarli. Manca: tabella figlia con una riga per compagnia consultata
-      (premio e garanzie proprie), più il campo note.
+- [ ] **Tabella figlia PreventivoCompagnia** (preventivo, compagnia, premio,
+      garanzie, note) + campo note sul Preventivo
+      `compagnia_id` sul Preventivo resta come "compagnia scelta".
+      ⚠️ UNICA migrazione della fase
       ↳ dipende da: domanda cliente #3 (quali garanzie)
 
-- [ ] **Storico preventivi visibile su Pratica e su Scheda Cliente**
-      ↳ dipende da: Pratica ↔ Preventivo (A2)
+- [ ] **UI confronto compagnie** nel form preventivo + colonna "consultate"
+      in lista, con evidenza della più economica
 
-- [ ] **Scheda cliente completa**: anagrafica, veicoli, preventivi, polizze,
-      documenti, comunicazioni, appuntamenti, stato pratiche
-      ↳ dipende da: Appuntamento + Comunicazione (A2)
+- [ ] **Storico preventivi su Pratica** (la scheda cliente ce l'ha già)
 
-- [ ] **Ricerca avanzata per Codice Fiscale**
+- [ ] **Sezione Comunicazioni sulla scheda cliente**
+      Unica sezione mancante: tutto il resto della "scheda 360°" c'è già
+
+- [ ] **Pagina ricerca aggregata da Codice Fiscale**
       Un CF → pratiche, polizze, preventivi, targhe, documenti, comunicazioni
+      in una vista sola. La ricerca per CF nella lista clienti esiste già.
 
-- [ ] **Evidenziazione altri veicoli collegati al cliente** (cross selling / fidelizzazione)
+- [ ] **Altri veicoli del cliente in evidenza** su pratica e preventivo
+      (cross selling). I veicoli ci sono già sulla scheda cliente.
 
 ---
 
