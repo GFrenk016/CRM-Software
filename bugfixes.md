@@ -20,7 +20,7 @@
 
 ---
 
-## 🅰️➕ Fase A2 — Fondamenta mancanti
+## 🅰️➕ Fase A2 — Fondamenta mancanti ✅ COMPLETATA
 
 > Modelli e collegamenti che le Fasi B e C danno per esistenti ma che nessuna task creava.
 > Da fare **prima** di B e C, altrimenti quelle fasi si bloccano a metà.
@@ -52,7 +52,7 @@
 
 ---
 
-## 🅱️ Fase B — Logica di business sulla Pratica
+## 🅱️ Fase B — Logica di business sulla Pratica 
 
 - [ ] Stato **"documentazione_da_integrare"** su Pratica (+ badge CSS)
 
