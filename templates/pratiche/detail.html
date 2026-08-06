@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import appuntamenti_list, appuntamento_nuovo %}
+{% from "_macros.html" import appuntamenti_list, appuntamento_nuovo, comunicazioni_list %}
 {% set section = "pratiche" %}
 {% block title %}Pratica {{ p.numero_identificativo }}{% endblock %}
 {% block page_title %}Dettaglio pratica{% endblock %}
@@ -15,6 +15,16 @@
   <div><strong>Dati anagrafici mancanti</strong> per una pratica di tipo
     {{ p.tipologia_label }}: {{ p.campi_mancanti|join(', ') }}.
     <a href="{{ url_for('clienti.form', cliente_id=p.cliente_id) }}">Completa la scheda cliente</a>.</div>
+</div>
+{% endif %}
+{% if veicoli_scoperti %}
+{# Cross selling: gli ALTRI mezzi del cliente senza contratto attivo, mentre si
+   lavora questa pratica. Avviso non bloccante, come i campi mancanti. #}
+<div class="notice notice-warn">
+  <svg class="icon icon-sm"><use href="#i-alert"/></svg>
+  <div><strong>Altri veicoli del cliente senza copertura attiva:</strong>
+    {{ veicoli_scoperti|map(attribute='descrizione')|join(', ') }}.
+    <a href="{{ url_for('preventivi.form', cliente_id=p.cliente_id) }}">Prepara un preventivo</a>.</div>
 </div>
 {% endif %}
 <div class="detail-cols">
@@ -159,25 +169,30 @@
     {{ appuntamenti_list(p.appuntamenti, next_url, esiti_appuntamento) }}
     {{ appuntamento_nuovo(p.cliente_id, next_url, tipi_appuntamento, pratica_id=p.id) }}
 
-    <!-- COMUNICAZIONI (storico/audit) -->
+    <!-- COMUNICAZIONI (storico/audit). Stesso macro della scheda cliente: le
+         comunicazioni di una pratica possono essere orfane del cliente
+         (cliente_id nullable), quindi il nome si legge da cliente_label. -->
     <div class="section-title"><span class="st-left"><svg class="icon icon-sm"><use href="#i-message"/></svg> Comunicazioni</span></div>
-    <div class="related-list">
-      {% for com in p.comunicazioni %}
-      <div class="related-item">
-        <div><span class="badge badge-{{ com.canale }}">{{ com.canale }}</span>
-          <span class="muted" style="font-size:12px"> · {{ com.destinatario or '—' }}</span></div>
-        <div><span class="mono">{{ com.data_invio|data_it }}</span> {% if com.esito %}<span class="badge badge-{{ com.esito }}">{{ com.esito }}</span>{% endif %}</div>
-      </div>
-      {% else %}<div class="related-empty">Nessuna comunicazione registrata.</div>{% endfor %}
-    </div>
+    {{ comunicazioni_list(p.comunicazioni|sort(attribute='data_invio', reverse=true), mostra_cliente=true) }}
 
-    <!-- PREVENTIVI collegati (una pratica → molti preventivi) -->
+    <!-- PREVENTIVI collegati (una pratica → molti preventivi): storico delle
+         quotazioni con compagnia scelta, premio e confronto fra le consultate. -->
     <div class="section-title"><span class="st-left"><svg class="icon icon-sm"><use href="#i-file-text"/></svg> Preventivi collegati</span></div>
     <div class="related-list">
       {% for prev in p.preventivi %}
       <div class="related-item">
-        <div><span class="mono">{{ prev.numero }}</span> · {{ prev.oggetto or '—' }}
-          <span class="muted">{{ prev.compagnia.nome if prev.compagnia else '' }}</span></div>
+        <div>
+          <div><a href="{{ url_for('preventivi.form', prev_id=prev.id) }}"><span class="mono">{{ prev.numero }}</span></a> · {{ prev.oggetto or '—' }}</div>
+          <div class="muted" style="font-size:11px">
+            Scelta: {{ prev.compagnia.nome if prev.compagnia else 'nessuna' }}
+            {% if prev.compagnie_consultate %}
+              · {{ prev.compagnie_consultate|length }} consultate, migliore
+              {{ prev.compagnia_piu_economica.nome if prev.compagnia_piu_economica else 'n/d' }}
+              {{ prev.premio_piu_basso|eur if prev.premio_piu_basso is not none else '' }}
+              {% if prev.risparmio_sulla_scelta %}(+{{ prev.risparmio_sulla_scelta|eur }} sulla scelta){% endif %}
+            {% endif %}
+          </div>
+        </div>
         <div><span class="badge badge-{{ prev.stato }}">{{ prev.stato }}</span> <span class="mono">{{ prev.premio_proposto|eur }}</span></div>
       </div>
       {% else %}<div class="related-empty">Nessun preventivo collegato.</div>{% endfor %}

@@ -84,6 +84,16 @@ ESITI_APPUNTAMENTO = ["da_svolgere", "svolto", "annullato", "non_presentato"]
 CANALI_COMUNICAZIONE = ["whatsapp", "email", "altro"]
 ESITI_COMUNICAZIONE = ["registrato", "inviato", "consegnato", "fallito"]
 
+# Garanzie richiedibili su una compagnia consultata. Elenco PROVVISORIO.
+# TODO CLIENTE: validare quali garanzie tracciare davvero (domanda aperta #3).
+# Sono memorizzate come stringa di valori separati da virgola su una sola
+# colonna (non una tabella a parte): così ampliare l'elenco è una modifica a
+# questa costante e NON richiede una migrazione. Valori senza spazi perché
+# finiscono come attributi/classi nella UI.
+GARANZIE = ["rc_auto", "furto_incendio", "kasko", "cristalli",
+            "assistenza_stradale", "tutela_legale", "infortuni_conducente",
+            "eventi_naturali", "atti_vandalici"]
+
 # Regex di dominio -----------------------------------------------------------
 # Codice fiscale persona fisica (16 caratteri, formato standard italiano).
 RE_CODICE_FISCALE = re.compile(r"^[A-Z]{6}\d{2}[A-Z]\d{2}[A-Z]\d{3}[A-Z]$")
@@ -256,9 +266,13 @@ class Compagnia(db.Model):
     nome = db.Column(db.String(120), nullable=False, unique=True)
     note = db.Column(db.Text)
 
-    # Relazioni inverse
+    # Relazioni inverse. `preventivi` sono quelli in cui questa compagnia è
+    # stata SCELTA; `consultazioni` quelli in cui è stata solo interpellata per
+    # un confronto premi (le due cose non coincidono).
     preventivi = db.relationship("Preventivo", back_populates="compagnia")
     contratti = db.relationship("Contratto", back_populates="compagnia")
+    consultazioni = db.relationship("PreventivoCompagnia",
+                                    back_populates="compagnia")
 
     def __repr__(self):
         return f"<Compagnia {self.nome}>"
@@ -330,7 +344,14 @@ class Cliente(db.Model):
     # applicate (nessun PRAGMA foreign_keys=ON), quindi l'azzeramento in memoria
     # dell'ORM è ciò che garantisce cliente_id = NULL su questo DB; l'ondelete
     # "SET NULL" sulla FK copre invece i DB che applicano i vincoli (Postgres).
-    comunicazioni = db.relationship("Comunicazione", back_populates="cliente")
+    # Conseguenza: le comunicazioni ORFANE (cliente_id NULL) non compaiono in
+    # nessuna scheda cliente — restano visibili sulla pratica, dove il
+    # destinatario si legge da Comunicazione.cliente_label.
+    # Ordinate dalla più recente: sulla scheda cliente interessa l'ultimo
+    # contatto, non il primo (ordinamento nella relazione, non nel template,
+    # così vale ovunque la si usi).
+    comunicazioni = db.relationship("Comunicazione", back_populates="cliente",
+                                    order_by="Comunicazione.data_invio.desc()")
 
     @validates("codice_fiscale")
     def _valida_codice_fiscale(self, key, value):
@@ -377,6 +398,44 @@ class Cliente(db.Model):
     def scadenze(self):
         """Scadenze = contratti attivi con una data di scadenza (derivate)."""
         return [c for c in self.contratti if c.data_scadenza]
+
+    @property
+    def veicoli_scoperti(self):
+        """Veicoli del cliente che NON risultano coperti da un contratto attivo.
+
+        Serve al cross selling: mentre si lavora una pratica o un preventivo su
+        un veicolo si vedono subito gli altri mezzi in famiglia da assicurare.
+
+        Come si deduce la copertura: NON esiste un legame diretto
+        Veicolo ↔ Contratto (il contratto ha ramo e premio, non la targa), quindi
+        si risale per le due strade disponibili — il preventivo che ha generato
+        il contratto (Preventivo.veicolo_id) e la pratica che lo ha emesso
+        (Pratica.veicolo_id). Un contratto attivo caricato a mano, senza
+        preventivo né pratica, non è associabile ad alcuna targa: il veicolo
+        risulterà scoperto anche se in realtà è assicurato.
+        # TODO CLIENTE: se questi falsi positivi danno fastidio serve una targa
+        # (o un veicolo_id) sul Contratto — è una modifica di schema, quindi va
+        # decisa, non inventata qui. Nel dubbio si segnala: un'occasione persa
+        # costa più di un avviso di troppo.
+        """
+        coperti = set()
+        for k in self.contratti:
+            if k.stato != "attivo":
+                continue
+            if k.preventivo and k.preventivo.veicolo_id:
+                coperti.add(k.preventivo.veicolo_id)
+            for p in k.pratiche:
+                if p.veicolo_id:
+                    coperti.add(p.veicolo_id)
+        return [v for v in self.veicoli if v.id not in coperti]
+
+    def altri_veicoli_scoperti(self, veicolo_id=None):
+        """veicoli_scoperti senza il veicolo su cui si sta già lavorando.
+
+        Sugli avvisi "cross selling" il mezzo in lavorazione non è una novità
+        per l'operatore: mostrarlo distrarrebbe dagli ALTRI.
+        """
+        return [v for v in self.veicoli_scoperti if v.id != veicolo_id]
 
     def __repr__(self):
         return f"<Cliente {self.nome_completo}>"
@@ -446,12 +505,11 @@ class Preventivo(db.Model):
     numero = db.Column(db.String(30), unique=True)
     cliente_id = db.Column(db.Integer, db.ForeignKey("clienti.id"), nullable=False)
     lead_id = db.Column(db.Integer, db.ForeignKey("lead.id"))            # opzionale
+    # Compagnia SCELTA fra quelle consultate (vedi compagnie_consultate): il
+    # subagente è plurimandatario e interpella più compagnie per confrontare i
+    # premi, ma il preventivo che va al cliente ne propone UNA sola. Nullable:
+    # finché il confronto è in corso la scelta può non essere ancora fatta.
     compagnia_id = db.Column(db.Integer, db.ForeignKey("compagnie.id"))
-    # Pratica di origine (FK nullable, nessun cascade): una pratica di tipo
-    # "nuovo preventivo" può generare PIÙ preventivi (revisioni/riquotazioni),
-    # quindi il collegamento sta qui, lato Preventivo. Se la pratica viene
-    # eliminata il preventivo NON sparisce, il riferimento resta solo azzerato.
-    pratica_id = db.Column(db.Integer, db.ForeignKey("pratiche.id"))     # nullable
     # Veicolo di riferimento per preventivi RC Auto (opzionale: non tutti i
     # preventivi riguardano un veicolo, es. Vita/Infortuni/Casa).
     veicolo_id = db.Column(db.Integer, db.ForeignKey("veicoli.id"))
@@ -461,15 +519,25 @@ class Preventivo(db.Model):
     pratica_id = db.Column(db.Integer, db.ForeignKey("pratiche.id"))      # nullable
 
     oggetto = db.Column(db.String(200))         # es. "RC Auto", "Vita + Infortuni"
+    # Premio della compagnia SCELTA (quello che il cliente vede sul preventivo).
+    # I premi delle altre compagnie interpellate stanno su PreventivoCompagnia.
     premio_proposto = db.Column(db.Float, default=0.0)
     stato = db.Column(db.String(20), default="bozza")
     data_invio = db.Column(db.Date)
+    note = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     cliente = db.relationship("Cliente", back_populates="preventivi")
     lead = db.relationship("Lead", back_populates="preventivi")
     compagnia = db.relationship("Compagnia", back_populates="preventivi")
     veicolo = db.relationship("Veicolo")
+    # Compagnie interpellate per questo preventivo, dalla più economica in poi.
+    # Righe figlie a tutti gli effetti: senza il preventivo non hanno senso,
+    # quindi cascade completo (delete-orphan) — togliere una riga dalla lista la
+    # elimina anche dal DB, che è ciò che serve al form a righe ripetibili.
+    compagnie_consultate = db.relationship(
+        "PreventivoCompagnia", back_populates="preventivo",
+        cascade="all, delete-orphan", order_by="PreventivoCompagnia.premio")
     # Contratto generato da questo preventivo accettato (se esiste)
     contratto = db.relationship("Contratto", back_populates="preventivo",
                                 uselist=False)
@@ -477,8 +545,117 @@ class Preventivo(db.Model):
     # di Pratica.preventivi (lista).
     pratica = db.relationship("Pratica", back_populates="preventivi")
 
+    @property
+    def _riga_piu_economica(self):
+        """Riga consultata col premio più basso, o None.
+
+        Un premio nullo o zero significa "compagnia interpellata ma non ancora
+        quotata": va ESCLUSO dal confronto, altrimenti risulterebbe sempre lui
+        il più conveniente e l'evidenza del premio migliore diventerebbe falsa.
+        """
+        quotate = [r for r in self.compagnie_consultate if (r.premio or 0) > 0]
+        return min(quotate, key=lambda r: r.premio) if quotate else None
+
+    @property
+    def premio_piu_basso(self):
+        """Premio più basso fra le compagnie consultate (property derivata).
+
+        Derivato, non una colonna: duplicare qui il minimo significherebbe
+        doverlo ricalcolare a ogni modifica delle righe, con il rischio di
+        disallineamento. Vedi indirizzo_completo per la stessa scelta.
+        """
+        riga = self._riga_piu_economica
+        return riga.premio if riga else None
+
+    @property
+    def compagnia_piu_economica(self):
+        """Compagnia che ha quotato il premio più basso (può differire da quella
+        scelta: la scelta tiene conto anche di garanzie e servizio)."""
+        riga = self._riga_piu_economica
+        return riga.compagnia if riga else None
+
+    @property
+    def risparmio_sulla_scelta(self):
+        """Quanto costa in più la compagnia scelta rispetto alla più economica.
+
+        None se manca uno dei due termini; 0 se la scelta è già la più economica.
+        Serve a rendere esplicito il costo di una scelta non basata sul prezzo.
+        """
+        minimo = self.premio_piu_basso
+        if minimo is None or not self.premio_proposto:
+            return None
+        return round(self.premio_proposto - minimo, 2)
+
     def __repr__(self):
         return f"<Preventivo {self.numero} {self.stato}>"
+
+
+# --------------------------------------------------------------------------- #
+#  PreventivoCompagnia (una riga per compagnia consultata sul preventivo)      #
+# --------------------------------------------------------------------------- #
+class PreventivoCompagnia(db.Model):
+    """Premio e garanzie quotati da UNA compagnia su UN preventivo.
+
+    Il subagente è plurimandatario: per lo stesso rischio interpella più
+    compagnie e ne confronta i premi. Un preventivo resta quindi uno solo (con
+    la compagnia scelta su Preventivo.compagnia_id), ma porta con sé lo storico
+    di tutte le quotazioni raccolte, che è ciò che serve a giustificare la
+    scelta al cliente e a ricontattarlo alla scadenza successiva.
+    """
+    __tablename__ = "preventivo_compagnie"
+    __table_args__ = (
+        # Una compagnia si consulta UNA volta sola per preventivo: due righe
+        # sulla stessa compagnia sarebbero due premi in conflitto, non un
+        # confronto. Vincolo con nome esplicito (serve al batch mode di SQLite).
+        db.UniqueConstraint("preventivo_id", "compagnia_id",
+                            name="uq_preventivo_compagnia"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    # Entrambe obbligatorie: una quotazione senza preventivo o senza compagnia
+    # non è un dato utile.
+    preventivo_id = db.Column(db.Integer, db.ForeignKey("preventivi.id"),
+                              nullable=False)
+    compagnia_id = db.Column(db.Integer, db.ForeignKey("compagnie.id"),
+                             nullable=False)
+
+    premio = db.Column(db.Float, default=0.0)
+    # Garanzie incluse nella quotazione: valori di GARANZIE separati da virgola
+    # (vedi la nota sulla costante). Validate da @validates qui sotto.
+    garanzie = db.Column(db.String(400))
+    note = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    preventivo = db.relationship("Preventivo",
+                                 back_populates="compagnie_consultate")
+    compagnia = db.relationship("Compagnia", back_populates="consultazioni")
+
+    @validates("garanzie")
+    def _valida_garanzie(self, key, value):
+        """Normalizza la lista (trim, dedup, ordine di GARANZIE) e la valida.
+
+        Accetta sia la stringa "a,b" sia una lista/tupla, così il blueprint può
+        passare direttamente request.form.getlist() senza ricomporre la stringa.
+        """
+        if not value:
+            return None
+        voci = value.split(",") if isinstance(value, str) else list(value)
+        voci = [v.strip() for v in voci if v and v.strip()]
+        for v in voci:
+            if v not in GARANZIE:
+                raise ValueError(f"Garanzia non valida: {v!r}")
+        # Ordine stabile (quello di GARANZIE) così due righe con le stesse
+        # garanzie producono la stessa stringa e sono confrontabili a colpo d'occhio.
+        ordinate = [g for g in GARANZIE if g in voci]
+        return ",".join(ordinate) or None
+
+    @property
+    def garanzie_lista(self):
+        """Garanzie come lista, per i template (checkbox e badge)."""
+        return [g for g in (self.garanzie or "").split(",") if g]
+
+    def __repr__(self):
+        return f"<PreventivoCompagnia prev={self.preventivo_id} comp={self.compagnia_id}>"
 
 
 # --------------------------------------------------------------------------- #
@@ -961,6 +1138,16 @@ class Comunicazione(db.Model):
 
     cliente = db.relationship("Cliente", back_populates="comunicazioni")
     pratica = db.relationship("Pratica", back_populates="comunicazioni")
+
+    @property
+    def cliente_label(self):
+        """Nome del cliente, o l'indicazione che l'anagrafica non c'è più.
+
+        cliente_id è nullable per scelta (la comunicazione sopravvive alla
+        cancellazione del cliente): le viste devono poter stampare qualcosa
+        anche in quel caso, senza andare in errore su cliente.nome_completo.
+        """
+        return self.cliente.nome_completo if self.cliente else "cliente eliminato"
 
     @validates("canale")
     def _valida_canale(self, key, value):

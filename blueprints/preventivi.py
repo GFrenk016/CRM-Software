@@ -5,8 +5,8 @@ from datetime import date
 from flask import (Blueprint, flash, redirect, render_template, request, url_for)
 
 from extensions import db
-from models import (STATI_PREVENTIVO, Cliente, Compagnia, Contratto, Lead,
-                    Preventivo, Veicolo)
+from models import (GARANZIE, STATI_PREVENTIVO, Cliente, Compagnia, Contratto,
+                    Lead, Preventivo, PreventivoCompagnia, Veicolo)
 from utils import parse_date
 
 bp = Blueprint("preventivi", __name__, url_prefix="/preventivi")
@@ -15,6 +15,63 @@ bp = Blueprint("preventivi", __name__, url_prefix="/preventivi")
 def _prossimo_numero():
     n = Preventivo.query.count() + 1
     return f"PRV-{n:04d}"
+
+
+def _righe_consultate(form):
+    """Legge dal form le righe "compagnia consultata" e le restituisce in ordine.
+
+    Le righe sono ripetibili e cancellabili lato client, quindi gli indici NON
+    sono contigui: l'elenco degli indici vivi viaggia nel campo ripetuto
+    `cc_idx` e i campi di ogni riga sono suffissati con l'indice. Le righe senza
+    compagnia sono righe vuote appena aggiunte e vengono ignorate.
+
+    Ritorna (righe, duplicate): `duplicate` sono i nomi delle compagnie indicate
+    più di una volta, scartate perché il vincolo di unicità le rifiuterebbe.
+    """
+    righe, viste, duplicate = [], set(), []
+    for idx in form.getlist("cc_idx"):
+        compagnia_id = form.get(f"cc_compagnia_id_{idx}")
+        if not compagnia_id:
+            continue
+        compagnia_id = int(compagnia_id)
+        if compagnia_id in viste:
+            duplicate.append(compagnia_id)
+            continue
+        viste.add(compagnia_id)
+        righe.append({
+            "idx": idx,
+            "compagnia_id": compagnia_id,
+            "premio": float(form.get(f"cc_premio_{idx}") or 0),
+            "garanzie": form.getlist(f"cc_garanzie_{idx}"),
+            "note": (form.get(f"cc_note_{idx}") or "").strip() or None,
+        })
+    return righe, duplicate
+
+
+def _sincronizza_consultate(prev, righe):
+    """Allinea le righe consultate del preventivo a quelle arrivate dal form.
+
+    Aggiorna le righe esistenti IN PLACE (chiave: la compagnia) invece di
+    ricrearle: così created_at resta quello della prima consultazione e non si
+    passa mai da uno stato intermedio con due righe sulla stessa compagnia, che
+    violerebbe il vincolo di unicità.
+    """
+    per_compagnia = {r.compagnia_id: r for r in prev.compagnie_consultate}
+    inviate = set()
+    for dati in righe:
+        inviate.add(dati["compagnia_id"])
+        riga = per_compagnia.get(dati["compagnia_id"])
+        if riga is None:
+            riga = PreventivoCompagnia(compagnia_id=dati["compagnia_id"])
+            prev.compagnie_consultate.append(riga)
+        riga.premio = dati["premio"]
+        riga.garanzie = dati["garanzie"]      # @validates accetta anche la lista
+        riga.note = dati["note"]
+    # Le righe non più presenti nel form sono state rimosse dall'operatore:
+    # delete-orphan le cancella davvero dal DB.
+    for compagnia_id, riga in per_compagnia.items():
+        if compagnia_id not in inviate:
+            prev.compagnie_consultate.remove(riga)
 
 
 def _scadenza_riferimento(prev):
@@ -79,7 +136,31 @@ def form(prev_id=None):
         prev.premio_proposto = float(f.get("premio_proposto") or 0)
         prev.stato = f.get("stato", "bozza")
         prev.data_invio = parse_date(f.get("data_invio"))
+        prev.note = f.get("note", "").strip() or None
+
+        righe, duplicate = _righe_consultate(f)
+        try:
+            _sincronizza_consultate(prev, righe)
+        except ValueError as e:              # garanzia non ammessa (@validates)
+            db.session.rollback()
+            flash(str(e), "error")
+            return redirect(url_for("preventivi.form", prev_id=prev_id))
+
+        # Promozione a "compagnia scelta": la riga spuntata nel confronto vince
+        # sui campi in alto, che restano compilabili quando non si è consultato
+        # nessuno (preventivo con una compagnia sola).
+        scelta = f.get("cc_scelta")
+        riga_scelta = next((r for r in righe if r["idx"] == scelta), None)
+        if riga_scelta:
+            prev.compagnia_id = riga_scelta["compagnia_id"]
+            prev.premio_proposto = riga_scelta["premio"]
+
         db.session.commit()
+        if duplicate:
+            nomi = ", ".join(c.nome for c in Compagnia.query
+                             .filter(Compagnia.id.in_(duplicate)))
+            flash(f"Compagnia indicata più volte, tenuta una sola riga: {nomi}.",
+                  "warning")
         flash("Preventivo salvato.", "success")
         return redirect(url_for("preventivi.index"))
     clienti = Cliente.query.order_by(Cliente.cognome).all()
@@ -88,9 +169,19 @@ def form(prev_id=None):
     veicoli = Veicolo.query.all()
     # Cliente pre-selezionato quando si crea "da scheda cliente" (?cliente_id=X)
     cliente_sel = request.args.get("cliente_id", type=int)
+    # Cross selling: altri veicoli del cliente senza copertura attiva. L'avviso
+    # si riferisce al cliente NOTO all'apertura della pagina (quello del
+    # preventivo, o quello pre-selezionato); cambiando cliente dal menu a tendina
+    # non si aggiorna, perché il dato è calcolato lato server sulle relazioni.
+    cliente_avviso = prev.cliente if prev else (
+        db.session.get(Cliente, cliente_sel) if cliente_sel else None)
+    veicoli_scoperti = (cliente_avviso.altri_veicoli_scoperti(
+        prev.veicolo_id if prev else None) if cliente_avviso else [])
     return render_template("preventivi/form.html", p=prev, clienti=clienti,
                            compagnie=compagnie, lead=lead, veicoli=veicoli,
-                           stati=STATI_PREVENTIVO, cliente_sel=cliente_sel)
+                           stati=STATI_PREVENTIVO, cliente_sel=cliente_sel,
+                           garanzie=GARANZIE, cliente_avviso=cliente_avviso,
+                           veicoli_scoperti=veicoli_scoperti)
 
 
 @bp.route("/<int:prev_id>/converti", methods=["POST"])

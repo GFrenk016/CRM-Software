@@ -43,6 +43,35 @@
 </div>
 {% endmacro %}
 
+{# Storico comunicazioni (sola lettura): canale, destinatario, data, esito e
+   testo. Usato sulla scheda cliente e nella vista aggregata per codice fiscale.
+   `Comunicazione.cliente_id` è nullable — le comunicazioni sopravvivono alla
+   cancellazione del cliente — quindi si stampa sempre `cliente_label`, mai
+   `cliente.nome_completo`. Le liste arrivano già ordinate dalla più recente
+   (vedi Cliente.comunicazioni); `mostra_cliente` serve dove le comunicazioni
+   non sono tutte dello stesso cliente. #}
+{% macro comunicazioni_list(comunicazioni, mostra_cliente=false) %}
+<div class="related-list">
+  {% for com in comunicazioni %}
+  <div class="related-item com-item">
+    <div style="min-width:0">
+      <div>
+        <span class="badge badge-{{ com.canale }}">{{ com.canale }}</span>
+        <span class="muted" style="font-size:12px"> · {{ com.destinatario or 'destinatario non registrato' }}</span>
+        {% if mostra_cliente %}<span class="muted" style="font-size:11px"> · {{ com.cliente_label }}</span>{% endif %}
+      </div>
+      {% if com.testo %}<div class="com-testo">{{ com.testo }}</div>{% endif %}
+    </div>
+    <div style="text-align:right;white-space:nowrap">
+      <span class="mono">{{ com.data_invio|data_it }}</span>
+      {% if com.data_invio %}<span class="muted mono" style="font-size:11px">{{ com.data_invio.strftime('%H:%M') }}</span>{% endif %}
+      {% if com.esito %}<div><span class="badge badge-{{ com.esito }}">{{ com.esito }}</span></div>{% endif %}
+    </div>
+  </div>
+  {% else %}<div class="related-empty">Nessuna comunicazione registrata.</div>{% endfor %}
+</div>
+{% endmacro %}
+
 {# Form di creazione appuntamento. pratica_id opzionale: se passato l'appuntamento
    nasce già agganciato alla pratica. Il tipo "otp" copre lo step di firma. #}
 {% macro appuntamento_nuovo(cliente_id, next_url, tipi, pratica_id=None) %}

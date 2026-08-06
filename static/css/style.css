@@ -213,6 +213,21 @@ a.stat-card.active-filter { outline:2px solid var(--primary); outline-offset:-1p
 .badge-whatsapp { background:var(--success-dim); color:var(--success); }
 .badge-email { background:var(--primary-dim); color:var(--primary); }
 
+/* CONFRONTO COMPAGNIE sul preventivo (righe ripetibili).
+   La riga col premio più basso si accende in verde: è l'informazione per cui
+   esiste il confronto, e deve saltare all'occhio senza leggere i numeri. */
+.cc-row { background:var(--surface2); border:1px solid var(--border);
+  border-radius:8px; padding:10px 12px; margin-bottom:8px; }
+.cc-row.is-migliore { border-color:var(--success); background:var(--success-dim); }
+.cc-row-top { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+.cc-row-top .cc-compagnia { flex:1 1 180px; width:auto; }
+.cc-row-top .cc-premio { flex:0 0 130px; width:130px; }
+.cc-migliore { font-size:10.5px; font-weight:700; color:var(--success);
+  text-transform:uppercase; letter-spacing:.04em; white-space:nowrap; }
+.cc-garanzie { display:flex; flex-wrap:wrap; gap:6px 14px; margin:8px 0; }
+.cc-garanzie .radio-row { font-size:12px; color:var(--text2); }
+.cc-empty { color:var(--text3); font-size:12px; padding:6px 0; }
+
 /* TABELLE */
 .table-wrapper { background:var(--surface); border:1px solid var(--border);
   border-radius:var(--radius); overflow:hidden; }
@@ -288,6 +303,11 @@ textarea.form-input { resize:vertical; min-height:70px; }
   border-radius:8px; padding:10px 12px; display:flex; align-items:center;
   justify-content:space-between; gap:10px; }
 .related-empty { color:var(--text3); font-size:12px; padding:8px 0; }
+/* Comunicazioni: il testo inviato va letto per intero (è la traccia di cosa si
+   è scritto al cliente), ma non deve sfondare la colonna. */
+.com-item { align-items:flex-start; }
+.com-testo { font-size:12px; color:var(--text2); margin-top:4px;
+  white-space:pre-wrap; overflow-wrap:anywhere; }
 
 /* PIPELINE KANBAN */
 .pipeline-board { display:grid; grid-template-columns:repeat(6,minmax(180px,1fr));

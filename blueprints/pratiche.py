@@ -89,6 +89,9 @@ def detail(pratica_id):
     return render_template("pratiche/detail.html", p=p,
                            testo_richiesta=testo_richiesta,
                            documenti_mancanti=documenti_mancanti,
+                           # Cross selling: gli altri mezzi del cliente senza
+                           # copertura attiva (escluso quello della pratica).
+                           veicoli_scoperti=p.cliente.altri_veicoli_scoperti(p.veicolo_id),
                            wa_number=wa_number, scala=SCALA_AVANZAMENTO,
                            pos_corrente=ORDINE_STATI_PRATICA.get(p.stato),
                            tipi_appuntamento=TIPI_APPUNTAMENTO,
