@@ -17,6 +17,9 @@
   <div class="table-toolbar">
     <form method="get"><select class="form-input" name="stato" onchange="this.form.submit()" style="width:auto">
       <option value="">Tutti gli stati</option>
+      {# Raggruppamento, non uno stato: aperto + perizia. È il criterio della
+         card "Sinistri aperti" in bacheca, che da lì ci porta col "vedi tutti". #}
+      <option value="{{ filtro_aperti }}" {{ 'selected' if stato_sel == filtro_aperti }}>aperti (non chiusi)</option>
       {% for s in stati %}<option value="{{ s }}" {{ 'selected' if stato_sel == s }}>{{ s }}</option>{% endfor %}
     </select></form>
   </div>

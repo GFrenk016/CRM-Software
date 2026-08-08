@@ -10,8 +10,14 @@
   <div class="card urgenze-panel">
     <div class="urgenze-head">
       <h3>Scadenze in arrivo</h3>
-      {% if urg_scadenze_tot > limite_urgenze %}
-      <a class="urgenze-all" href="{{ url_for('scadenze.index') }}">vedi tutti ({{ urg_scadenze_tot }})</a>
+      {# Il link compare con almeno una riga, non solo quando la card e' troncata:
+         serve anche a saltare alla lista completa e filtrata, non solo a "vedere
+         il resto". Stessa regola su tutte e tre le card. #}
+      {% if urg_scadenze_tot %}
+      {# finestra=30: la card conta i prossimi 30 giorni, ma lo scadenziario apre
+         a 60 di default, quindi "vedi tutti (N)" portava a una lista piu' lunga
+         di N. Il numero letto e le righe mostrate devono coincidere. #}
+      <a class="urgenze-all" href="{{ url_for('scadenze.index', finestra=30) }}">vedi tutti ({{ urg_scadenze_tot }})</a>
       {% endif %}
     </div>
     {% for c in urg_scadenze %}
@@ -36,8 +42,8 @@
   <div class="card urgenze-panel">
     <div class="urgenze-head">
       <h3>Incassi in ritardo</h3>
-      {% if urg_incassi_tot > limite_urgenze %}
-      <a class="urgenze-all" href="{{ url_for('incassi.index') }}">vedi tutti ({{ urg_incassi_tot }})</a>
+      {% if urg_incassi_tot %}
+      <a class="urgenze-all" href="{{ url_for('incassi.index', stato='in_ritardo') }}">vedi tutti ({{ urg_incassi_tot }})</a>
       {% endif %}
     </div>
     {% for i in urg_incassi %}
@@ -58,8 +64,8 @@
   <div class="card urgenze-panel">
     <div class="urgenze-head">
       <h3>Sinistri aperti</h3>
-      {% if urg_sinistri_tot > limite_urgenze %}
-      <a class="urgenze-all" href="{{ url_for('sinistri.index') }}">vedi tutti ({{ urg_sinistri_tot }})</a>
+      {% if urg_sinistri_tot %}
+      <a class="urgenze-all" href="{{ url_for('sinistri.index', stato='aperti') }}">vedi tutti ({{ urg_sinistri_tot }})</a>
       {% endif %}
     </div>
     {% for s in urg_sinistri %}
