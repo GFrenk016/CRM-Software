@@ -172,7 +172,8 @@
          comunicazioni di una pratica possono essere orfane del cliente
          (cliente_id nullable), quindi il nome si legge da cliente_label. -->
     <div class="section-title"><span class="st-left"><svg class="icon icon-sm"><use href="#i-message"/></svg> Comunicazioni</span></div>
-    {{ comunicazioni_list(p.comunicazioni|sort(attribute='data_invio', reverse=true), mostra_cliente=true) }}
+    {{ comunicazioni_list(p.comunicazioni|sort(attribute='data_invio', reverse=true),
+                          mostra_cliente=true, next_url=next_url) }}
 
     <!-- PREVENTIVI collegati (una pratica → molti preventivi): storico delle
          quotazioni con compagnia scelta, premio e confronto fra le consultate. -->

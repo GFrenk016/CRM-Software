@@ -201,10 +201,11 @@
     {{ appuntamento_nuovo(c.id, next_url, tipi_appuntamento) }}
 
     <!-- COMUNICAZIONI (storico/audit): cosa è stato mandato, quando e su quale
-         canale. Sola lettura: le comunicazioni si registrano da dove si inviano
-         (modale Messaggio, richiesta documenti sulla pratica). -->
+         canale. Non si creano da qui (si registrano da dove si inviano: modale
+         Messaggio, richiesta documenti sulla pratica), ma si possono eliminare
+         per togliere i doppioni. -->
     <div class="section-title"><span class="st-left"><svg class="icon icon-sm"><use href="#i-message"/></svg> Comunicazioni</span></div>
-    {{ comunicazioni_list(c.comunicazioni) }}
+    {{ comunicazioni_list(c.comunicazioni, next_url=next_url) }}
 
     <!-- PREVENTIVI -->
     <div class="section-title"><span class="st-left"><svg class="icon icon-sm"><use href="#i-file-text"/></svg> Preventivi</span></div>

@@ -11,9 +11,10 @@ di un'app locale mono-utente, qui ci limitiamo a generare i link cliccabili.
 """
 import re
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, flash, jsonify, redirect, request, url_for
 
-from models import Cliente
+from extensions import db
+from models import Cliente, Comunicazione
 
 bp = Blueprint("messaggi", __name__, url_prefix="/messaggi")
 
@@ -79,6 +80,23 @@ def config():
         } for c in clienti],
         templates=MESSAGGI_TEMPLATES,
     )
+
+
+@bp.route("/comunicazioni/<int:com_id>/elimina", methods=["POST"])
+def elimina_comunicazione(com_id):
+    """Cancella una comunicazione dallo storico.
+
+    Serve a togliere i doppioni: comporre due volte lo stesso messaggio (una
+    scheda riaperta, un invio ritentato) lascia due righe identiche e lo storico
+    diventa illeggibile. POST + conferma lato client come le altre eliminazioni
+    del CRM, e `next` per tornare da dove si era: la stessa comunicazione si
+    vede sia dalla scheda cliente sia dal dettaglio pratica.
+    """
+    com = Comunicazione.query.get_or_404(com_id)
+    db.session.delete(com)
+    db.session.commit()
+    flash("Comunicazione eliminata.", "success")
+    return redirect(request.form.get("next") or url_for("dashboard.index"))
 
 
 @bp.route("/destinatari", methods=["POST"])
