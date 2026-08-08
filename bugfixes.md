@@ -23,6 +23,36 @@
       sparirebbe dalla tendina restando attivo. Il campo "Nome / CF / email /
       cell." resta un input libero: li' si cerca per frammento.
 
+[] la targa viene visualizzata due volte del veicolo in Veicoli
+[] quando si crea una nuova pratica, non si ha la priorità massima di default
+[] manca popup errore di quando si inserisce un codice fiscale non valido (controllo se mancano altri popup di errore)
+[] in comunicazioni mettere la x in basso a destra sui messaggi registrati con eventuale finestra di conferma, per evitare duplicati
+[] i popup in generale devono durare come minimo 5 sec
+[] **Form preventivo: chiarire "Compagnia scelta" vs "Compagnie consultate".**
+      Sono due modi di indicare la stessa cosa e non è ovvio: il campo in alto
+      viene silenziosamente sovrascritto dal server se si spunta "Scelta" su
+      una riga sotto. Va reso chiaro in UI (es. disabilitare/etichettare il
+      campo in alto quando c'è almeno una riga consultata), senza toccare la
+      logica server già corretta.
+[] **Form preventivo/pratica: "Lead collegato" non si aggiorna al primo
+      caricamento**, solo al cambio cliente dal menu (stesso bug già risolto
+      ieri sui menu contratto/sinistro/veicolo della pratica: manca il
+      caricamento iniziale, scatta solo su `onchange`). Va fatto scattare
+      anche al render iniziale.
+[] mettere i tasti di nuovo sinistro, nuovo incasso in dettaglio contratto
+[] **Stato "persa" mancante per le tipologie senza emissione** (sinistro,
+      consulenza, nuovo preventivo). "persa" è finito per errore dentro
+      STATI_PRATICA_EMISSIONE invece che in STATI_PRATICA_BASE, quindi il
+      menu Stato lo mostra solo per le 5 tipologie con catena di emissione.
+      Va spostato in STATI_PRATICA_BASE: è uno stato sempre possibile,
+      indipendente dalla tipologia.
+[] quando si mette la voce altro nella pratica, si deve aprire anchje un pannello dove scrivere la motivazione
+[] non compare in ricontattare questo mese nella bacheca, se messo nel mese corrente
+[] il tasto vedi tutti che sono in scadenze in arrivo, deve essere anche in incassi in ritardo, e in sinistri aperti
+[] quando si clicca per visualizzare il documento, non fa nulla
+[] apparentemente quando si invia una comunicaizxone non la registra, qualsiasi messaggio mandato con la funzionalità messaggio deve esserew registrato, specificando se è una email o whatsapp, e data e orario
+
+
 # Task list — CRM Assicurativo, Fase 1 (Analisi Funzionale)
 
 > Fonte dei requisiti: `CRM_Assicurativo_Analisi_Funzionale_Fase1.docx` (documento del cliente).
