@@ -644,10 +644,16 @@ async function richiediDocumenti(e) {
 // --- INIT -------------------------------------------------------------------
 document.addEventListener('DOMContentLoaded', () => {
   if (document.querySelector('.pipeline-board')) initPipeline();
-  // Form pratica su pagina piena: i menu collegati nascono vuoti, vanno
-  // riempiti col cliente già selezionato (in modifica riseleziona i valori
-  // salvati grazie a data-selected).
+  // Form pratica e preventivo su pagina piena: i campi collegati (contratto,
+  // sinistro, veicolo e "Lead collegato") nascono vuoti e vanno riempiti col
+  // cliente già selezionato, non solo quando si cambia cliente dal menu. In
+  // modifica data-selected fa riselezionare i valori salvati.
   document.querySelectorAll('[data-cliente-pratica]').forEach(caricaCollegabiliPratica);
+  // Stessa regola per sinistri e incassi, che usano l'altro caricatore: qui
+  // mancava del tutto e il menu "Contratto" restava vuoto finché non si
+  // ritoccava il cliente. In modifica era peggio che cosmetico — la polizza
+  // già collegata non compariva e si rischiava di salvarne un'altra.
+  document.querySelectorAll('[data-cliente-collegato]').forEach(caricaContrattiCliente);
   // Ricerca rapida lato tabella (oltre al filtro SQL server-side)
   const quick = document.getElementById('quick-search');
   if (quick) {
