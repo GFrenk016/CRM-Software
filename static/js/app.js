@@ -192,6 +192,31 @@ function aggiornaConfrontoCompagnie() {
     r.classList.toggle('is-migliore', ok);
     r.querySelector('.cc-migliore').classList.toggle('hidden', !ok);
   });
+  aggiornaVincoloCompagniaScelta();
+}
+
+// "Compagnia scelta" (in alto) e la riga spuntata "Scelta" (sotto) dicono la
+// stessa cosa, e lato server vince la riga: senza segnalarlo, i campi in alto
+// sembravano modificabili e venivano poi sovrascritti al salvataggio senza che
+// si capisse perché. Qui la regola si vede: con una riga spuntata i due campi
+// passano in sola lettura e la nota spiega chi comanda.
+// Restano compilabili quando non c'è nessuna riga spuntata — il caso "compagnia
+// singola", in cui il preventivo non nasce da un confronto.
+function aggiornaVincoloCompagniaScelta() {
+  const selScelta = document.getElementById('compagnia-scelta');
+  const inpPremio = document.getElementById('premio-proposto');
+  const nota = document.getElementById('nota-compagnia-scelta');
+  if (!selScelta) return;
+  const vincolati = !!document.querySelector('#cc-rows .cc-scelta:checked');
+  // disabled e non readonly: su <select> readonly non esiste, e disabilitando
+  // non si invia il campo — è corretto, perché a valorizzarlo ci pensa il
+  // server dalla riga spuntata (vedi blueprints/preventivi.py).
+  [selScelta, inpPremio].forEach(campo => {
+    if (!campo) return;
+    campo.disabled = vincolati;
+    campo.classList.toggle('is-derivato', vincolati);
+  });
+  if (nota) nota.classList.toggle('hidden', !vincolati);
 }
 
 // Spuntare "Scelta" su una riga promuove quella compagnia: allinea subito i
@@ -212,7 +237,11 @@ document.addEventListener('click', (e) => {
 });
 document.addEventListener('change', (e) => {
   const scelta = e.target.closest('.cc-scelta');
-  if (scelta && scelta.checked) promuoviRigaCompagnia(scelta.closest('.cc-row'));
+  if (!scelta || !scelta.checked) return;
+  // Prima si allineano i campi in alto, poi li si blocca: al contrario il
+  // valore appena promosso non arriverebbe a destinazione.
+  promuoviRigaCompagnia(scelta.closest('.cc-row'));
+  aggiornaVincoloCompagniaScelta();
 });
 document.addEventListener('input', (e) => {
   const premio = e.target.closest('.cc-premio');

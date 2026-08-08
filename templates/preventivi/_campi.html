@@ -55,6 +55,16 @@
     <div class="form-group"><label>Lead collegato</label>
       <div class="form-static" data-collegabile="lead">—</div></div>
   </div>
+  {# "Compagnia scelta" e "Compagnie consultate" indicavano la stessa cosa in due
+     punti diversi e non si capiva chi vincesse: spuntando "Scelta" su una riga
+     sotto, il server sovrascrive silenziosamente questi due campi. La logica
+     server e' giusta (la riga spuntata E' la compagnia scelta) e non si tocca:
+     qui si rende visibile la regola. Quando una riga e' spuntata i due campi
+     diventano di sola lettura e lo dicono; senza righe consultate restano
+     normalmente compilabili (preventivo con una compagnia sola).
+     Lo stato lo imposta aggiornaVincoloCompagniaScelta() in app.js, che gira
+     anche al primo render: la regola deve essere visibile prima di toccare
+     qualcosa, non solo dopo. #}
   <div class="form-row">
     <div class="form-group"><label>Compagnia scelta</label>
       <select class="form-input" id="compagnia-scelta" name="compagnia_id">
@@ -64,6 +74,10 @@
     </div>
     <div class="form-group"><label>Oggetto</label><input class="form-input" name="oggetto" value="{{ p.oggetto or '' if p else '' }}" placeholder="es. RC Auto"></div>
   </div>
+  <p class="nota-scelta hidden" id="nota-compagnia-scelta">
+    Decide la riga spuntata come <strong>Scelta</strong> in “Compagnie consultate”:
+    compagnia e premio qui sopra la seguono e vengono salvati da lì.
+  </p>
   {# Veicoli del solo cliente scelto: prima elencava tutte le targhe del DB. #}
   <div class="form-group"><label>Veicolo (per preventivi RC Auto)</label>
     <select class="form-input" name="veicolo_id" data-collegabile="veicoli"
