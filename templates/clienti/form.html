@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% set section = "clienti" %}
-{% block title %}{{ 'Modifica' if c else 'Nuovo' }} cliente{% endblock %}
-{% block page_title %}{{ 'Modifica cliente' if c else 'Nuovo cliente' }}{% endblock %}
+{% block title %}{{ 'Nuovo' if nuovo else 'Modifica' }} cliente{% endblock %}
+{% block page_title %}{{ 'Nuovo cliente' if nuovo else 'Modifica cliente' }}{% endblock %}
 
 {% block content %}
 <form class="form-card" method="post">
@@ -52,7 +52,7 @@
     <label for="conv" style="text-transform:none">Convivenza</label>
   </div>
   <div class="form-group"><label>Note</label><textarea class="form-input" name="note">{{ c.note or '' if c else '' }}</textarea></div>
-  {% if not c %}
+  {% if nuovo %}
   {# Solo in creazione: ogni contatto può generare subito una pratica. La
      tipologia è OPZIONALE (al primo contatto può non essere ancora nota): se
      lasciata vuota nasce solo il lead, senza pratica. #}
@@ -61,7 +61,7 @@
     <select class="form-input" name="tipologia_pratica">
       <option value="">— Nessuna pratica per ora —</option>
       {% for t in tipologie %}
-      <option value="{{ t.value }}">{{ t.label }}</option>{% endfor %}
+      <option value="{{ t.value }}" {{ 'selected' if c and c.tipologia_pratica == t.value }}>{{ t.label }}</option>{% endfor %}
     </select>
   </div>
   {% endif %}

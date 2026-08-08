@@ -192,40 +192,92 @@ def detail(cliente_id):
 def form(cliente_id=None):
     cliente = Cliente.query.get_or_404(cliente_id) if cliente_id else None
     if request.method == "POST":
-        data = _read_form(request.form)
-        if cliente is None:
-            cliente = Cliente(**data)
-            db.session.add(cliente)
-            # Il lead nasce automaticamente con il cliente ed entra nel primo
-            # stadio della pipeline. Avviene SOLO alla creazione (non in modifica),
-            # così non si generano lead duplicati a ogni aggiornamento anagrafica.
-            lead = Lead(cliente=cliente, stadio=STADI_LEAD[0], fonte="altro")
-            db.session.add(lead)
+        # Perche' tutto il salvataggio sta dentro un try: il formato del codice
+        # fiscale e' controllato da @validates su Cliente, che alza ValueError
+        # al momento dell'assegnazione, e l'unicita' dal solo indice unique, che
+        # fallisce in IntegrityError al commit. Prima nessuna delle due era
+        # intercettata: l'utente vedeva una pagina di errore 500 del server e
+        # nessun messaggio, quindi un CF sbagliato sembrava semplicemente "non
+        # salvare". Ora entrambe tornano al form con un flash "error" (il toast
+        # rosso gia' usato ovunque) e i dati appena digitati ancora dentro.
+        try:
+            data = _read_form(request.form)
+            if cliente is None:
+                cliente = Cliente(**data)
+                db.session.add(cliente)
+                # Il lead nasce automaticamente con il cliente ed entra nel primo
+                # stadio della pipeline. Avviene SOLO alla creazione (non in modifica),
+                # così non si generano lead duplicati a ogni aggiornamento anagrafica.
+                lead = Lead(cliente=cliente, stadio=STADI_LEAD[0], fonte="altro")
+                db.session.add(lead)
 
-            # "Ogni contatto genera una pratica": la tipologia è OPZIONALE perché
-            # al primo contatto può non essere ancora nota. Se l'utente la
-            # seleziona, creiamo la Pratica insieme al Lead; altrimenti nasce solo
-            # il Lead (nessuna tipologia inventata di default).
-            tipologia = (request.form.get("tipologia_pratica") or "").strip()
-            if tipologia:
-                if tipologia not in TipologiaPratica.valori():
-                    db.session.rollback()
-                    flash("Tipologia pratica non valida.", "error")
-                    return render_template("clienti/form.html", c=None,
-                                           tipologie=TipologiaPratica)
-                db.session.add(Pratica(cliente=cliente, lead=lead,
-                                       tipologia=tipologia))
-                flash("Cliente creato. Lead e pratica aggiunti.", "success")
+                # "Ogni contatto genera una pratica": la tipologia è OPZIONALE perché
+                # al primo contatto può non essere ancora nota. Se l'utente la
+                # seleziona, creiamo la Pratica insieme al Lead; altrimenti nasce solo
+                # il Lead (nessuna tipologia inventata di default).
+                tipologia = (request.form.get("tipologia_pratica") or "").strip()
+                if tipologia:
+                    if tipologia not in TipologiaPratica.valori():
+                        raise ValueError("Tipologia pratica non valida.")
+                    db.session.add(Pratica(cliente=cliente, lead=lead,
+                                           tipologia=tipologia))
+                    messaggio = "Cliente creato. Lead e pratica aggiunti."
+                else:
+                    messaggio = "Cliente creato. Lead aggiunto in pipeline."
             else:
-                flash("Cliente creato. Lead aggiunto in pipeline.", "success")
-        else:
-            for k, v in data.items():
-                setattr(cliente, k, v)
-            flash("Cliente aggiornato.", "success")
-        db.session.commit()
+                for k, v in data.items():
+                    setattr(cliente, k, v)
+                messaggio = "Cliente aggiornato."
+            db.session.commit()
+        except ValueError as e:
+            db.session.rollback()
+            flash(str(e), "error")
+            return _riapri_form(cliente_id, request.form)
+        except IntegrityError:
+            db.session.rollback()
+            # L'unico vincolo di unicita' sull'anagrafica e' il codice fiscale:
+            # senza dirlo, il messaggio generico "errore" non farebbe capire
+            # DOVE intervenire.
+            flash("Esiste già un cliente con questo codice fiscale.", "error")
+            return _riapri_form(cliente_id, request.form)
+        flash(messaggio, "success")
         return redirect(url_for("clienti.detail", cliente_id=cliente.id))
     return render_template("clienti/form.html", c=cliente,
-                           tipologie=TipologiaPratica)
+                           tipologie=TipologiaPratica, nuovo=cliente is None)
+
+
+def _riapri_form(cliente_id, inviati):
+    """Ripropone il form dopo un errore, con i valori appena digitati.
+
+    Dopo il rollback l'oggetto Cliente in sessione non è più affidabile (in
+    creazione non esiste proprio), quindi al template si passa `_ValoriForm`:
+    espone gli stessi attributi che i campi leggono da `c`, presi dalla POST.
+    Senza questo l'utente si ritroverebbe il modulo vuoto e dovrebbe ridigitare
+    tutto solo per aver sbagliato un carattere del codice fiscale.
+    """
+    return render_template("clienti/form.html", c=_ValoriForm(cliente_id, inviati),
+                           tipologie=TipologiaPratica,
+                           nuovo=cliente_id is None), 400
+
+
+class _ValoriForm:
+    """Vista sui dati POST che imita un Cliente per i soli campi del form."""
+
+    _DATE = ("data_nascita",)
+
+    def __init__(self, cliente_id, inviati):
+        self.id = cliente_id
+        self._inviati = inviati
+        self.convivenza = inviati.get("convivenza") == "on"
+        self.num_figli = inviati.get("num_figli") or 0
+
+    def __getattr__(self, nome):
+        valore = self._inviati.get(nome) or None
+        # I campi data nel template chiamano .isoformat(): si restituisce un
+        # date vero quando il valore è una data valida, None altrimenti.
+        if nome in self._DATE:
+            return parse_date(valore)
+        return valore
 
 
 @bp.route("/<int:cliente_id>/elimina", methods=["POST"])

@@ -32,8 +32,14 @@ STATI_INCASSO = ["da_incassare", "incassato", "in_ritardo"]
 # Stato della Pratica: stessa impostazione delle altre entità (colonna String +
 # lista di valori ammessi), così i template/filtri restano coerenti col resto.
 # Stati "generici", validi per QUALSIASI tipologia di pratica.
+# "persa" sta qui e non fra gli stati di emissione: un preventivo non accettato,
+# una consulenza che non porta a nulla o un sinistro che il cliente lascia
+# cadere sono persi esattamente come un rinnovo andato alla concorrenza. Finche'
+# e' stato fra gli stati di emissione il menu Stato lo offriva solo alle 5
+# tipologie con catena di emissione, quindi le altre non potevano essere chiuse
+# come perse e non finivano mai in "Da ricontattare questo mese" in bacheca.
 STATI_PRATICA_BASE = ["aperta", "in_lavorazione", "in_attesa_cliente",
-                      "completata", "annullata"]
+                      "completata", "annullata", "persa"]
 
 # Stati della catena di emissione polizza (Fase B). Hanno senso solo per le
 # tipologie che arrivano davvero all'emissione (vedi STATI_PER_TIPOLOGIA): per
@@ -41,8 +47,7 @@ STATI_PRATICA_BASE = ["aperta", "in_lavorazione", "in_attesa_cliente",
 # (finiscono come classi CSS badge-{{ x }}).
 STATI_PRATICA_EMISSIONE = ["documentazione_da_integrare", "attesa_pagamento",
                            "pagamento_verificato", "attesa_otp",
-                           "in_coda_emissione", "emessa", "certificato_inviato",
-                           "persa"]
+                           "in_coda_emissione", "emessa", "certificato_inviato"]
 
 # Unione: tutti i valori ammessi a livello di validazione della colonna. La
 # validazione resta permissiva (accetta ogni stato valido); a filtrare quali
@@ -888,6 +893,11 @@ class Pratica(db.Model):
     #    inserita a mano perché può stare presso un'altra compagnia e quindi NON
     #    è derivabile dai contratti in CRM. Serve alla lista "da ricontattare".
     motivo_perdita = db.Column(db.String(40))
+    #  - motivo_perdita_dettaglio: testo libero, ha senso solo con motivo
+    #    "altro". Colonna a parte e non un riuso di `note`: le note sono
+    #    appunti di lavorazione, mentre questo è il motivo per cui la pratica
+    #    è stata persa e serve leggibile accanto al motivo nelle liste.
+    motivo_perdita_dettaglio = db.Column(db.Text)
     data_scadenza_riferimento = db.Column(db.Date)
 
     # Timestamp ------------------------------------------------------------
@@ -940,6 +950,20 @@ class Pratica(db.Model):
         if value and value not in MOTIVI_PERDITA:
             raise ValueError(f"Motivo perdita non valido: {value!r}")
         return value or None
+
+    @property
+    def motivo_perdita_label(self):
+        """Motivo di perdita leggibile, con la motivazione libera se c'è.
+
+        Serve a non mostrare un nudo "altro", che da solo non dice niente: è
+        proprio il caso in cui la spiegazione sta nel testo libero.
+        """
+        if not self.motivo_perdita:
+            return ""
+        motivo = self.motivo_perdita.replace("_", " ")
+        if self.motivo_perdita_dettaglio:
+            return f"{motivo}: {self.motivo_perdita_dettaglio}"
+        return motivo
 
     @property
     def tipologia_label(self):

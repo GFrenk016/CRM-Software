@@ -11,7 +11,7 @@
        cliente falsa il registro provvigioni. #}
     <div class="form-group"><label>Contratto *</label>
       <select class="form-input" name="contratto_id" required data-contratti-cliente
-              data-selected="{{ i.contratto_id if i and i.contratto_id else '' }}">
+              data-selected="{{ i.contratto_id if i and i.contratto_id else (contratto_sel or '') }}">
       </select></div>
   </div>
   <div class="form-group"><label>Descrizione</label><input class="form-input" name="descrizione" value="{{ i.descrizione or '' if i else '' }}" placeholder="es. Provvigione RC Auto"></div>

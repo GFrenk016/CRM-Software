@@ -1,5 +1,42 @@
 # Bugfixes
 
+## Sessione "15 task" — riepilogo
+
+**14 task chiuse su 14**, un commit per task perché una regressione si isoli
+subito. La lista dettagliata è qui sotto; qui sta solo ciò che non era ovvio.
+
+**Tre task avevano una causa diversa da quella ipotizzata**, e vale la pena
+saperlo:
+
+- **"Lead collegato" al primo caricamento**: era **già risolto** (c8dd7f7), la
+  voce era rimasta solo non spuntata. Verificato in sei scenari. Ma lo stesso bug
+  era ancora aperto sull'altro caricatore (contratti di sinistri e incassi), dove
+  in modifica la polizza collegata non compariva affatto: corretto lì.
+- **"Da ricontattare questo mese"**: il criterio di intervallo della query **non
+  ha errori di confine** (verificato sui 36 mesi di tre anni). Le pratiche non
+  comparivano perché per le tipologie senza emissione lo stato "persa" non era
+  selezionabile — cioè la task dello stato "persa", non la query.
+- **Comunicazioni non registrate**: il record non si perdeva per strada, **non
+  veniva mai creato**. La modale "Messaggio" non ha mai avuto una rotta che
+  scrivesse una Comunicazione.
+
+**Due bug di perdita di dato trovati per strada**, non nella lista iniziale:
+riaprire il form di una pratica persa senza emissione ne **azzerava lo stato** al
+salvataggio; e in modifica di un sinistro/incasso il menu Contratto era vuoto,
+col rischio di salvare la polizza sbagliata.
+
+**Cosa NON è stato fatto**, e perché:
+
+- Le task erano **14, non 15**: la lista fornita numera da 1 a 14 senza salti
+  (l'ultima è la registrazione comunicazioni). Non c'è una quindicesima task da
+  qualche parte: sono state fatte tutte quelle presenti.
+- Gli **altri popup di errore mancanti** trovati controllando quello del codice
+  fiscale (campi obbligatori, email, 500 su sinistri/incassi) sono stati
+  **segnalati e non risolti**, come chiedeva la task: "controlla se mancano altri
+  popup e segnalali". Dettaglio nella task del CF e nel debito tecnico.
+- L'**ora in UTC** delle comunicazioni è segnalata nel debito tecnico e non
+  corretta qui: riguarda tutti i timestamp dello schema, non questa funzione.
+
 [X] In nuova pratica, contratto/sinistro/lead collegato devono apparire solo quelli del cliente selezionato (per lead appare semplicemente e basta, mentre gli altri devono essere selezionabili), rimuovere la parte "operatore"
 [X] i tasti Nuovo Preventivo, nuovo contratto, nuovo sinistro, nuovo incasso devono aprirsi come pannello che sta sopra (gia ce l ha nuovo incasso), stessa cosa per i tasti modifica
 [X] la sezione documenti deve essere piu gestibile: intanto i tasti devono essere fissi in basso a sinistra, e se il testo è lungo va accorciato con i puntini per evitare che esce fuori dal riquadratino, inoltre quando si carica si deve mostrare un anteprima
@@ -23,34 +60,157 @@
       sparirebbe dalla tendina restando attivo. Il campo "Nome / CF / email /
       cell." resta un input libero: li' si cerca per frammento.
 
-[] la targa viene visualizzata due volte del veicolo in Veicoli
-[] quando si crea una nuova pratica, non si ha la priorità massima di default
-[] manca popup errore di quando si inserisce un codice fiscale non valido (controllo se mancano altri popup di errore)
-[] in comunicazioni mettere la x in basso a destra sui messaggi registrati con eventuale finestra di conferma, per evitare duplicati
-[] i popup in generale devono durare come minimo 5 sec
-[] **Form preventivo: chiarire "Compagnia scelta" vs "Compagnie consultate".**
-      Sono due modi di indicare la stessa cosa e non è ovvio: il campo in alto
-      viene silenziosamente sovrascritto dal server se si spunta "Scelta" su
-      una riga sotto. Va reso chiaro in UI (es. disabilitare/etichettare il
-      campo in alto quando c'è almeno una riga consultata), senza toccare la
-      logica server già corretta.
-[] **Form preventivo/pratica: "Lead collegato" non si aggiorna al primo
-      caricamento**, solo al cambio cliente dal menu (stesso bug già risolto
-      ieri sui menu contratto/sinistro/veicolo della pratica: manca il
-      caricamento iniziale, scatta solo su `onchange`). Va fatto scattare
-      anche al render iniziale.
-[] mettere i tasti di nuovo sinistro, nuovo incasso in dettaglio contratto
-[] **Stato "persa" mancante per le tipologie senza emissione** (sinistro,
-      consulenza, nuovo preventivo). "persa" è finito per errore dentro
-      STATI_PRATICA_EMISSIONE invece che in STATI_PRATICA_BASE, quindi il
-      menu Stato lo mostra solo per le 5 tipologie con catena di emissione.
-      Va spostato in STATI_PRATICA_BASE: è uno stato sempre possibile,
-      indipendente dalla tipologia.
-[] quando si mette la voce altro nella pratica, si deve aprire anchje un pannello dove scrivere la motivazione
-[] non compare in ricontattare questo mese nella bacheca, se messo nel mese corrente
-[] il tasto vedi tutti che sono in scadenze in arrivo, deve essere anche in incassi in ritardo, e in sinistri aperti
-[] quando si clicca per visualizzare il documento, non fa nulla
-[] apparentemente quando si invia una comunicaizxone non la registra, qualsiasi messaggio mandato con la funzionalità messaggio deve esserew registrato, specificando se è una email o whatsapp, e data e orario
+[X] la targa viene visualizzata due volte del veicolo in Veicoli
+      `Veicolo.descrizione` include già la targa fra parentesi, quindi
+      stamparla accanto alla targa in evidenza la ripeteva. Ora accanto alla
+      targa restano solo marca e modello.
+[X] quando si crea una nuova pratica, non si ha la priorità massima di default
+      Default **Urgente** sul form a pagina piena e sul pannello "Nuova pratica"
+      della lista, solo in CREAZIONE: in modifica vince la priorità già
+      salvata, altrimenti riaprire il form rialzerebbe da solo le pratiche
+      declassate a mano. Nessun conflitto con la priorità automatica
+      (`_priorita_automatica_pratiche`, before_flush): quella alza a urgente,
+      il default parte già da urgente. Verificato che la regola automatica
+      continua a scattare sulle pratiche create via codice (priorità None) e a
+      rispettare una scelta manuale non neutra.
+[X] manca popup errore di quando si inserisce un codice fiscale non valido (controllo se mancano altri popup di errore)
+      **Causa:** il formato del CF era già validato da `@validates` su Cliente e
+      l'unicità dall'indice unique, ma nessuna delle due eccezioni era
+      intercettata nella vista: `ValueError` e `IntegrityError` uscivano dalla
+      richiesta e l'utente vedeva una **pagina 500**, non un messaggio — quindi
+      un CF sbagliato sembrava solo "non salvare". Ora tornano al form con un
+      flash "error" e i valori digitati ancora dentro.
+      ⚠️ **Altri popup di errore mancanti trovati durante il controllo** (NON
+      risolti in questa sessione, sono task a sé):
+      1. **Campi obbligatori aggirabili lato server.** `nome` e `cognome` sono
+         `nullable=False` ma il controllo è solo l'attributo HTML `required`:
+         una POST con i campi vuoti crea un cliente con stringhe vuote e nessun
+         errore (verificato: HTTP 302 e cliente creato). Manca una validazione
+         server.
+      2. **Email mai validata.** Solo `type="email"` lato browser: `"non-una-email"`
+         arriva al database e viene salvata così com'è (verificato). Non c'è
+         nessun `@validates` sulla colonna.
+      3. **Sinistri e incassi vanno in 500 su dati non numerici.** `int(f["contratto_id"])`
+         e `float(f.get("importo"))` non sono in un try: un contratto vuoto o un
+         importo non numerico danno pagina 500 senza messaggio (verificato). È
+         esattamente la stessa classe di bug del CF, sugli altri form.
+      ✅ Già a posto e lasciato com'è: la **targa non valida** mostra
+      correttamente il toast rosso (`clienti.aggiungi_veicolo` ha già try/except).
+[X] in comunicazioni mettere la x in basso a destra sui messaggi registrati con eventuale finestra di conferma, per evitare duplicati
+      Rotta `POST /messaggi/comunicazioni/<id>/elimina` + x nel macro
+      `comunicazioni_list`, con `confirm()` e `next` per tornare da dove si era
+      (la stessa comunicazione si vede da scheda cliente e da dettaglio
+      pratica). `next_url` è opzionale: la vista aggregata per codice fiscale
+      non lo passa e resta di sola consultazione.
+[X] i popup in generale devono durare come minimo 5 sec
+      `toast()`: minimo 5000 ms (prima 3500 fissi). I messaggi lunghi restano di
+      più (~60 ms per carattere) con tetto a 10s, così un errore prolisso non si
+      pianta in mezzo allo schermo.
+[X] **Form preventivo: chiarire "Compagnia scelta" vs "Compagnie consultate".**
+      Logica server NON toccata (è corretta: la riga spuntata *è* la compagnia
+      scelta). Quando una riga è spuntata "Scelta", i campi in alto passano in
+      sola lettura, sono marcati come derivati (`.is-derivato`) e una nota dice
+      da dove arriva il valore. Senza righe spuntate restano compilabili: è il
+      caso della compagnia singola. Sono `disabled` e non `readonly` perché su
+      `<select>` readonly non esiste; il campo così non viene inviato, ed è
+      giusto — a valorizzarlo pensa il server dalla riga spuntata. Salvataggio
+      verificato end-to-end.
+[X] **Form preventivo/pratica: "Lead collegato" non si aggiorna al primo
+      caricamento** → **era già risolto**, la voce era rimasta solo non spuntata.
+      Il commit c8dd7f7 aveva già aggiunto sia l'init al `DOMContentLoaded` sia
+      `initContenutoModale()`. Verificato in tutti e sei i casi (pratica e
+      preventivo × pagina piena, pannello modale, con e senza cliente
+      pre-selezionato): il lead mostrato è sempre quello del cliente selezionato.
+      ⚠️ **Ma lo stesso bug era ancora aperto sull'altro caricatore**, ed è
+      stato corretto qui: `caricaContrattiCliente` (sinistri e incassi) girava
+      solo su `onchange` e dentro il pannello modale, mai al render di una
+      pagina piena. Il menu "Contratto" restava vuoto finché non si ritoccava il
+      cliente e in modifica **la polizza già collegata non compariva affatto**.
+[X] mettere i tasti di nuovo sinistro, nuovo incasso in dettaglio contratto
+      Aprono il pannello modale con cliente E contratto già pre-selezionati. Il
+      contratto viaggia in `?contratto_id=` e finisce in `data-selected`, lo
+      stesso meccanismo che la modifica usa già: il menu resta popolato da
+      `caricaContrattiCliente()` e quindi continua a contenere solo le polizze
+      di quel cliente.
+[X] **Stato "persa" mancante per le tipologie senza emissione**
+      Spostato in `STATI_PRATICA_BASE`. Verificata la coerenza delle strutture
+      derivate: `STATI_PRATICA` resta senza duplicati, `ORDINE_STATI_PRATICA` e
+      `SCALA_AVANZAMENTO` sono invariati ("persa" non è un passo della scala e
+      non ci è mai stato), `FAMIGLIE_STATI_PRATICA` continua a coprire tutti gli
+      stati una volta sola con "persa" in "chiuse", e l'ordine del menu per le
+      tipologie con emissione non cambia.
+      Risolve di riflesso anche un caso di **perdita di dato**: riaprire il form
+      di una pratica persa senza emissione ne azzerava lo stato, perché
+      `filtraStatiPratica()` nascondeva "persa" e ripiegava sul primo stato
+      disponibile — bastava un salvataggio per perdere l'esito senza avviso.
+[X] quando si mette la voce altro nella pratica, si deve aprire anche un pannello dove scrivere la motivazione
+      Nuova colonna `pratiche.motivo_perdita_dettaglio` (Text, nullable),
+      migrazione Alembic **7026369d95aa**. Colonna dedicata e non un riuso di
+      `note`: quelle sono appunti di lavorazione, questa è il motivo della
+      perdita e va letta accanto al motivo (property `motivo_perdita_label`, usata
+      in bacheca e sul dettaglio pratica). Il campo compare solo scegliendo
+      "altro", anche al primo render. Lato server il testo si conserva solo
+      finché il motivo resta "altro": cambiando motivo descriverebbe una perdita
+      diversa da quella registrata. Migrazione verificata in upgrade
+      incrementale, downgrade + re-upgrade e catena completa da DB vuoto.
+[X] non compare in ricontattare questo mese nella bacheca, se messo nel mese corrente
+      **La causa NON era il criterio di intervallo**, che è corretto: `>= primo
+      del mese` e `< primo del mese successivo` copre tutto il mese corrente,
+      estremi inclusi. Verificato sui 36 mesi di tre anni (bisestili compresi,
+      zero errori di confine) e sui dati reali con scadenza al primo, a oggi e
+      all'ultimo giorno del mese — tutte compaiono, e il giorno precedente al
+      mese resta correttamente fuori.
+      La causa vera è la task dello stato "persa" qui sopra: per le tipologie
+      senza catena di emissione "persa" non era selezionabile, quindi quelle
+      pratiche **non potevano proprio entrare nella lista**. Corretto quello, una
+      consulenza persa con scadenza nel mese corrente compare regolarmente. In
+      `dashboard.py` è rimasto un commento che indica dove guardare, così nessuno
+      "corregge" in futuro un intervallo che è già giusto.
+[X] il tasto vedi tutti che sono in scadenze in arrivo, deve essere anche in incassi in ritardo, e in sinistri aperti
+      Aggiunto su entrambe, puntato alle liste **già filtrate**
+      (`/incassi/?stato=in_ritardo`, `/sinistri/?stato=aperti`). Per i sinistri
+      il filtro non esisteva: la card conta i non chiusi (aperto **e** in
+      perizia) mentre la lista sapeva filtrare solo per stato singolo, quindi il
+      link avrebbe mostrato meno righe del numero appena letto; aggiunta la voce
+      "aperti (non chiusi)", che è un raggruppamento e non uno stato del modello.
+      Il link delle scadenze ora apre lo scadenziario a 30 giorni invece dei 60
+      di default: era l'unico dei tre a portare a una lista più lunga del proprio
+      conteggio. Verificato che i tre conteggi coincidono con le righe mostrate.
+[X] quando si clicca per visualizzare il documento, non fa nulla
+      **Causa:** `|tojson` produce una stringa JSON fra virgolette DOPPIE e Flask
+      non le converte in entità HTML (`htmlsafe_dumps` sostituisce solo `< > & '`).
+      Dentro `onclick="..."` la prima virgoletta del nome file **chiudeva
+      l'attributo**: il browser leggeva `onclick="previewDoc(1, "` e il resto
+      diventava attributi HTML spuri. In console: *"Unexpected end of input"*,
+      e il tasto occhio non faceva niente. La rotta `/documenti/<id>/anteprima`
+      era invece a posto (200 col contenuto giusto).
+      **Fix:** attributo fra apici singoli — il caso opposto non si presenta,
+      perché `|tojson` gli apici li scrive già come `'`. Verificato nel browser
+      su PDF, file di testo e un nome con apostrofo; controllato che nessun altro
+      template usi `|tojson` dentro un attributo a virgolette doppie.
+[X] apparentemente quando si invia una comunicazione non la registra
+      **Causa:** tracciando le richieste durante un invio, l'unica POST che parte
+      dalla modale "Messaggio" è `/messaggi/destinatari`, che si limita a
+      restituire numero ed email per costruire i link; poi `inviaMessaggi()` apre
+      wa.me/mailto e finisce lì. **Nessuna rotta di quel blueprint scriveva una
+      Comunicazione**: il record non si perdeva per strada, non veniva mai
+      creato. Il modello Comunicazione è arrivato in Fase A2 e all'epoca fu
+      collegato solo alla richiesta documenti sulla pratica; la modale Messaggio,
+      più vecchia, non è mai stata agganciata.
+      **Fix:** rotta `POST /messaggi/registra`, chiamata una volta per
+      destinatario subito dopo l'apertura del link, con canale effettivamente
+      usato (whatsapp/email), recapito, testo personalizzato e data/ora. Si
+      registrano solo i destinatari davvero aperti: chi viene saltato per
+      contatto mancante non deve risultare contattato. Se la registrazione
+      fallisce lo si dice con un toast invece di tacere.
+      L'esito resta "registrato" e non "consegnato": con un link cliccabile la
+      consegna non è verificabile.
+      ⚠️ `data_invio` usa `datetime.utcnow()` come tutti i timestamp del
+      progetto, quindi **l'ora mostrata è UTC, non l'ora locale italiana**
+      (in estate due ore indietro). Vale per tutte le comunicazioni, anche quelle
+      già registrate dalla richiesta documenti: non è stato cambiato qui perché
+      è una decisione sul fuso orario che riguarda l'intero schema, non questa
+      funzione. Vedi debito tecnico in fondo.
 
 
 # Task list — CRM Assicurativo, Fase 1 (Analisi Funzionale)
@@ -250,9 +410,21 @@
 - [ ] `config.py` usa SQLite hardcoded anche in produzione: su Render il filesystem
       è effimero, i dati non persistono tra deploy. Servirebbe leggere `DATABASE_URL`
       da env per usare Postgres.
-- [ ] Bug aperto nella sezione Veicoli della scheda cliente (da specificare)
+- [X] ~~Bug aperto nella sezione Veicoli della scheda cliente (da specificare)~~
+      Era la targa stampata due volte: chiuso.
 - [ ] `avvia_crm.bat`: la logica batch non è mai stata eseguita su Windows reale
       (scritta e riletta, non testata dal vivo)
+- [ ] **Timestamp in UTC mostrati come ora locale.** Tutti i `datetime` del
+      progetto usano `datetime.utcnow()` (created_at, data_apertura,
+      `Comunicazione.data_invio`, ...) ma vengono stampati tali e quali. Sulle
+      comunicazioni si vede: l'ora dell'invio è due ore indietro rispetto
+      all'orologio italiano d'estate. Va deciso una volta per tutte se salvare
+      timezone-aware e convertire in visualizzazione: è una modifica di schema +
+      template, non del singolo punto che stampa l'ora.
+- [ ] **Validazioni senza messaggio d'errore** (dettagli nella task del codice
+      fiscale qui sopra): campi obbligatori aggirabili con una POST diretta,
+      email mai validata lato server, e `int()`/`float()` non protetti in
+      sinistri e incassi che danno pagina 500 invece di un toast.
 
 ## vecchi
 [X] Passando il mouse deve aprirsi la sidebar, non tramite un tasto

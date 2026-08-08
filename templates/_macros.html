@@ -49,8 +49,12 @@
    cancellazione del cliente — quindi si stampa sempre `cliente_label`, mai
    `cliente.nome_completo`. Le liste arrivano già ordinate dalla più recente
    (vedi Cliente.comunicazioni); `mostra_cliente` serve dove le comunicazioni
-   non sono tutte dello stesso cliente. #}
-{% macro comunicazioni_list(comunicazioni, mostra_cliente=false) %}
+   non sono tutte dello stesso cliente.
+
+   `next_url` abilita la x di eliminazione (serve a togliere i doppioni) e dice
+   dove tornare dopo. Passandolo si sceglie CHI puo' cancellare: la vista
+   aggregata per codice fiscale non lo passa e resta di sola consultazione. #}
+{% macro comunicazioni_list(comunicazioni, mostra_cliente=false, next_url=None) %}
 <div class="related-list">
   {% for com in comunicazioni %}
   <div class="related-item com-item">
@@ -62,10 +66,20 @@
       </div>
       {% if com.testo %}<div class="com-testo">{{ com.testo }}</div>{% endif %}
     </div>
-    <div style="text-align:right;white-space:nowrap">
+    <div class="com-lato">
       <span class="mono">{{ com.data_invio|data_it }}</span>
       {% if com.data_invio %}<span class="muted mono" style="font-size:11px">{{ com.data_invio.strftime('%H:%M') }}</span>{% endif %}
       {% if com.esito %}<div><span class="badge badge-{{ com.esito }}">{{ com.esito }}</span></div>{% endif %}
+      {% if next_url %}
+      {# Conferma prima di eliminare: una comunicazione e' la traccia di cosa e'
+         stato mandato, cancellarla per sbaglio non si annulla. #}
+      <form class="com-elimina" method="post"
+            action="{{ url_for('messaggi.elimina_comunicazione', com_id=com.id) }}"
+            onsubmit="return confirm('Eliminare questa comunicazione dallo storico?')">
+        <input type="hidden" name="next" value="{{ next_url }}">
+        <button class="btn-icon" title="Elimina comunicazione"><svg class="icon icon-sm"><use href="#i-x"/></svg></button>
+      </form>
+      {% endif %}
     </div>
   </div>
   {% else %}<div class="related-empty">Nessuna comunicazione registrata.</div>{% endfor %}

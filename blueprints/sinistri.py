@@ -8,6 +8,10 @@ from utils import parse_date, rendi_form
 
 bp = Blueprint("sinistri", __name__, url_prefix="/sinistri")
 
+# Valore speciale del filtro stato: "tutti i sinistri non chiusi". Non è uno
+# stato del modello, quindi vive qui e non in STATI_SINISTRO.
+FILTRO_SINISTRI_APERTI = "aperti"
+
 
 def _prossimo_numero():
     n = Sinistro.query.count() + 1
@@ -18,14 +22,21 @@ def _prossimo_numero():
 def index():
     stato = (request.args.get("stato") or "").strip()
     q = Sinistro.query
-    if stato:
+    if stato == FILTRO_SINISTRI_APERTI:
+        # "aperti" non è uno stato ma un raggruppamento: tutti i non chiusi,
+        # cioè aperto E in perizia. Serve alla bacheca, la cui card "Sinistri
+        # aperti" conta esattamente questi: senza, il "vedi tutti" avrebbe
+        # portato a una lista più corta del numero appena letto.
+        q = q.filter(Sinistro.stato != "chiuso")
+    elif stato:
         q = q.filter_by(stato=stato)
     sinistri = q.order_by(Sinistro.data_apertura.desc()).all()
     conteggi = {s: Sinistro.query.filter_by(stato=s).count() for s in STATI_SINISTRO}
     # Clienti e contratti non servono più qui: il pannello "Nuovo sinistro"
     # arriva già montato da /sinistri/nuovo?modal=1.
     return render_template("sinistri/list.html", sinistri=sinistri,
-                           stati=STATI_SINISTRO, stato_sel=stato, conteggi=conteggi)
+                           stati=STATI_SINISTRO, stato_sel=stato, conteggi=conteggi,
+                           filtro_aperti=FILTRO_SINISTRI_APERTI)
 
 
 @bp.route("/nuovo", methods=["GET", "POST"])
@@ -52,10 +63,15 @@ def form(sin_id=None):
     # /contratti/del-cliente col cliente scelto (prima elencava le polizze
     # di tutti, quindi si poteva aprire un sinistro sulla polizza di un altro).
     cliente_sel = request.args.get("cliente_id", type=int)
+    # Contratto pre-selezionato quando si arriva dal dettaglio contratto
+    # (?contratto_id=X): il menu lo riempie comunque caricaContrattiCliente(),
+    # quindi qui il valore viaggia in data-selected come nella modifica.
+    contratto_sel = request.args.get("contratto_id", type=int)
     return rendi_form(
         "sinistri/form.html", "sinistri/_campi.html",
         "Modifica sinistro" if s else "Nuovo sinistro",
         s=s, clienti=clienti, stati=STATI_SINISTRO, cliente_sel=cliente_sel,
+        contratto_sel=contratto_sel,
         form_action=url_for("sinistri.form", sin_id=sin_id) if sin_id
         else url_for("sinistri.form"),
     )

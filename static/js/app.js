@@ -47,6 +47,7 @@ function initContenutoModale() {
   scope.querySelectorAll('select[name="tipologia"]').forEach(filtraStatiPratica);
   scope.querySelectorAll('[data-cliente-pratica]').forEach(caricaCollegabiliPratica);
   scope.querySelectorAll('[data-cliente-collegato]').forEach(caricaContrattiCliente);
+  scope.querySelectorAll('[data-motivo-perdita]').forEach(aggiornaMotivoPerditaAltro);
   if (scope.querySelector('#cc-rows')) aggiornaConfrontoCompagnie();
 }
 
@@ -151,6 +152,17 @@ function filtraStatiPratica(tipoSel) {
   }
 }
 
+// --- PRATICA: motivazione libera quando il motivo di perdita è "altro" ------
+// "altro" è l'unico motivo che da solo non dice niente: senza un posto dove
+// scriverlo, la ragione della perdita si perde. Il campo resta nascosto per
+// tutti gli altri motivi, dove chiederlo sarebbe rumore.
+function aggiornaMotivoPerditaAltro(sel) {
+  const scope = sel.closest('form') || document;
+  const campo = scope.querySelector('[data-motivo-perdita-altro]');
+  if (!campo) return;
+  campo.classList.toggle('hidden', sel.value !== 'altro');
+}
+
 // --- PREVENTIVO: righe ripetibili delle compagnie consultate ----------------
 // Il subagente interpella più compagnie e ne confronta i premi: le righe si
 // aggiungono/rimuovono in pagina e vengono inviate col form (niente fetch, gli
@@ -192,6 +204,31 @@ function aggiornaConfrontoCompagnie() {
     r.classList.toggle('is-migliore', ok);
     r.querySelector('.cc-migliore').classList.toggle('hidden', !ok);
   });
+  aggiornaVincoloCompagniaScelta();
+}
+
+// "Compagnia scelta" (in alto) e la riga spuntata "Scelta" (sotto) dicono la
+// stessa cosa, e lato server vince la riga: senza segnalarlo, i campi in alto
+// sembravano modificabili e venivano poi sovrascritti al salvataggio senza che
+// si capisse perché. Qui la regola si vede: con una riga spuntata i due campi
+// passano in sola lettura e la nota spiega chi comanda.
+// Restano compilabili quando non c'è nessuna riga spuntata — il caso "compagnia
+// singola", in cui il preventivo non nasce da un confronto.
+function aggiornaVincoloCompagniaScelta() {
+  const selScelta = document.getElementById('compagnia-scelta');
+  const inpPremio = document.getElementById('premio-proposto');
+  const nota = document.getElementById('nota-compagnia-scelta');
+  if (!selScelta) return;
+  const vincolati = !!document.querySelector('#cc-rows .cc-scelta:checked');
+  // disabled e non readonly: su <select> readonly non esiste, e disabilitando
+  // non si invia il campo — è corretto, perché a valorizzarlo ci pensa il
+  // server dalla riga spuntata (vedi blueprints/preventivi.py).
+  [selScelta, inpPremio].forEach(campo => {
+    if (!campo) return;
+    campo.disabled = vincolati;
+    campo.classList.toggle('is-derivato', vincolati);
+  });
+  if (nota) nota.classList.toggle('hidden', !vincolati);
 }
 
 // Spuntare "Scelta" su una riga promuove quella compagnia: allinea subito i
@@ -212,7 +249,11 @@ document.addEventListener('click', (e) => {
 });
 document.addEventListener('change', (e) => {
   const scelta = e.target.closest('.cc-scelta');
-  if (scelta && scelta.checked) promuoviRigaCompagnia(scelta.closest('.cc-row'));
+  if (!scelta || !scelta.checked) return;
+  // Prima si allineano i campi in alto, poi li si blocca: al contrario il
+  // valore appena promosso non arriverebbe a destinazione.
+  promuoviRigaCompagnia(scelta.closest('.cc-row'));
+  aggiornaVincoloCompagniaScelta();
 });
 document.addEventListener('input', (e) => {
   const premio = e.target.closest('.cc-premio');
@@ -224,6 +265,14 @@ document.addEventListener('input', (e) => {
 });
 
 // --- TOAST ------------------------------------------------------------------
+// Durata MINIMA 5 secondi: a 3,5s un messaggio sparuto spariva prima di essere
+// letto, soprattutto quando arriva insieme a un cambio pagina (i flash del
+// server partono al DOMContentLoaded, mentre l'occhio è ancora sul contenuto).
+// I messaggi lunghi restano di più: ~60 ms per carattere, cioè il tempo di
+// leggerli. Il tetto evita che un errore prolisso resti in mezzo allo schermo.
+const TOAST_MS_MIN = 5000;
+const TOAST_MS_MAX = 10000;
+
 function toast(msg, type) {
   const tc = document.getElementById('toast-container');
   if (!tc) return;
@@ -231,7 +280,9 @@ function toast(msg, type) {
   t.className = 'toast ' + (type || 'success');
   t.textContent = msg;
   tc.appendChild(t);
-  setTimeout(() => t.remove(), 3500);
+  const durata = Math.min(TOAST_MS_MAX,
+                          Math.max(TOAST_MS_MIN, String(msg || '').length * 60));
+  setTimeout(() => t.remove(), durata);
 }
 
 // --- PIPELINE: drag & drop con persistenza sul DB ---------------------------
@@ -550,23 +601,53 @@ async function inviaMessaggi() {
   // il browser blocchi troppe schede aperte in una sola volta.
   // NB: un invio massivo reale e automatizzato richiederebbe un'integrazione
   // backend (WhatsApp Business API / email transazionale).
-  let inviati = 0;
+  let inviati = 0, nonRegistrati = 0;
   for (let i = 0; i < destinatari.length; i++) {
     const d = destinatari[i];
     const msg = testo.replace(/\{nome\}/g, d.nome || '');
-    let url = null;
+    let url = null, destinatarioReale = null;
     if (canale === 'whatsapp') {
       if (!d.wa) { toast(`${d.nome_completo}: numero WhatsApp mancante, salto.`, 'error'); continue; }
+      destinatarioReale = d.wa;
       url = `https://wa.me/${d.wa}?text=${encodeURIComponent(msg)}`;
     } else {
       if (!d.email) { toast(`${d.nome_completo}: email mancante, salto.`, 'error'); continue; }
+      destinatarioReale = d.email;
       url = `mailto:${d.email}?subject=${encodeURIComponent('Comunicazione dalla sua assicurazione')}&body=${encodeURIComponent(msg)}`;
     }
     if (i > 0 && !confirm(`Aprire il messaggio per ${d.nome_completo}? (${i + 1}/${destinatari.length})`)) break;
     window.open(url, '_blank');
     inviati++;
+    // Registrazione a storico, un destinatario alla volta e SOLO per quelli
+    // davvero aperti: chi viene saltato per contatto mancante non deve
+    // risultare contattato. Si registra il canale effettivamente usato, il
+    // recapito e il testo personalizzato — la data e l'ora le mette il server.
+    // Prima di questa chiamata la modale Messaggio non scriveva niente a
+    // sistema: i messaggi risultavano "non registrati" perché non lo erano mai
+    // stati.
+    if (!await registraComunicazione(d.id, canale, destinatarioReale, msg)) nonRegistrati++;
   }
-  if (inviati) toast(`${inviati} messaggio/i aperti in nuove schede`);
+  if (inviati) toast(`${inviati} messaggio/i aperti in nuove schede e registrati nello storico`);
+  // Non si fallisce in silenzio: se la traccia non è stata scritta va detto,
+  // altrimenti si crede di avere uno storico completo quando non lo è.
+  if (nonRegistrati) {
+    toast(`Attenzione: ${nonRegistrati} messaggio/i aperti ma NON registrati a storico`, 'error');
+  }
+}
+
+// Scrive la comunicazione nello storico. Ritorna true/false invece di lanciare:
+// il ciclo di invio deve poter proseguire coi destinatari successivi anche se
+// una registrazione fallisce.
+async function registraComunicazione(clienteId, canale, destinatario, testo) {
+  try {
+    const r = await fetch('/messaggi/registra', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cliente_id: clienteId, canale, destinatario, testo })
+    });
+    return r.ok && (await r.json()).ok === true;
+  } catch (_) {
+    return false;
+  }
 }
 
 // --- PRATICA: richiesta documenti al cliente --------------------------------
@@ -605,10 +686,16 @@ async function richiediDocumenti(e) {
 // --- INIT -------------------------------------------------------------------
 document.addEventListener('DOMContentLoaded', () => {
   if (document.querySelector('.pipeline-board')) initPipeline();
-  // Form pratica su pagina piena: i menu collegati nascono vuoti, vanno
-  // riempiti col cliente già selezionato (in modifica riseleziona i valori
-  // salvati grazie a data-selected).
+  // Form pratica e preventivo su pagina piena: i campi collegati (contratto,
+  // sinistro, veicolo e "Lead collegato") nascono vuoti e vanno riempiti col
+  // cliente già selezionato, non solo quando si cambia cliente dal menu. In
+  // modifica data-selected fa riselezionare i valori salvati.
   document.querySelectorAll('[data-cliente-pratica]').forEach(caricaCollegabiliPratica);
+  // Stessa regola per sinistri e incassi, che usano l'altro caricatore: qui
+  // mancava del tutto e il menu "Contratto" restava vuoto finché non si
+  // ritoccava il cliente. In modifica era peggio che cosmetico — la polizza
+  // già collegata non compariva e si rischiava di salvarne un'altra.
+  document.querySelectorAll('[data-cliente-collegato]').forEach(caricaContrattiCliente);
   // Ricerca rapida lato tabella (oltre al filtro SQL server-side)
   const quick = document.getElementById('quick-search');
   if (quick) {
@@ -627,6 +714,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // Form pratica a pagina piena: filtra gli stati per la tipologia già scelta.
   document.querySelectorAll('form select[name="tipologia"][data-filtra-stati]')
     .forEach(filtraStatiPratica);
+  // Motivo perdita già su "altro" (pratica in modifica): la motivazione libera
+  // deve essere visibile subito, non solo dopo aver ritoccato il menu.
+  document.querySelectorAll('[data-motivo-perdita]').forEach(aggiornaMotivoPerditaAltro);
   // Form preventivo: evidenzia subito il premio più basso fra quelli salvati.
   if (document.getElementById('cc-rows')) aggiornaConfrontoCompagnie();
 });
