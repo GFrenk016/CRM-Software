@@ -152,8 +152,16 @@
           <div class="doc-meta">{{ d.tipo or 'Altro' }} · {{ (d.size / 1024)|round|int }} KB</div>
         </div>
         <div class="table-actions">
+          {# Attributo fra APICI SINGOLI, non doppi: |tojson produce una stringa
+             JSON con le virgolette doppie e Flask non le trasforma in entita'
+             HTML (converte solo < > & '). Dentro onclick="..." la prima
+             virgoletta del nome file chiudeva l'attributo: il browser leggeva
+             onclick="previewDoc(1, " e il resto finiva come attributi spuri.
+             Risultato: "Unexpected end of input" in console e il tasto occhio
+             che non faceva niente. Con gli apici singoli il caso opposto non si
+             presenta, perche' |tojson gli apici li scrive come '. #}
           <button class="btn-icon" title="Anteprima"
-            onclick="previewDoc({{ d.id }}, {{ d.filename|tojson }}, {{ d.is_immagine|tojson }}, {{ d.is_pdf|tojson }})">
+            onclick='previewDoc({{ d.id }}, {{ d.filename|tojson }}, {{ d.is_immagine|tojson }}, {{ d.is_pdf|tojson }})'>
             <svg class="icon icon-sm"><use href="#i-eye"/></svg></button>
           <a class="btn-icon" href="{{ url_for('documenti.download', doc_id=d.id) }}" title="Scarica"><svg class="icon icon-sm"><use href="#i-download"/></svg></a>
           <form method="post" action="{{ url_for('documenti.elimina', doc_id=d.id) }}" onsubmit="return confirm('Eliminare il documento?')">
