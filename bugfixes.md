@@ -11,7 +11,17 @@
       FileReader: miniatura per le immagini, icona + nome + peso per PDF e altri
       tipi, e sparisce se si annulla la scelta. `previewDoc()`, che apre i
       documenti gia' caricati, resta com'era.
-[] in anagrafica, i filtri devono essere tutti selezionabili col dropdown, che elencano le opzioni disponibili in base ai dati che ci sono
+[X] in anagrafica, i filtri devono essere tutti selezionabili col dropdown, che elencano le opzioni disponibili in base ai dati che ci sono
+      Citta', Provincia, Professione e Anno scadenza diventano `<select>`
+      popolati con query DISTINCT lato database sui soli clienti non archiviati
+      (una tendina non deve proporre valori che darebbero zero risultati); anche
+      Stato civile ora viene dai dati invece che da una lista fissa scritta a mano.
+      In `_build_filters()` il confronto passa da `ILIKE %valore%` a uguaglianza:
+      con la tendina il valore e' esatto e scegliere "Roma" non deve piu' tirare
+      dentro "Roma Nord". Un valore selezionato ma non piu' disponibile (URL a
+      mano, o ultimo cliente archiviato) resta in lista, altrimenti il filtro
+      sparirebbe dalla tendina restando attivo. Il campo "Nome / CF / email /
+      cell." resta un input libero: li' si cerca per frammento.
 
 # Task list — CRM Assicurativo, Fase 1 (Analisi Funzionale)
 
