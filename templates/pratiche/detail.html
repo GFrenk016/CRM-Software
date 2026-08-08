@@ -73,7 +73,9 @@
     {% if p.stato == 'persa' %}
     <div class="notice notice-danger" style="margin-top:12px">
       <svg class="icon icon-sm"><use href="#i-x"/></svg>
-      <div><strong>Pratica persa.</strong> Motivo: {{ (p.motivo_perdita or '—')|replace('_',' ') }}.
+      {# motivo_perdita_label unisce motivo e motivazione libera: un "altro"
+         da solo non direbbe perché la pratica è stata persa. #}
+      <div><strong>Pratica persa.</strong> Motivo: {{ p.motivo_perdita_label or '—' }}.
         {% if p.data_scadenza_riferimento %} Scadenza polizza attuale del cliente: {{ p.data_scadenza_riferimento|data_it }} — ricontattare prima di allora.{% endif %}</div>
     </div>
     {% endif %}

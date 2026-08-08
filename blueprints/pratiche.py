@@ -235,6 +235,13 @@ def form(pratica_id=None):
             p.note = f.get("note", "").strip() or None
             # Esito negativo (compilato solo quando la pratica è "persa").
             p.motivo_perdita = f.get("motivo_perdita", "").strip() or None
+            # La motivazione libera si conserva SOLO con motivo "altro": se il
+            # motivo cambia, il testo scritto per "altro" non descrive più
+            # niente e lasciarlo lì racconterebbe una perdita diversa da quella
+            # registrata.
+            dettaglio = f.get("motivo_perdita_dettaglio", "").strip()
+            p.motivo_perdita_dettaglio = (dettaglio or None
+                                          if p.motivo_perdita == "altro" else None)
             p.data_scadenza_riferimento = parse_date(f.get("data_scadenza_riferimento"))
             db.session.commit()
             flash("Pratica salvata.", "success")

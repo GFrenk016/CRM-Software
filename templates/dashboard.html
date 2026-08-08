@@ -95,7 +95,7 @@
           <td class="mono">{{ p.cliente.codice_fiscale or '—' }}</td>
           <td class="mono">{{ p.veicolo.targa if p.veicolo else '—' }}</td>
           <td class="mono">{{ p.data_scadenza_riferimento|data_it }}</td>
-          <td>{{ (p.motivo_perdita or '—')|replace('_',' ') }}</td>
+          <td>{{ p.motivo_perdita_label or '—' }}</td>
           <td class="muted">{{ p.note or '—' }}</td>
         </tr>
         {% else %}<tr><td colspan="7"><div class="empty-state"><svg class="icon"><use href="#i-check"/></svg><h3>Nessuno da ricontattare questo mese</h3></div></td></tr>{% endfor %}

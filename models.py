@@ -893,6 +893,11 @@ class Pratica(db.Model):
     #    inserita a mano perché può stare presso un'altra compagnia e quindi NON
     #    è derivabile dai contratti in CRM. Serve alla lista "da ricontattare".
     motivo_perdita = db.Column(db.String(40))
+    #  - motivo_perdita_dettaglio: testo libero, ha senso solo con motivo
+    #    "altro". Colonna a parte e non un riuso di `note`: le note sono
+    #    appunti di lavorazione, mentre questo è il motivo per cui la pratica
+    #    è stata persa e serve leggibile accanto al motivo nelle liste.
+    motivo_perdita_dettaglio = db.Column(db.Text)
     data_scadenza_riferimento = db.Column(db.Date)
 
     # Timestamp ------------------------------------------------------------
@@ -945,6 +950,20 @@ class Pratica(db.Model):
         if value and value not in MOTIVI_PERDITA:
             raise ValueError(f"Motivo perdita non valido: {value!r}")
         return value or None
+
+    @property
+    def motivo_perdita_label(self):
+        """Motivo di perdita leggibile, con la motivazione libera se c'è.
+
+        Serve a non mostrare un nudo "altro", che da solo non dice niente: è
+        proprio il caso in cui la spiegazione sta nel testo libero.
+        """
+        if not self.motivo_perdita:
+            return ""
+        motivo = self.motivo_perdita.replace("_", " ")
+        if self.motivo_perdita_dettaglio:
+            return f"{motivo}: {self.motivo_perdita_dettaglio}"
+        return motivo
 
     @property
     def tipologia_label(self):

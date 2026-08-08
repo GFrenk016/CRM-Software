@@ -66,12 +66,22 @@
   <div class="section-title"><span class="st-left">Esito negativo (solo se persa)</span></div>
   <div class="form-row">
     <div class="form-group"><label>Motivo perdita</label>
-      <select class="form-input" name="motivo_perdita">
+      <select class="form-input" name="motivo_perdita" data-motivo-perdita
+              onchange="aggiornaMotivoPerditaAltro(this)">
         <option value="">—</option>
         {% for m in motivi_perdita %}<option value="{{ m }}" {{ 'selected' if p and p.motivo_perdita == m }}>{{ m|replace('_',' ') }}</option>{% endfor %}
       </select></div>
     <div class="form-group"><label>Scadenza polizza attuale (da ricontattare)</label>
       <input class="form-input" type="date" name="data_scadenza_riferimento" value="{{ p.data_scadenza_riferimento.isoformat() if p and p.data_scadenza_riferimento else '' }}"></div>
+  </div>
+  {# Compare solo scegliendo "altro": e' l'unico motivo che da solo non spiega
+     niente, e tenere il campo sempre a video suggerirebbe di riempirlo anche
+     quando il motivo scelto e' gia' esplicito. Lo mostra/nasconde
+     aggiornaMotivoPerditaAltro() in app.js, che gira anche al primo render. #}
+  <div class="form-group hidden" data-motivo-perdita-altro>
+    <label>Motivazione (specificare)</label>
+    <textarea class="form-input" name="motivo_perdita_dettaglio" rows="2"
+              placeholder="Perché la pratica è stata persa">{{ p.motivo_perdita_dettaglio or '' if p else '' }}</textarea>
   </div>
 
   <div class="form-actions">

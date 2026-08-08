@@ -47,6 +47,7 @@ function initContenutoModale() {
   scope.querySelectorAll('select[name="tipologia"]').forEach(filtraStatiPratica);
   scope.querySelectorAll('[data-cliente-pratica]').forEach(caricaCollegabiliPratica);
   scope.querySelectorAll('[data-cliente-collegato]').forEach(caricaContrattiCliente);
+  scope.querySelectorAll('[data-motivo-perdita]').forEach(aggiornaMotivoPerditaAltro);
   if (scope.querySelector('#cc-rows')) aggiornaConfrontoCompagnie();
 }
 
@@ -149,6 +150,17 @@ function filtraStatiPratica(tipoSel) {
     const primo = Array.from(statoSel.options).find(o => !o.disabled);
     if (primo) statoSel.value = primo.value;
   }
+}
+
+// --- PRATICA: motivazione libera quando il motivo di perdita è "altro" ------
+// "altro" è l'unico motivo che da solo non dice niente: senza un posto dove
+// scriverlo, la ragione della perdita si perde. Il campo resta nascosto per
+// tutti gli altri motivi, dove chiederlo sarebbe rumore.
+function aggiornaMotivoPerditaAltro(sel) {
+  const scope = sel.closest('form') || document;
+  const campo = scope.querySelector('[data-motivo-perdita-altro]');
+  if (!campo) return;
+  campo.classList.toggle('hidden', sel.value !== 'altro');
 }
 
 // --- PREVENTIVO: righe ripetibili delle compagnie consultate ----------------
@@ -672,6 +684,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // Form pratica a pagina piena: filtra gli stati per la tipologia già scelta.
   document.querySelectorAll('form select[name="tipologia"][data-filtra-stati]')
     .forEach(filtraStatiPratica);
+  // Motivo perdita già su "altro" (pratica in modifica): la motivazione libera
+  // deve essere visibile subito, non solo dopo aver ritoccato il menu.
+  document.querySelectorAll('[data-motivo-perdita]').forEach(aggiornaMotivoPerditaAltro);
   // Form preventivo: evidenzia subito il premio più basso fra quelli salvati.
   if (document.getElementById('cc-rows')) aggiornaConfrontoCompagnie();
 });
