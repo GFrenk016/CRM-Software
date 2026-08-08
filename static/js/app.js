@@ -601,23 +601,53 @@ async function inviaMessaggi() {
   // il browser blocchi troppe schede aperte in una sola volta.
   // NB: un invio massivo reale e automatizzato richiederebbe un'integrazione
   // backend (WhatsApp Business API / email transazionale).
-  let inviati = 0;
+  let inviati = 0, nonRegistrati = 0;
   for (let i = 0; i < destinatari.length; i++) {
     const d = destinatari[i];
     const msg = testo.replace(/\{nome\}/g, d.nome || '');
-    let url = null;
+    let url = null, destinatarioReale = null;
     if (canale === 'whatsapp') {
       if (!d.wa) { toast(`${d.nome_completo}: numero WhatsApp mancante, salto.`, 'error'); continue; }
+      destinatarioReale = d.wa;
       url = `https://wa.me/${d.wa}?text=${encodeURIComponent(msg)}`;
     } else {
       if (!d.email) { toast(`${d.nome_completo}: email mancante, salto.`, 'error'); continue; }
+      destinatarioReale = d.email;
       url = `mailto:${d.email}?subject=${encodeURIComponent('Comunicazione dalla sua assicurazione')}&body=${encodeURIComponent(msg)}`;
     }
     if (i > 0 && !confirm(`Aprire il messaggio per ${d.nome_completo}? (${i + 1}/${destinatari.length})`)) break;
     window.open(url, '_blank');
     inviati++;
+    // Registrazione a storico, un destinatario alla volta e SOLO per quelli
+    // davvero aperti: chi viene saltato per contatto mancante non deve
+    // risultare contattato. Si registra il canale effettivamente usato, il
+    // recapito e il testo personalizzato — la data e l'ora le mette il server.
+    // Prima di questa chiamata la modale Messaggio non scriveva niente a
+    // sistema: i messaggi risultavano "non registrati" perché non lo erano mai
+    // stati.
+    if (!await registraComunicazione(d.id, canale, destinatarioReale, msg)) nonRegistrati++;
   }
-  if (inviati) toast(`${inviati} messaggio/i aperti in nuove schede`);
+  if (inviati) toast(`${inviati} messaggio/i aperti in nuove schede e registrati nello storico`);
+  // Non si fallisce in silenzio: se la traccia non è stata scritta va detto,
+  // altrimenti si crede di avere uno storico completo quando non lo è.
+  if (nonRegistrati) {
+    toast(`Attenzione: ${nonRegistrati} messaggio/i aperti ma NON registrati a storico`, 'error');
+  }
+}
+
+// Scrive la comunicazione nello storico. Ritorna true/false invece di lanciare:
+// il ciclo di invio deve poter proseguire coi destinatari successivi anche se
+// una registrazione fallisce.
+async function registraComunicazione(clienteId, canale, destinatario, testo) {
+  try {
+    const r = await fetch('/messaggi/registra', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cliente_id: clienteId, canale, destinatario, testo })
+    });
+    return r.ok && (await r.json()).ok === true;
+  } catch (_) {
+    return false;
+  }
 }
 
 // --- PRATICA: richiesta documenti al cliente --------------------------------

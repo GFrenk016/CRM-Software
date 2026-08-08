@@ -14,7 +14,8 @@ import re
 from flask import Blueprint, flash, jsonify, redirect, request, url_for
 
 from extensions import db
-from models import Cliente, Comunicazione
+from models import (CANALI_COMUNICAZIONE, Cliente, Comunicazione,
+                    registra_comunicazione)
 
 bp = Blueprint("messaggi", __name__, url_prefix="/messaggi")
 
@@ -80,6 +81,41 @@ def config():
         } for c in clienti],
         templates=MESSAGGI_TEMPLATES,
     )
+
+
+@bp.route("/registra", methods=["POST"])
+def registra():
+    """Registra a storico un messaggio composto dalla modale "Messaggio".
+
+    Perché serviva: questo blueprint generava i link wa.me/mailto e finiva lì.
+    Il modello Comunicazione è arrivato dopo (Fase A2) e a usarlo fu collegata
+    solo la richiesta documenti sulla pratica, mai la modale Messaggio: i suoi
+    messaggi non venivano persi per strada, semplicemente non venivano MAI
+    scritti. Da qui l'impressione che l'invio "non registrasse".
+
+    L'invio vero resta fuori dall'app (il CRM compone, l'operatore manda): si
+    registra al momento della composizione, cioè quando il link viene aperto.
+    Per questo l'esito è "registrato" e non "consegnato" — con un link
+    cliccabile la consegna non è verificabile. Il frontend chiama questa rotta
+    una volta per destinatario effettivamente aperto, così chi viene saltato per
+    numero o email mancante non finisce nello storico come contattato.
+    """
+    payload = request.get_json(silent=True) or {}
+    canale = (payload.get("canale") or "").strip()
+    testo = (payload.get("testo") or "").strip()
+    destinatario = (payload.get("destinatario") or "").strip() or None
+    cliente = db.session.get(Cliente, payload.get("cliente_id") or 0)
+    if cliente is None:
+        return jsonify(ok=False, error="Cliente inesistente"), 404
+    # Canale validato qui e non lasciato a @validates: da lì uscirebbe un
+    # ValueError non gestito, cioè un 500 al posto di una risposta sensata.
+    if canale not in CANALI_COMUNICAZIONE:
+        return jsonify(ok=False, error="Canale non valido"), 400
+    if not testo:
+        return jsonify(ok=False, error="Nessun testo da registrare"), 400
+    com = registra_comunicazione(cliente_id=cliente.id, canale=canale,
+                                 destinatario=destinatario, testo=testo)
+    return jsonify(ok=True, id=com.id)
 
 
 @bp.route("/comunicazioni/<int:com_id>/elimina", methods=["POST"])
