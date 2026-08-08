@@ -86,7 +86,11 @@
     <div class="related-list" style="margin-top:6px">
       {% for v in c.veicoli %}
       <div class="related-item">
-        <div><span class="mono">{{ v.targa }}</span> · {{ v.descrizione if (v.marca or v.modello) else '' }}</div>
+        {# `descrizione` include gia' la targa fra parentesi: usarla accanto alla
+           targa in evidenza la stampava due volte. Qui la targa resta il dato
+           principale (mono) e accanto si mettono solo marca e modello. #}
+        <div><span class="mono">{{ v.targa }}</span>
+          {% if v.marca or v.modello %} · {{ [v.marca, v.modello]|select|join(' ') }}{% endif %}</div>
         <form method="post" action="{{ url_for('clienti.elimina_veicolo', cliente_id=c.id, veicolo_id=v.id) }}"
               onsubmit="return confirm('Eliminare questo veicolo?')">
           <button class="btn-icon" title="Elimina"><svg class="icon icon-sm"><use href="#i-trash"/></svg></button>
