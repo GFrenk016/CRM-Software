@@ -14,7 +14,7 @@
        cliente non ha senso e prima era selezionabile. #}
     <div class="form-group"><label>Contratto *</label>
       <select class="form-input" name="contratto_id" required data-contratti-cliente
-              data-selected="{{ s.contratto_id if s and s.contratto_id else '' }}">
+              data-selected="{{ s.contratto_id if s and s.contratto_id else (contratto_sel or '') }}">
       </select></div>
   </div>
   <div class="form-group"><label>Tipo sinistro</label><input class="form-input" name="tipo" value="{{ s.tipo or '' if s else '' }}" placeholder="es. Auto - Tamponamento"></div>

@@ -8,6 +8,21 @@
 {% endblock %}
 
 {% block content %}
+{# Le due cose che si aprono su una polizza esistente. Cliente e contratto
+   arrivano gia' compilati: da qui sono entrambi noti, e farli riselezionare
+   e' l'occasione per sbagliarli. Pannello modale come gli altri form, cosi'
+   non si perde il contesto della polizza che si sta guardando. #}
+<div class="client-actions">
+  <button class="btn btn-secondary btn-sm"
+          onclick="apriFormModale('{{ url_for('sinistri.form', cliente_id=c.cliente_id, contratto_id=c.id) }}')">
+    <svg class="icon icon-sm"><use href="#i-alert"/></svg> Nuovo sinistro
+  </button>
+  <button class="btn btn-secondary btn-sm"
+          onclick="apriFormModale('{{ url_for('incassi.salva', cliente_id=c.cliente_id, contratto_id=c.id) }}')">
+    <svg class="icon icon-sm"><use href="#i-wallet"/></svg> Nuovo incasso
+  </button>
+</div>
+
 <div class="card" style="max-width:820px">
   <div class="section-title" style="margin-top:0"><span class="st-left">Polizza {{ c.numero_polizza }}</span>
     <span class="badge badge-{{ c.stato }}">{{ c.stato }}</span></div>

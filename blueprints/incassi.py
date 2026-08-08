@@ -77,10 +77,14 @@ def salva(inc_id=None):
     if request.method == "GET":
         clienti = Cliente.query.order_by(Cliente.cognome).all()
         cliente_sel = request.args.get("cliente_id", type=int)
+        # Come per i sinistri: arrivando dal dettaglio contratto la polizza e'
+        # gia' nota e non ha senso farla ricercare.
+        contratto_sel = request.args.get("contratto_id", type=int)
         return rendi_form(
             "incassi/form.html", "incassi/_campi.html",
             "Modifica incasso" if inc else "Nuovo incasso",
             i=inc, clienti=clienti, cliente_sel=cliente_sel,
+            contratto_sel=contratto_sel,
             form_action=url_for("incassi.salva", inc_id=inc_id) if inc_id
             else url_for("incassi.salva"),
         )

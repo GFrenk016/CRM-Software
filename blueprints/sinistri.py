@@ -52,10 +52,15 @@ def form(sin_id=None):
     # /contratti/del-cliente col cliente scelto (prima elencava le polizze
     # di tutti, quindi si poteva aprire un sinistro sulla polizza di un altro).
     cliente_sel = request.args.get("cliente_id", type=int)
+    # Contratto pre-selezionato quando si arriva dal dettaglio contratto
+    # (?contratto_id=X): il menu lo riempie comunque caricaContrattiCliente(),
+    # quindi qui il valore viaggia in data-selected come nella modifica.
+    contratto_sel = request.args.get("contratto_id", type=int)
     return rendi_form(
         "sinistri/form.html", "sinistri/_campi.html",
         "Modifica sinistro" if s else "Nuovo sinistro",
         s=s, clienti=clienti, stati=STATI_SINISTRO, cliente_sel=cliente_sel,
+        contratto_sel=contratto_sel,
         form_action=url_for("sinistri.form", sin_id=sin_id) if sin_id
         else url_for("sinistri.form"),
     )
