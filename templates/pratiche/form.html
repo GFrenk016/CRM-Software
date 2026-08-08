@@ -46,9 +46,16 @@
   <div class="form-row">
     <div class="form-group"><label>Stato</label>
       <select class="form-input" name="stato" data-stati-pratica>{% for st in stati %}<option value="{{ st }}" {{ 'selected' if p and p.stato == st }}>{{ st|replace('_',' ') }}</option>{% endfor %}</select></div>
+    {# Default a URGENTE solo sulle pratiche NUOVE: una pratica appena aperta e'
+       lavoro da smaltire, e chi vuole declassarla lo fa in un clic. In modifica
+       vince sempre la priorita' gia' salvata, altrimenti riaprire il form
+       rialzerebbe da solo pratiche declassate a mano.
+       Non confligge con la priorita' automatica (Bersani / nuovo acquisto /
+       sostituzione veicolo, evento before_flush in models.py): quella alza a
+       urgente, questo default parte gia' da urgente. #}
     <div class="form-group"><label>Priorità</label>
       <select class="form-input" name="priorita">
-        {% for pr in priorita_opts %}<option value="{{ pr.value }}" {{ 'selected' if (p and p.priorita == pr.value) or (not p and pr.name == 'MEDIA') }}>{{ pr.label }}</option>{% endfor %}
+        {% for pr in priorita_opts %}<option value="{{ pr.value }}" {{ 'selected' if (p and p.priorita == pr.value) or (not p and pr.name == 'URGENTE') }}>{{ pr.label }}</option>{% endfor %}
       </select></div>
   </div>
   <div class="form-group"><label>Note</label><textarea class="form-input" name="note">{{ p.note or '' if p else '' }}</textarea></div>
