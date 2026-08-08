@@ -3,8 +3,15 @@
 {% block title %}Anagrafica{% endblock %}
 {% block page_title %}Anagrafica clienti{% endblock %}
 {% block actions %}
+  <button class="btn btn-secondary btn-sm" onclick="openTemplate('tpl-archiviati', true)">
+    <svg class="icon icon-sm"><use href="#i-inbox"/></svg> Archiviati
+    {% if archiviati %}<span class="badge-count">{{ archiviati|length }}</span>{% endif %}
+  </button>
   <button class="btn btn-secondary btn-sm" onclick="apriMessaggio(getSelectedClienti())">
     <svg class="icon icon-sm"><use href="#i-message"/></svg> Messaggio
+  </button>
+  <button class="btn btn-secondary btn-sm" onclick="archiviaSelezionati()">
+    <svg class="icon icon-sm"><use href="#i-archive"/></svg> Archivia
   </button>
   <button class="btn btn-primary btn-sm" onclick="openTemplate('tpl-nuovo-cliente', true)">
     <svg class="icon icon-sm"><use href="#i-plus"/></svg> Nuovo cliente
@@ -15,21 +22,40 @@
 <!-- Filtro avanzato multi-campo: tradotto in query SQL lato server -->
 <form class="filter-panel" method="get">
   <div class="filter-grid">
+    {# Unico campo rimasto libero: qui si cerca per frammento (mezzo cognome,
+       le ultime cifre del cellulare), una tendina non avrebbe senso.
+       Gli altri elencano i valori presenti fra i clienti non archiviati, così
+       non si può scegliere un filtro che dà zero risultati. #}
     <div class="form-group">
       <label>Nome / CF / email / cell.</label>
       <input class="form-input" name="nome" value="{{ filtri.nome }}" placeholder="Cerca...">
     </div>
     <div class="form-group">
       <label>Città</label>
-      <input class="form-input" name="citta" value="{{ filtri.citta }}">
+      <select class="form-input" name="citta">
+        <option value="">Tutte</option>
+        {% for v in citta %}
+        <option value="{{ v }}" {{ 'selected' if filtri.citta == v }}>{{ v }}</option>
+        {% endfor %}
+      </select>
     </div>
     <div class="form-group">
       <label>Provincia</label>
-      <input class="form-input" name="provincia" value="{{ filtri.provincia }}" maxlength="2">
+      <select class="form-input" name="provincia">
+        <option value="">Tutte</option>
+        {% for v in province %}
+        <option value="{{ v }}" {{ 'selected' if filtri.provincia == v }}>{{ v }}</option>
+        {% endfor %}
+      </select>
     </div>
     <div class="form-group">
       <label>Professione</label>
-      <input class="form-input" name="professione" value="{{ filtri.professione }}">
+      <select class="form-input" name="professione">
+        <option value="">Tutte</option>
+        {% for v in professioni %}
+        <option value="{{ v }}" {{ 'selected' if filtri.professione == v }}>{{ v }}</option>
+        {% endfor %}
+      </select>
     </div>
     <div class="form-group">
       <label>Stato civile</label>
@@ -59,7 +85,14 @@
     </div>
     <div class="form-group">
       <label>Polizza in scad. (anno)</label>
-      <input class="form-input" name="scad_anno" value="{{ filtri.scad_anno }}" placeholder="es. {{ oggi.year }}">
+      {# Solo gli anni in cui scade davvero qualcosa: gli anni "vuoti" in mezzo
+         non compaiono, perché sceglierli darebbe sempre zero risultati. #}
+      <select class="form-input" name="scad_anno">
+        <option value="">Tutti</option>
+        {% for a in anni_scadenza %}
+        <option value="{{ a }}" {{ 'selected' if filtri.scad_anno == a }}>{{ a }}</option>
+        {% endfor %}
+      </select>
     </div>
   </div>
   <div class="filter-actions">
@@ -171,4 +204,52 @@
     </form>
   </div>
 </template>
+
+<!-- Modale "Archiviati": elenco di sola consultazione dei clienti fuori
+     dall'operatività. Ogni riga porta alla scheda 360° (i dati non sono
+     cancellati, solo nascosti) e offre il ripristino, che li rimette in elenco
+     e in Pipeline. -->
+<template id="tpl-archiviati">
+  <div class="modal-header">
+    <h3>Clienti archiviati{% if archiviati %} ({{ archiviati|length }}){% endif %}</h3>
+    <button class="btn-icon" onclick="closeModal()"><svg class="icon"><use href="#i-x"/></svg></button>
+  </div>
+  <div class="modal-body">
+    {% if archiviati %}
+    <p class="muted" style="font-size:12px;margin-bottom:12px">I clienti archiviati non compaiono in Anagrafica né in Pipeline. Contratti, sinistri e incassi restano intatti.</p>
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr><th>Cliente</th><th>Codice fiscale</th><th>Archiviato il</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for a in archiviati %}
+          <tr>
+            <td class="font-bold">{{ a.nome_completo }}</td>
+            <td class="mono" style="font-size:11px">{{ a.codice_fiscale or '—' }}</td>
+            <td style="font-size:12px">{{ a.archiviato_at.strftime('%d/%m/%Y') if a.archiviato_at else '—' }}</td>
+            <td>
+              <div class="table-actions">
+                <a class="btn-icon" href="{{ url_for('clienti.detail', cliente_id=a.id) }}" title="Scheda 360°"><svg class="icon icon-sm"><use href="#i-eye"/></svg></a>
+                <form method="post" action="{{ url_for('clienti.ripristina', cliente_id=a.id) }}">
+                  <button class="btn-icon" title="Ripristina"><svg class="icon icon-sm"><use href="#i-rotate"/></svg></button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state"><svg class="icon"><use href="#i-inbox"/></svg><h3>Nessun cliente archiviato</h3>
+      <p class="muted" style="font-size:12px">Spunta uno o più clienti in elenco e usa il tasto Archivia.</p></div>
+    {% endif %}
+  </div>
+</template>
+
+<!-- Form nascosto per l'archiviazione massiva: gli id spuntati vengono
+     iniettati da archiviaSelezionati() prima del submit. Un form POST vero
+     invece di fetch, così il redirect e il messaggio flash arrivano gratis. -->
+<form id="form-archivia" method="post" action="{{ url_for('clienti.archivia') }}" class="hidden"></form>
 {% endblock %}

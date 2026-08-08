@@ -39,7 +39,6 @@
         <div class="detail-item"><label>Cliente</label><span><a href="{{ url_for('clienti.detail', cliente_id=p.cliente_id) }}">{{ p.cliente.nome_completo }}</a></span></div>
         <div class="detail-item"><label>Tipologia</label><span>{{ p.tipologia_label }}</span></div>
         <div class="detail-item"><label>Priorità</label><span class="badge badge-{{ p.priorita }}">{{ p.priorita_label }}</span></div>
-        <div class="detail-item"><label>Operatore</label><span>{{ p.operatore or '—' }}</span></div>
         <div class="detail-item"><label>Apertura</label><span class="mono">{{ p.data_apertura|data_it }}</span></div>
         <div class="detail-item"><label>Ultimo aggiornamento</label><span class="mono">{{ p.data_ultimo_aggiornamento|data_it }}</span></div>
       </div>

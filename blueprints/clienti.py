@@ -1,5 +1,5 @@
 """Anagrafica clienti: elenco con filtro multi-campo, CRUD e scheda 360°."""
-from datetime import date
+from datetime import date, datetime
 
 from flask import (Blueprint, flash, redirect, render_template, request, url_for)
 from sqlalchemy import and_
@@ -35,12 +35,17 @@ def _build_filters(args):
             Cliente.email.ilike(like),
             Cliente.cellulare.ilike(like),
         ))
+    # Città, provincia e professione arrivano da una tendina costruita sui
+    # valori realmente presenti: il valore è esatto, quindi si confronta con
+    # l'uguaglianza. Con il LIKE di prima (nato per l'input libero) scegliere
+    # "Roma" avrebbe pescato anche "Roma Nord", un risultato sbagliato e
+    # difficile da notare perché la lista sembra comunque plausibile.
     if f["citta"]:
-        conditions.append(Cliente.citta.ilike(f"%{f['citta']}%"))
+        conditions.append(Cliente.citta == f["citta"])
     if f["provincia"]:
-        conditions.append(Cliente.provincia.ilike(f["provincia"]))
+        conditions.append(Cliente.provincia == f["provincia"])
     if f["professione"]:
-        conditions.append(Cliente.professione.ilike(f"%{f['professione']}%"))
+        conditions.append(Cliente.professione == f["professione"])
     if f["stato_civile"]:
         conditions.append(Cliente.stato_civile == f["stato_civile"])
     if f["con_figli"] == "si":
@@ -65,14 +70,112 @@ def _build_filters(args):
     return q, f
 
 
+def _opzioni_distinte(colonna, selezionato=None):
+    """Valori realmente presenti in una colonna, per popolare una tendina.
+
+    DISTINCT lato database e non un set costruito in Python: servono poche
+    stringhe, caricare tutti i clienti in memoria per estrarle sarebbe
+    sproporzionato e peggiorerebbe man mano che l'anagrafica cresce.
+
+    Solo clienti non archiviati, perché l'elenco filtrato mostra solo quelli:
+    una città rimasta in tendina senza clienti visibili darebbe zero risultati
+    senza che si capisca perché.
+    """
+    righe = (db.session.query(colonna)
+             .filter(Cliente.archiviato.is_(False),
+                     colonna.isnot(None), colonna != "")
+             .distinct().all())
+    valori = sorted({r[0] for r in righe})
+    return _con_selezionato(valori, selezionato)
+
+
+def _anni_scadenza(selezionato=None):
+    """Anni distinti in cui scade almeno un contratto di un cliente attivo."""
+    # NB: strftime è specifico di SQLite, come l'estrazione mese/anno in
+    # _build_filters. È il debito tecnico già annotato in bugfixes.md
+    # (config.py con SQLite hardcoded): non risolto qui, solo segnalato.
+    anno = db.func.strftime("%Y", Contratto.data_scadenza)
+    righe = (db.session.query(anno)
+             .select_from(Contratto)
+             .join(Cliente, Contratto.cliente_id == Cliente.id)
+             .filter(Cliente.archiviato.is_(False),
+                     Contratto.data_scadenza.isnot(None))
+             .distinct().all())
+    # Anni a 4 cifre: l'ordine alfabetico coincide con quello numerico.
+    anni = sorted({r[0] for r in righe if r[0]})
+    return _con_selezionato(anni, selezionato)
+
+
+def _con_selezionato(valori, selezionato):
+    """Tiene in lista il valore filtrato anche se non è più fra i disponibili.
+
+    Capita arrivando da un URL scritto a mano (?citta=X) o se l'ultimo cliente
+    di quella città viene archiviato: senza questo la tendina tornerebbe da
+    sola su "Tutte" mentre il filtro resta applicato, e l'elenco vuoto non
+    avrebbe più una spiegazione visibile.
+    """
+    if selezionato and selezionato not in valori:
+        return sorted(valori + [selezionato])
+    return valori
+
+
 @bp.route("/")
 def index():
     q, filtri = _build_filters(request.args)
-    clienti = q.order_by(Cliente.cognome, Cliente.nome).all()
-    stati_civili = ["celibe/nubile", "coniugato", "convivente", "divorziato", "vedovo"]
+    # L'elenco operativo mostra solo i clienti attivi: gli archiviati si
+    # consultano dalla modale dedicata (tasto "Archiviati" in alto).
+    clienti = (q.filter(Cliente.archiviato.is_(False))
+               .order_by(Cliente.cognome, Cliente.nome).all())
+    archiviati = (Cliente.query.filter(Cliente.archiviato.is_(True))
+                  .order_by(Cliente.archiviato_at.desc(), Cliente.cognome).all())
+    # Tendine del pannello filtri. Anche stato civile passa da qui: la lista
+    # fissa scritta a mano proponeva voci senza nemmeno un cliente dietro.
+    citta = _opzioni_distinte(Cliente.citta, filtri["citta"])
+    province = _opzioni_distinte(Cliente.provincia, filtri["provincia"])
+    professioni = _opzioni_distinte(Cliente.professione, filtri["professione"])
+    stati_civili = _opzioni_distinte(Cliente.stato_civile, filtri["stato_civile"])
+    anni_scadenza = _anni_scadenza(filtri["scad_anno"])
     filtri_attivi = any(v for v in filtri.values())
     return render_template("clienti/list.html", clienti=clienti, filtri=filtri,
-                           stati_civili=stati_civili, filtri_attivi=filtri_attivi)
+                           archiviati=archiviati, stati_civili=stati_civili,
+                           citta=citta, province=province,
+                           professioni=professioni, anni_scadenza=anni_scadenza,
+                           filtri_attivi=filtri_attivi)
+
+
+@bp.route("/archivia", methods=["POST"])
+def archivia():
+    """Archivia i clienti spuntati nell'elenco (azione massiva).
+
+    Non tocca contratti, sinistri o incassi: è solo un flag di visibilità.
+    Idempotente: riarchiviare un cliente già archiviato non cambia nulla e non
+    ne aggiorna la data, così l'ordinamento della modale resta stabile.
+    """
+    ids = [int(i) for i in request.form.getlist("ids") if str(i).isdigit()]
+    if not ids:
+        flash("Nessun cliente selezionato.", "error")
+        return redirect(url_for("clienti.index"))
+    clienti = Cliente.query.filter(Cliente.id.in_(ids),
+                                   Cliente.archiviato.is_(False)).all()
+    for cliente in clienti:
+        cliente.archiviato = True
+        cliente.archiviato_at = datetime.utcnow()
+    db.session.commit()
+    n = len(clienti)
+    flash(f"{n} cliente archiviato." if n == 1 else f"{n} clienti archiviati.",
+          "success")
+    return redirect(url_for("clienti.index"))
+
+
+@bp.route("/<int:cliente_id>/ripristina", methods=["POST"])
+def ripristina(cliente_id):
+    """Riporta un cliente archiviato nell'elenco operativo (e in Pipeline)."""
+    cliente = Cliente.query.get_or_404(cliente_id)
+    cliente.archiviato = False
+    cliente.archiviato_at = None
+    db.session.commit()
+    flash(f"{cliente.nome_completo} ripristinato.", "success")
+    return redirect(url_for("clienti.index"))
 
 
 @bp.route("/<int:cliente_id>")

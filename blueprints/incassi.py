@@ -6,7 +6,7 @@ from flask import (Blueprint, flash, jsonify, redirect, render_template,
 
 from extensions import db
 from models import STATI_INCASSO, Cliente, Contratto, Incasso
-from utils import parse_date
+from utils import parse_date, rendi_form
 
 bp = Blueprint("incassi", __name__, url_prefix="/incassi")
 
@@ -36,14 +36,11 @@ def index():
         "in_ritardo": sum(i.importo for i in Incasso.query.filter_by(stato="in_ritardo")),
         "incassato": sum(i.importo for i in Incasso.query.filter_by(stato="incassato")),
     }
-    clienti = Cliente.query.order_by(Cliente.cognome).all()
-    contratti = Contratto.query.order_by(Contratto.numero_polizza).all()
     # Cliente pre-selezionato quando si arriva "da scheda cliente" (?cliente_id=X):
-    # la board apre in automatico la modale di nuovo incasso col cliente scelto.
+    # la board apre in automatico il pannello di nuovo incasso col cliente scelto.
     cliente_sel = request.args.get("cliente_id", type=int)
     return render_template("incassi/board.html", incassi=incassi, totali=totali,
                            stati=STATI_INCASSO, stato_sel=stato,
-                           clienti=clienti, contratti=contratti,
                            cliente_sel=cliente_sel)
 
 
@@ -67,12 +64,30 @@ def cambia_stato(inc_id):
                    if inc.data_incasso else None)
 
 
-@bp.route("/nuovo", methods=["POST"])
-@bp.route("/<int:inc_id>/modifica", methods=["POST"])
+@bp.route("/nuovo", methods=["GET", "POST"])
+@bp.route("/<int:inc_id>/modifica", methods=["GET", "POST"])
 def salva(inc_id=None):
+    """Crea o modifica un incasso. In GET mostra il form (pagina o pannello).
+
+    Prima esisteva solo il POST: il modale "Nuovo incasso" era scritto a mano
+    nella board e la modifica non aveva proprio interfaccia, pur essendoci la
+    rotta. Ora il form è uno solo e serve entrambi i casi.
+    """
+    inc = Incasso.query.get_or_404(inc_id) if inc_id else None
+    if request.method == "GET":
+        clienti = Cliente.query.order_by(Cliente.cognome).all()
+        cliente_sel = request.args.get("cliente_id", type=int)
+        return rendi_form(
+            "incassi/form.html", "incassi/_campi.html",
+            "Modifica incasso" if inc else "Nuovo incasso",
+            i=inc, clienti=clienti, cliente_sel=cliente_sel,
+            form_action=url_for("incassi.salva", inc_id=inc_id) if inc_id
+            else url_for("incassi.salva"),
+        )
+
     f = request.form
-    inc = Incasso.query.get_or_404(inc_id) if inc_id else Incasso()
-    if inc_id is None:
+    if inc is None:
+        inc = Incasso()
         db.session.add(inc)
     inc.cliente_id = int(f["cliente_id"])
     inc.contratto_id = int(f["contratto_id"])

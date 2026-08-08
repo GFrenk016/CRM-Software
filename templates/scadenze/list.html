@@ -37,7 +37,7 @@
           <td class="text-center mono">{{ k.giorni_alla_scadenza }}</td>
           <td class="text-right mono">{{ k.premio|eur }}</td>
           <td class="text-center"><span class="badge badge-{{ k.stato_scadenza }}">{{ k.stato_scadenza|replace('_',' ') }}</span></td>
-          <td><a class="btn-icon" href="{{ url_for('contratti.form', contratto_id=k.id) }}" title="Rinnova / modifica"><svg class="icon icon-sm"><use href="#i-edit"/></svg></a></td>
+          <td><button class="btn-icon" title="Rinnova / modifica" onclick="apriFormModale('{{ url_for('contratti.form', contratto_id=k.id) }}')"><svg class="icon icon-sm"><use href="#i-edit"/></svg></button></td>
         </tr>
         {% else %}<tr><td colspan="9"><div class="empty-state"><svg class="icon"><use href="#i-calendar"/></svg><h3>Nessuna scadenza nella finestra selezionata</h3></div></td></tr>{% endfor %}
       </tbody>

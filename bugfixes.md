@@ -1,3 +1,10 @@
+# Bugfixes
+
+[X] In nuova pratica, contratto/sinistro/lead collegato devono apparire solo quelli del cliente selezionato (per lead appare semplicemente e basta, mentre gli altri devono essere selezionabili), rimuovere la parte "operatore"
+[X] i tasti Nuovo Preventivo, nuovo contratto, nuovo sinistro, nuovo incasso devono aprirsi come pannello che sta sopra (gia ce l ha nuovo incasso), stessa cosa per i tasti modifica
+[] la sezione documenti deve essere piu gestibile: intanto i tasti devono essere fissi in basso a sinistra, e se il testo è lungo va accorciato con i puntini per evitare che esce fuori dal riquadratino, inoltre quando si carica si deve mostrare un anteprima
+[] in anagrafica, i filtri devono essere tutti selezionabili col dropdown, che elencano le opzioni disponibili in base ai dati che ci sono
+
 # Task list — CRM Assicurativo, Fase 1 (Analisi Funzionale)
 
 > Fonte dei requisiti: `CRM_Assicurativo_Analisi_Funzionale_Fase1.docx` (documento del cliente).

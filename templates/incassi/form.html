@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% set section = "incassi" %}
+{% block title %}{{ 'Modifica' if i else 'Nuovo' }} incasso{% endblock %}
+{% block page_title %}{{ titolo }}{% endblock %}
+
+{# I campi stanno in _campi.html, condivisi col pannello modale. #}
+{% block content %}{% include "incassi/_campi.html" %}{% endblock %}

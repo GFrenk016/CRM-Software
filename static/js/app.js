@@ -8,6 +8,9 @@ function openModal(html, large) {
   document.getElementById('modal-content').className = large ? 'modal modal-lg' : 'modal';
   document.getElementById('modal-body').innerHTML = html;
   ov.classList.remove('hidden');
+  // Il contenuto è appena entrato nel DOM: i suoi campi dinamici vanno
+  // inizializzati ora, il DOMContentLoaded della pagina è passato da un pezzo.
+  initContenutoModale();
 }
 function closeModal() {
   document.getElementById('modal-overlay').classList.add('hidden');
@@ -18,13 +21,113 @@ document.addEventListener('click', (e) => {
 });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
 
+// Apre come pannello centrale un form servito dal server (?modal=1).
+// Il form dentro il pannello è un <form> normale: al submit la pagina naviga e
+// il server fa redirect + messaggio flash come sempre. Nessuna logica di
+// salvataggio duplicata lato client.
+async function apriFormModale(url, large) {
+  const sep = url.includes('?') ? '&' : '?';
+  try {
+    const r = await fetch(`${url}${sep}modal=1`);
+    if (!r.ok) throw new Error(r.status);
+    openModal(await r.text(), large !== false);
+  } catch (_) {
+    // Se il pannello non si carica non lasciamo l'utente a mani vuote:
+    // la pagina piena esiste ancora e fa esattamente le stesse cose.
+    window.location.href = url;
+  }
+}
+
+// Rimette in funzione, sul contenuto appena iniettato, gli init che altrimenti
+// girerebbero solo al DOMContentLoaded della pagina. Gli handler delegati
+// (ricerca cliente, ecc.) funzionano da soli e non hanno bisogno di nulla.
+function initContenutoModale() {
+  const scope = document.getElementById('modal-body');
+  if (!scope) return;
+  scope.querySelectorAll('select[name="tipologia"]').forEach(filtraStatiPratica);
+  scope.querySelectorAll('[data-cliente-pratica]').forEach(caricaCollegabiliPratica);
+  scope.querySelectorAll('[data-cliente-collegato]').forEach(caricaContrattiCliente);
+  if (scope.querySelector('#cc-rows')) aggiornaConfrontoCompagnie();
+}
+
+// --- SINISTRO: contratti del solo cliente selezionato -----------------------
+async function caricaContrattiCliente(selCliente) {
+  const scope = selCliente.closest('form') || document;
+  const campo = scope.querySelector('[data-contratti-cliente]');
+  if (!campo) return;
+  let contratti = [];
+  if (selCliente.value) {
+    try {
+      const r = await fetch(`/contratti/del-cliente?cliente_id=${selCliente.value}`);
+      contratti = (await r.json()).contratti || [];
+    } catch (_) { return toast('Errore nel caricamento dei contratti', 'error'); }
+  }
+  const voluto = campo.dataset.selected || campo.value || '';
+  campo.innerHTML = '';
+  if (!contratti.length) {
+    campo.innerHTML = '<option value="">— nessun contratto per questo cliente</option>';
+  }
+  contratti.forEach(k => {
+    const o = document.createElement('option');
+    o.value = k.id; o.textContent = k.label;
+    if (String(k.id) === String(voluto)) o.selected = true;
+    campo.appendChild(o);
+  });
+  campo.dataset.selected = '';
+}
+
 // Apre un frammento HTML già presente nella pagina (es. form nascosti)
 function openTemplate(id, large) {
   const tpl = document.getElementById(id);
-  if (tpl) openModal(tpl.innerHTML, large);
-  // Il contenuto è iniettato ora: filtra subito gli stati in base alla tipologia
-  // pre-selezionata (l'onchange inline copre le modifiche successive).
-  document.querySelectorAll('#modal-body select[name="tipologia"]').forEach(filtraStatiPratica);
+  if (tpl) openModal(tpl.innerHTML, large);   // openModal chiama già gli init
+}
+
+// --- PRATICA: contratto/sinistro/veicolo filtrati sul cliente scelto --------
+// Prima i menu elencavano TUTTO il database, quindi era possibile collegare a
+// una pratica il contratto di un altro cliente. Ora si ripopolano da
+// /pratiche/collegabili a ogni cambio cliente. Il lead non è un menu: ogni
+// cliente ne ha uno solo, quindi si mostra e basta (lo collega il server).
+async function caricaCollegabiliPratica(selCliente) {
+  const scope = selCliente.closest('form') || document;
+  const campi = scope.querySelectorAll('[data-collegabile]');
+  if (!campi.length) return;
+
+  const clienteId = selCliente.value;
+  let dati = { contratti: [], sinistri: [], veicoli: [], lead: null };
+  if (clienteId) {
+    try {
+      const r = await fetch(`/pratiche/collegabili?cliente_id=${clienteId}`);
+      dati = await r.json();
+    } catch (_) {
+      return toast('Errore nel caricamento dei collegamenti', 'error');
+    }
+  }
+
+  campi.forEach(campo => {
+    const tipo = campo.dataset.collegabile;
+
+    if (tipo === 'lead') {
+      // Sola lettura: niente <select>, niente valore inviato al server.
+      campo.textContent = dati.lead ? dati.lead.label : 'Nessun lead';
+      return;
+    }
+
+    // data-selected serve in modifica: al primo caricamento riseleziona il
+    // valore già salvato, che a menu vuoto andrebbe perso.
+    const voluto = campo.dataset.selected || campo.value || '';
+    campo.innerHTML = '<option value="">—</option>';
+    (dati[tipo] || []).forEach(v => {
+      const o = document.createElement('option');
+      o.value = v.id; o.textContent = v.label;
+      if (String(v.id) === String(voluto)) o.selected = true;
+      campo.appendChild(o);
+    });
+    // Consumato: dal secondo giro in poi vince la scelta dell'utente.
+    campo.dataset.selected = '';
+    if (!campo.options.length || campo.options.length === 1) {
+      campo.options[0].textContent = '— nessuno per questo cliente';
+    }
+  });
 }
 
 // --- PRATICA: stati ammessi filtrati per tipologia --------------------------
@@ -260,6 +363,60 @@ function previewDoc(id, filename, isImg, isPdf) {
   openModal(body, true);
 }
 
+// --- ANTEPRIMA DEL FILE IN CARICAMENTO --------------------------------------
+// Diversa da previewDoc(): lì il documento è già sul server e basta puntarne
+// l'URL, qui il file esiste solo sul disco dell'utente, quindi va letto dal
+// browser con FileReader. Serve a vedere cosa si sta per caricare prima di
+// premere Carica, quando correggere costa solo un secondo clic.
+function anteprimaUpload(input) {
+  const box = document.getElementById('upload-preview');
+  if (!box) return;
+  const file = input.files && input.files[0];
+  box.innerHTML = '';
+  // Scelta annullata: via l'anteprima, altrimenti resterebbe quella del file
+  // precedente e mostrerebbe qualcosa che non verrà caricato.
+  if (!file) return box.classList.add('hidden');
+  box.classList.remove('hidden');
+
+  const media = document.createElement('div');
+  media.className = 'upload-media';
+  if (file.type.startsWith('image/')) {
+    const img = document.createElement('img');
+    img.className = 'upload-thumb';
+    img.alt = file.name;
+    // La lettura è asincrona: l'immagine è già nel DOM e si riempie dopo.
+    const reader = new FileReader();
+    reader.onload = (e) => { img.src = e.target.result; };
+    reader.readAsDataURL(file);
+    media.appendChild(img);
+  } else {
+    // PDF e affini: niente miniatura, solo l'icona del tipo file.
+    media.innerHTML = '<svg class="icon icon-lg"><use href="#i-file-text"/></svg>';
+  }
+
+  const info = document.createElement('div');
+  info.className = 'doc-info';
+  const nome = document.createElement('div');
+  nome.className = 'doc-nome';
+  // textContent e non innerHTML: il nome del file arriva dall'utente e non
+  // deve poter finire interpretato come markup.
+  nome.textContent = file.name;
+  nome.title = file.name;
+  const meta = document.createElement('div');
+  meta.className = 'doc-meta';
+  meta.textContent = pesoLeggibile(file.size);
+  info.append(nome, meta);
+  box.append(media, info);
+}
+
+// I documenti già caricati mostrano i KB (lato server), qui si passa ai MB
+// oltre il megabyte perché un allegato scelto a mano può essere molto grande
+// e "8394 KB" si legge peggio di "8.2 MB".
+function pesoLeggibile(bytes) {
+  return bytes < 1024 * 1024 ? `${Math.round(bytes / 1024)} KB`
+                             : `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 // --- DOCUMENTI: filtro per tipo (client-side, i documenti sono già in pagina) --
 function filtraDocumenti(tipo) {
   const items = document.querySelectorAll('#doc-list .related-item');
@@ -281,6 +438,27 @@ function filtraDocumenti(tipo) {
 function getSelectedClienti() {
   return Array.from(document.querySelectorAll('.sel-cliente:checked'))
     .map(cb => parseInt(cb.value));
+}
+
+// --- ARCHIVIAZIONE massiva dei clienti spuntati -----------------------------
+// Archiviare non cancella niente: il cliente esce da Anagrafica e Pipeline ma
+// contratti, sinistri e incassi restano. Per questo basta una conferma leggera
+// e non il confirm drammatico usato per le eliminazioni.
+function archiviaSelezionati() {
+  const ids = getSelectedClienti();
+  if (!ids.length) return toast('Seleziona almeno un cliente da archiviare', 'error');
+  const q = ids.length === 1 ? 'Archiviare il cliente selezionato?'
+                             : `Archiviare i ${ids.length} clienti selezionati?`;
+  if (!confirm(q + '\nI dati collegati restano, il cliente esce da elenco e Pipeline.')) return;
+
+  const form = document.getElementById('form-archivia');
+  form.innerHTML = '';
+  ids.forEach(id => {
+    const input = document.createElement('input');
+    input.type = 'hidden'; input.name = 'ids'; input.value = id;
+    form.appendChild(input);
+  });
+  form.submit();
 }
 
 let _msgTemplates = [];
@@ -427,6 +605,10 @@ async function richiediDocumenti(e) {
 // --- INIT -------------------------------------------------------------------
 document.addEventListener('DOMContentLoaded', () => {
   if (document.querySelector('.pipeline-board')) initPipeline();
+  // Form pratica su pagina piena: i menu collegati nascono vuoti, vanno
+  // riempiti col cliente già selezionato (in modifica riseleziona i valori
+  // salvati grazie a data-selected).
+  document.querySelectorAll('[data-cliente-pratica]').forEach(caricaCollegabiliPratica);
   // Ricerca rapida lato tabella (oltre al filtro SQL server-side)
   const quick = document.getElementById('quick-search');
   if (quick) {

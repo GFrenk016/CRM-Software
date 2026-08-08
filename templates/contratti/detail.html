@@ -4,7 +4,7 @@
 {% block page_title %}Dettaglio contratto{% endblock %}
 {% block actions %}
   <a class="btn btn-secondary btn-sm" href="{{ url_for('contratti.index') }}">← Elenco</a>
-  <a class="btn btn-primary btn-sm" href="{{ url_for('contratti.form', contratto_id=c.id) }}"><svg class="icon icon-sm"><use href="#i-edit"/></svg> Modifica</a>
+  <button class="btn btn-primary btn-sm" onclick="apriFormModale('{{ url_for('contratti.form', contratto_id=c.id) }}')"><svg class="icon icon-sm"><use href="#i-edit"/></svg> Modifica</button>
 {% endblock %}
 
 {% block content %}

@@ -4,10 +4,11 @@
 {% block page_title %}Pipeline vendite{% endblock %}
 
 {% block content %}
-<!-- I lead non si creano da qui: nascono automaticamente alla creazione di un
-     cliente in Anagrafica (entrano nel primo stadio). La pipeline serve solo a
-     visualizzarli e a spostarli tra gli stadi. -->
-<p class="muted" style="margin-bottom:12px;font-size:12px">Trascina le card tra le colonne per aggiornare lo stadio (salvato subito nel database). I nuovi lead si generano creando un cliente in Anagrafica.</p>
+<!-- La pipeline è uno SPECCHIO dell'Anagrafica: i lead non si creano né si
+     eliminano da qui. Nascono alla creazione di un cliente (primo stadio) e
+     spariscono quando il cliente viene eliminato dall'Anagrafica. Qui si può
+     solo spostarli tra gli stadi e aprire la scheda del cliente. -->
+<p class="muted" style="margin-bottom:12px;font-size:12px">Trascina le card tra le colonne per aggiornare lo stadio (salvato subito nel database). I lead seguono l'Anagrafica: si creano aggiungendo un cliente e spariscono eliminandolo.</p>
 <div class="pipeline-board">
   {% for stadio, colore, leads in colonne %}
   <div class="pipeline-col">
@@ -27,9 +28,12 @@
         </div>
         <div class="kc-footer" style="margin-top:4px">
           <span class="kc-meta">{{ l.giorni_nello_stadio }} gg nello stadio</span>
-          <form method="post" action="{{ url_for('pipeline.elimina', lead_id=l.id) }}" onsubmit="return confirm('Eliminare il lead?')">
-            <button class="btn-icon" title="Elimina"><svg class="icon icon-sm"><use href="#i-trash"/></svg></button>
-          </form>
+          <!-- draggable="false": il link sta dentro una card trascinabile, senza
+               questo il browser userebbe il drag nativo del link al posto del
+               drag & drop della card. -->
+          <a class="btn-icon" draggable="false"
+             href="{{ url_for('clienti.detail', cliente_id=l.cliente_id) }}"
+             title="Apri scheda cliente"><svg class="icon icon-sm"><use href="#i-users"/></svg></a>
         </div>
       </div>
       {% endfor %}

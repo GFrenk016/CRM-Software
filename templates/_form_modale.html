@@ -1,0 +1,15 @@
+{# Guscio del pannello modale: header + il form vero, che sta nel partial dei
+   campi della sezione. Non estende base.html perché questo frammento viene
+   iniettato dentro #modal-body da apriFormModale() (vedi app.js), non servito
+   come pagina.
+
+   Lo stesso partial `campi_template` è incluso anche dalla form.html a pagina
+   piena: i campi esistono in un posto solo, quindi non possono divergere fra
+   la versione a pannello e quella a pagina. #}
+<div class="modal-header">
+  <h3>{{ titolo }}</h3>
+  <button class="btn-icon" onclick="closeModal()"><svg class="icon"><use href="#i-x"/></svg></button>
+</div>
+<div class="modal-body">
+  {% include campi_template %}
+</div>

@@ -24,19 +24,21 @@
 </div>
 
 <!-- Barra azioni rapide: crea una nuova entità già collegata a questo cliente -->
+{# Tutti e quattro aprono il pannello centrale col cliente già selezionato:
+   restando sulla scheda non si perde il contesto. #}
 <div class="client-actions">
-  <a class="btn btn-secondary btn-sm" href="{{ url_for('preventivi.form', cliente_id=c.id) }}">
+  <button class="btn btn-secondary btn-sm" onclick="apriFormModale('{{ url_for('preventivi.form', cliente_id=c.id) }}')">
     <svg class="icon icon-sm"><use href="#i-file-text"/></svg> Nuovo preventivo
-  </a>
-  <a class="btn btn-secondary btn-sm" href="{{ url_for('contratti.form', cliente_id=c.id) }}">
+  </button>
+  <button class="btn btn-secondary btn-sm" onclick="apriFormModale('{{ url_for('contratti.form', cliente_id=c.id) }}')">
     <svg class="icon icon-sm"><use href="#i-shield"/></svg> Nuovo contratto
-  </a>
-  <a class="btn btn-secondary btn-sm" href="{{ url_for('sinistri.form', cliente_id=c.id) }}">
+  </button>
+  <button class="btn btn-secondary btn-sm" onclick="apriFormModale('{{ url_for('sinistri.form', cliente_id=c.id) }}')">
     <svg class="icon icon-sm"><use href="#i-alert"/></svg> Nuovo sinistro
-  </a>
-  <a class="btn btn-secondary btn-sm" href="{{ url_for('incassi.index', cliente_id=c.id) }}">
+  </button>
+  <button class="btn btn-secondary btn-sm" onclick="apriFormModale('{{ url_for('incassi.salva', cliente_id=c.id) }}')">
     <svg class="icon icon-sm"><use href="#i-wallet"/></svg> Nuovo incasso
-  </a>
+  </button>
 </div>
 
 <div class="detail-cols">
@@ -114,9 +116,13 @@
         </div>
         <div class="form-group" style="margin-bottom:8px">
           <label>File</label>
-          <input class="form-input" type="file" name="file" required>
+          <input class="form-input" type="file" name="file" required
+                 onchange="anteprimaUpload(this)">
         </div>
       </div>
+      {# Riempito da anteprimaUpload() alla scelta del file, svuotato se la
+         scelta viene annullata: parte e resta vuoto lato server. #}
+      <div class="upload-preview hidden" id="upload-preview"></div>
       <button class="btn btn-primary btn-sm"><svg class="icon icon-sm"><use href="#i-upload"/></svg> Carica</button>
     </form>
 
@@ -130,11 +136,16 @@
       </select>
     </div>
     <div class="related-list" id="doc-list" style="margin-top:6px">
+      {# .related-item resta anche qui: è la base grafica condivisa ed è il
+         selettore su cui gira filtraDocumenti(). .doc-item aggiunge solo la
+         disposizione in colonna, specifica dei documenti. #}
       {% for d in c.documenti %}
-      <div class="related-item" data-tipo="{{ d.tipo or 'Altro' }}">
-        <div>
-          <div style="font-weight:600">{{ d.filename }}</div>
-          <div class="muted" style="font-size:11px">{{ d.tipo or 'Altro' }} · {{ (d.size / 1024)|round|int }} KB</div>
+      <div class="related-item doc-item" data-tipo="{{ d.tipo or 'Altro' }}">
+        <div class="doc-info">
+          {# title: il nome è troncato con i puntini, al passaggio del mouse
+             deve restare leggibile per intero. #}
+          <div class="doc-nome" title="{{ d.filename }}">{{ d.filename }}</div>
+          <div class="doc-meta">{{ d.tipo or 'Altro' }} · {{ (d.size / 1024)|round|int }} KB</div>
         </div>
         <div class="table-actions">
           <button class="btn-icon" title="Anteprima"

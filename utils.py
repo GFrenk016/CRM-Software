@@ -34,6 +34,27 @@ def parse_date(value):
         return None
 
 
+def rendi_form(pagina_template, campi_template, titolo, **ctx):
+    """Serve lo stesso form come pagina piena o come frammento per il pannello.
+
+    Con ?modal=1 restituisce solo header + campi, da iniettare in #modal-body
+    (lo fa apriFormModale in app.js). Senza, la solita pagina che estende
+    base.html. In entrambi i casi i campi vengono dallo STESSO partial, così
+    non possono divergere: prima ogni sezione aveva il form duplicato fra la
+    pagina di modifica e il <template> del modale "nuovo", e le due copie erano
+    già fuori sincrono.
+
+    `in_modal` finisce nel contesto: serve ai campi per decidere se "Annulla"
+    chiude il pannello o torna all'elenco.
+    """
+    from flask import render_template, request
+    in_modal = request.args.get("modal") == "1"
+    ctx.update(campi_template=campi_template, titolo=titolo, in_modal=in_modal)
+    if in_modal:
+        return render_template("_form_modale.html", **ctx)
+    return render_template(pagina_template, **ctx)
+
+
 def register_template_helpers(app):
     app.jinja_env.filters["eur"] = eur
     app.jinja_env.filters["data_it"] = data_it

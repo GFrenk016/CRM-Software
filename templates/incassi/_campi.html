@@ -1,0 +1,31 @@
+{# Campi dell'incasso. Incluso sia da incassi/form.html (pagina piena) sia da
+   _form_modale.html (pannello): un solo punto di verità. #}
+<form class="{{ '' if in_modal else 'form-card' }}" method="post" action="{{ form_action }}">
+  <div class="form-row">
+    <div class="form-group"><label>Cliente *</label>
+      <select class="form-input" name="cliente_id" required data-cliente-collegato
+              onchange="caricaContrattiCliente(this)">
+        {% for c in clienti %}<option value="{{ c.id }}" {{ 'selected' if (i and i.cliente_id == c.id) or (not i and cliente_sel == c.id) }}>{{ c.nome_completo }}</option>{% endfor %}
+      </select></div>
+    {# Solo le polizze del cliente scelto: un incasso sul contratto di un altro
+       cliente falsa il registro provvigioni. #}
+    <div class="form-group"><label>Contratto *</label>
+      <select class="form-input" name="contratto_id" required data-contratti-cliente
+              data-selected="{{ i.contratto_id if i and i.contratto_id else '' }}">
+      </select></div>
+  </div>
+  <div class="form-group"><label>Descrizione</label><input class="form-input" name="descrizione" value="{{ i.descrizione or '' if i else '' }}" placeholder="es. Provvigione RC Auto"></div>
+  <div class="form-row-3">
+    <div class="form-group"><label>Importo (€)</label><input class="form-input" type="number" step="0.01" name="importo" value="{{ i.importo if i else 0 }}"></div>
+    <div class="form-group"><label>Data prevista</label><input class="form-input" type="date" name="data_prevista" value="{{ i.data_prevista.isoformat() if i and i.data_prevista else '' }}"></div>
+    <div class="form-group"><label>Data incasso</label><input class="form-input" type="date" name="data_incasso" value="{{ i.data_incasso.isoformat() if i and i.data_incasso else '' }}"></div>
+  </div>
+  <div class="form-actions">
+    {% if in_modal %}
+    <button type="button" class="btn btn-secondary" onclick="closeModal()">Annulla</button>
+    {% else %}
+    <a class="btn btn-secondary" href="{{ url_for('incassi.index') }}">Annulla</a>
+    {% endif %}
+    <button type="submit" class="btn btn-primary">Salva</button>
+  </div>
+</form>

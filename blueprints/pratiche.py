@@ -39,6 +39,20 @@ def _testo_richiesta_documenti(p):
     return testo, mancanti
 
 
+def _id_del_cliente(modello, valore, cliente_id):
+    """Accetta l'id solo se quella riga appartiene davvero al cliente.
+
+    Difesa lato server contro un collegamento incrociato: il menu nel browser è
+    già filtrato, ma basta una POST costruita a mano (o un cliente cambiato
+    dopo aver scelto il contratto) per collegare roba di un altro. In quel caso
+    restituiamo None: meglio un campo vuoto che un dato sbagliato.
+    """
+    if not valore:
+        return None
+    riga = modello.query.filter_by(id=int(valore), cliente_id=cliente_id).first()
+    return riga.id if riga else None
+
+
 @bp.route("/")
 def index():
     # Con 13 stati i chip di filtro sarebbero troppi: si filtra per FAMIGLIA di
@@ -62,18 +76,15 @@ def index():
     conteggi = {fam: sum(per_stato.get(s, 0) for s in stati)
                 for fam, stati in FAMIGLIE_STATI_PRATICA.items()}
 
-    # Dati per i <select> del modale "Nuova pratica"
+    # Per il modale "Nuova pratica" serve solo l'elenco clienti: contratti e
+    # sinistri arrivano da /pratiche/collegabili dopo la scelta del cliente.
     clienti = Cliente.query.order_by(Cliente.cognome).all()
-    lead = Lead.query.all()
-    contratti = Contratto.query.order_by(Contratto.numero_polizza).all()
-    sinistri = Sinistro.query.order_by(Sinistro.numero).all()
 
     return render_template(
         "pratiche/list.html", pratiche=pratiche, stati=STATI_PRATICA,
         famiglie=FAMIGLIE_STATI_PRATICA, label_famiglia=LABEL_FAMIGLIA_PRATICA,
         famiglia_sel=famiglia, priorita_sel=priorita, tipologia_sel=tipologia,
-        conteggi=conteggi, clienti=clienti, lead=lead, contratti=contratti,
-        sinistri=sinistri, priorita_opts=PrioritaPratica,
+        conteggi=conteggi, clienti=clienti, priorita_opts=PrioritaPratica,
         tipologia_opts=TipologiaPratica, stati_per_tipologia=STATI_PER_TIPOLOGIA,
     )
 
@@ -203,13 +214,24 @@ def form(pratica_id=None):
             else:
                 p.cliente_id = int(f["cliente_id"])
                 p.tipologia = f["tipologia"]
-            p.contratto_id = int(f["contratto_id"]) if f.get("contratto_id") else None
-            p.sinistro_id = int(f["sinistro_id"]) if f.get("sinistro_id") else None
-            p.lead_id = int(f["lead_id"]) if f.get("lead_id") else None
-            p.veicolo_id = int(f["veicolo_id"]) if f.get("veicolo_id") else None
+            # I menu sono già filtrati sul cliente lato browser, ma il filtro
+            # client-side non è una garanzia: qui ricontrolliamo che contratto,
+            # sinistro e veicolo appartengano DAVVERO al cliente della pratica.
+            # Se non è così azzeriamo il riferimento invece di salvare un
+            # collegamento incrociato tra clienti diversi.
+            p.contratto_id = _id_del_cliente(Contratto, f.get("contratto_id"),
+                                             p.cliente_id)
+            p.sinistro_id = _id_del_cliente(Sinistro, f.get("sinistro_id"),
+                                            p.cliente_id)
+            p.veicolo_id = _id_del_cliente(Veicolo, f.get("veicolo_id"),
+                                           p.cliente_id)
+            # Il lead NON si sceglie: dopo la regola "pipeline specchio
+            # dell'anagrafica" ogni cliente ne ha esattamente uno, quindi il
+            # collegamento si deriva. Il form lo mostra soltanto.
+            lead = Lead.query.filter_by(cliente_id=p.cliente_id).first()
+            p.lead_id = lead.id if lead else None
             p.stato = f.get("stato", "aperta")
             p.priorita = f.get("priorita", PrioritaPratica.MEDIA.value)
-            p.operatore = f.get("operatore", "").strip() or None
             p.note = f.get("note", "").strip() or None
             # Esito negativo (compilato solo quando la pratica è "persa").
             p.motivo_perdita = f.get("motivo_perdita", "").strip() or None
@@ -221,18 +243,55 @@ def form(pratica_id=None):
             db.session.rollback()
             flash(str(e), "error")
 
+    # Contratti, sinistri e veicoli NON si caricano più qui: i menu partono
+    # vuoti e li riempie /pratiche/collegabili quando si sceglie il cliente.
     clienti = Cliente.query.order_by(Cliente.cognome).all()
-    lead = Lead.query.all()
-    contratti = Contratto.query.order_by(Contratto.numero_polizza).all()
-    sinistri = Sinistro.query.order_by(Sinistro.numero).all()
-    veicoli = Veicolo.query.all()
     cliente_sel = request.args.get("cliente_id", type=int)
     return render_template(
-        "pratiche/form.html", p=p, clienti=clienti, lead=lead, contratti=contratti,
-        sinistri=sinistri, veicoli=veicoli, stati=STATI_PRATICA,
+        "pratiche/form.html", p=p, clienti=clienti, stati=STATI_PRATICA,
         motivi_perdita=MOTIVI_PERDITA, priorita_opts=PrioritaPratica,
         tipologia_opts=TipologiaPratica, cliente_sel=cliente_sel,
         stati_per_tipologia=STATI_PER_TIPOLOGIA,
+    )
+
+
+@bp.route("/collegabili")
+def collegabili():
+    """Entità collegabili a una pratica, filtrate sul cliente selezionato.
+
+    Serve i due form "nuova/modifica pratica": scegliendo il cliente, i menu
+    contratto/sinistro/veicolo si ripopolano con SOLO la roba sua. Prima erano
+    liste globali, quindi era possibile (e facilissimo) collegare a una pratica
+    il contratto di un altro cliente.
+
+    Il lead non è una scelta: dopo la regola "pipeline specchio dell'anagrafica"
+    ogni cliente ha un lead solo, quindi lo restituiamo come etichetta da
+    mostrare e basta — il collegamento lo fa il server da sé.
+    """
+    cliente_id = request.args.get("cliente_id", type=int)
+    if not cliente_id:
+        return jsonify(contratti=[], sinistri=[], veicoli=[], lead=None)
+
+    contratti = (Contratto.query.filter_by(cliente_id=cliente_id)
+                 .order_by(Contratto.numero_polizza).all())
+    sinistri = (Sinistro.query.filter_by(cliente_id=cliente_id)
+                .order_by(Sinistro.numero).all())
+    veicoli = (Veicolo.query.filter_by(cliente_id=cliente_id)
+               .order_by(Veicolo.targa).all())
+    lead = Lead.query.filter_by(cliente_id=cliente_id).first()
+
+    return jsonify(
+        contratti=[{"id": k.id,
+                    "label": " · ".join(x for x in (k.numero_polizza, k.ramo,
+                                                    k.compagnia.nome if k.compagnia else None) if x)}
+                   for k in contratti],
+        sinistri=[{"id": s.id, "label": f"{s.numero or 'senza numero'} · {s.stato or '—'}"}
+                  for s in sinistri],
+        veicoli=[{"id": v.id,
+                  "label": f"{v.targa} · {' '.join(x for x in (v.marca, v.modello) if x) or '—'}"}
+                 for v in veicoli],
+        lead=({"id": lead.id, "label": f"{lead.stadio} · {lead.giorni_nello_stadio} gg"}
+              if lead else None),
     )
 
 

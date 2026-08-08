@@ -313,6 +313,17 @@ class Cliente(db.Model):
     num_figli = db.Column(db.Integer, default=0)
 
     note = db.Column(db.Text)
+
+    # --- Archiviazione ------------------------------------------------------
+    # Cancellare un cliente storico è distruttivo (si perdono contratti, sinistri,
+    # incassi collegati). L'archiviazione è la via di mezzo: il cliente esce
+    # dall'elenco operativo e dalla Pipeline, ma i dati restano intatti e
+    # consultabili. Il flag NON è nullable: un cliente è archiviato o non lo è,
+    # niente terzo stato da gestire nelle query.
+    archiviato = db.Column(db.Boolean, default=False, nullable=False,
+                           server_default="0", index=True)
+    archiviato_at = db.Column(db.DateTime)
+
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -860,7 +871,8 @@ class Pratica(db.Model):
     priorita = db.Column(db.String(20),
                          default=PrioritaPratica.MEDIA.value, nullable=False)
     tipologia = db.Column(db.String(40), nullable=False)
-    operatore = db.Column(db.String(120))       # campo libero: app mono-utente
+    # Nessun campo "operatore": il CRM è mono-utente, l'operatore è sempre lo
+    # stesso. Era un campo libero da compilare a ogni pratica senza mai servire.
     note = db.Column(db.Text)
 
     # Date di passaggio di stato (nullable): lo stato è UNA colonna sola e da

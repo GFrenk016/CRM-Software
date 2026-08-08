@@ -7,7 +7,8 @@
 <form class="form-card" method="post">
   <div class="form-row">
     <div class="form-group"><label>Cliente *</label>
-      <select class="form-input" name="cliente_id" required>
+      <select class="form-input" name="cliente_id" required data-cliente-pratica
+              onchange="caricaCollegabiliPratica(this)">
         {% for c in clienti %}<option value="{{ c.id }}" {{ 'selected' if (p and p.cliente_id == c.id) or (not p and cliente_sel == c.id) }}>{{ c.nome_completo }}</option>{% endfor %}
       </select></div>
     <div class="form-group"><label>Tipologia *</label>
@@ -15,38 +16,40 @@
         {% for t in tipologia_opts %}<option value="{{ t.value }}" {{ 'selected' if p and p.tipologia == t.value }}>{{ t.label }}</option>{% endfor %}
       </select></div>
   </div>
+  {# Contratto, sinistro e veicolo partono VUOTI: li riempie
+     caricaCollegabiliPratica() interrogando /pratiche/collegabili col cliente
+     scelto, così si vede solo la roba di quel cliente. data-* dice al JS quale
+     valore riselezionare in modifica. #}
   <div class="form-row">
     <div class="form-group"><label>Contratto collegato</label>
-      <select class="form-input" name="contratto_id">
+      <select class="form-input" name="contratto_id" data-collegabile="contratti"
+              data-selected="{{ p.contratto_id if p and p.contratto_id else '' }}">
         <option value="">—</option>
-        {% for k in contratti %}<option value="{{ k.id }}" {{ 'selected' if p and p.contratto_id == k.id }}>{{ k.numero_polizza }} · {{ k.cliente.nome_completo }}</option>{% endfor %}
       </select></div>
     <div class="form-group"><label>Sinistro collegato</label>
-      <select class="form-input" name="sinistro_id">
+      <select class="form-input" name="sinistro_id" data-collegabile="sinistri"
+              data-selected="{{ p.sinistro_id if p and p.sinistro_id else '' }}">
         <option value="">—</option>
-        {% for s in sinistri %}<option value="{{ s.id }}" {{ 'selected' if p and p.sinistro_id == s.id }}>{{ s.numero }} · {{ s.cliente.nome_completo }}</option>{% endfor %}
       </select></div>
   </div>
   <div class="form-row">
+    {# Il lead non si sceglie: ogni cliente ne ha uno solo e il server lo collega
+       da sé. Qui si mostra soltanto, per far vedere a che punto è in pipeline. #}
     <div class="form-group"><label>Lead collegato</label>
-      <select class="form-input" name="lead_id">
-        <option value="">—</option>
-        {% for l in lead %}<option value="{{ l.id }}" {{ 'selected' if p and p.lead_id == l.id }}>{{ l.cliente.nome_completo }} · {{ l.stadio }}</option>{% endfor %}
-      </select></div>
+      <div class="form-static" data-collegabile="lead">—</div></div>
     <div class="form-group"><label>Veicolo (per la lista "da ricontattare")</label>
-      <select class="form-input" name="veicolo_id">
+      <select class="form-input" name="veicolo_id" data-collegabile="veicoli"
+              data-selected="{{ p.veicolo_id if p and p.veicolo_id else '' }}">
         <option value="">—</option>
-        {% for v in veicoli %}<option value="{{ v.id }}" {{ 'selected' if p and p.veicolo_id == v.id }}>{{ v.targa }} · {{ v.cliente.nome_completo }}</option>{% endfor %}
       </select></div>
   </div>
-  <div class="form-row-3">
+  <div class="form-row">
     <div class="form-group"><label>Stato</label>
       <select class="form-input" name="stato" data-stati-pratica>{% for st in stati %}<option value="{{ st }}" {{ 'selected' if p and p.stato == st }}>{{ st|replace('_',' ') }}</option>{% endfor %}</select></div>
     <div class="form-group"><label>Priorità</label>
       <select class="form-input" name="priorita">
         {% for pr in priorita_opts %}<option value="{{ pr.value }}" {{ 'selected' if (p and p.priorita == pr.value) or (not p and pr.name == 'MEDIA') }}>{{ pr.label }}</option>{% endfor %}
       </select></div>
-    <div class="form-group"><label>Operatore</label><input class="form-input" name="operatore" value="{{ p.operatore or '' if p else '' }}" placeholder="es. Marco"></div>
   </div>
   <div class="form-group"><label>Note</label><textarea class="form-input" name="note">{{ p.note or '' if p else '' }}</textarea></div>
 

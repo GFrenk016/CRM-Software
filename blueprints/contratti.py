@@ -1,9 +1,10 @@
 """Contratti attivi: polizze effettivamente emesse, distinte dai preventivi."""
-from flask import (Blueprint, flash, redirect, render_template, request, url_for)
+from flask import (Blueprint, flash, jsonify, redirect, render_template, request,
+                   url_for)
 
 from extensions import db
 from models import (STATI_CONTRATTO, Cliente, Compagnia, Contratto, Preventivo)
-from utils import parse_date
+from utils import parse_date, rendi_form
 
 bp = Blueprint("contratti", __name__, url_prefix="/contratti")
 
@@ -61,9 +62,35 @@ def form(contratto_id=None):
     preventivi = Preventivo.query.order_by(Preventivo.numero).all()
     # Cliente pre-selezionato quando si crea "da scheda cliente" (?cliente_id=X)
     cliente_sel = request.args.get("cliente_id", type=int)
-    return render_template("contratti/form.html", c=c, clienti=clienti,
-                           compagnie=compagnie, preventivi=preventivi,
-                           stati=STATI_CONTRATTO, cliente_sel=cliente_sel)
+    return rendi_form(
+        "contratti/form.html", "contratti/_campi.html",
+        "Modifica contratto" if c else "Nuovo contratto",
+        c=c, clienti=clienti, compagnie=compagnie, preventivi=preventivi,
+        stati=STATI_CONTRATTO, cliente_sel=cliente_sel,
+        form_action=url_for("contratti.form", contratto_id=contratto_id)
+        if contratto_id else url_for("contratti.form"),
+    )
+
+
+@bp.route("/del-cliente")
+def del_cliente():
+    """Contratti di un singolo cliente, in JSON.
+
+    Endpoint condiviso: lo usano il form sinistro e il form incasso, che devono
+    far scegliere una polizza DEL cliente selezionato. Prima entrambi i menu
+    elencavano tutte le polizze del database, quindi si poteva aprire un
+    sinistro (o registrare un incasso) sulla polizza di un altro cliente.
+    """
+    cliente_id = request.args.get("cliente_id", type=int)
+    if not cliente_id:
+        return jsonify(contratti=[])
+    contratti = (Contratto.query.filter_by(cliente_id=cliente_id)
+                 .order_by(Contratto.numero_polizza).all())
+    return jsonify(contratti=[
+        {"id": k.id,
+         "label": " · ".join(x for x in (k.numero_polizza, k.ramo,
+                                         k.compagnia.nome if k.compagnia else None) if x)}
+        for k in contratti])
 
 
 @bp.route("/<int:contratto_id>/elimina", methods=["POST"])

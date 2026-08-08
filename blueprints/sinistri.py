@@ -1,9 +1,10 @@
 """Sinistri: collegati a un cliente e a un contratto."""
-from flask import (Blueprint, flash, redirect, render_template, request, url_for)
+from flask import (Blueprint, flash, redirect, render_template, request,
+                   url_for)
 
 from extensions import db
 from models import STATI_SINISTRO, Cliente, Contratto, Sinistro
-from utils import parse_date
+from utils import parse_date, rendi_form
 
 bp = Blueprint("sinistri", __name__, url_prefix="/sinistri")
 
@@ -21,12 +22,10 @@ def index():
         q = q.filter_by(stato=stato)
     sinistri = q.order_by(Sinistro.data_apertura.desc()).all()
     conteggi = {s: Sinistro.query.filter_by(stato=s).count() for s in STATI_SINISTRO}
-    # Dati per i <select> del modale "Nuovo sinistro"
-    clienti = Cliente.query.order_by(Cliente.cognome).all()
-    contratti = Contratto.query.order_by(Contratto.numero_polizza).all()
+    # Clienti e contratti non servono più qui: il pannello "Nuovo sinistro"
+    # arriva già montato da /sinistri/nuovo?modal=1.
     return render_template("sinistri/list.html", sinistri=sinistri,
-                           stati=STATI_SINISTRO, stato_sel=stato, conteggi=conteggi,
-                           clienti=clienti, contratti=contratti)
+                           stati=STATI_SINISTRO, stato_sel=stato, conteggi=conteggi)
 
 
 @bp.route("/nuovo", methods=["GET", "POST"])
@@ -49,12 +48,18 @@ def form(sin_id=None):
         flash("Sinistro salvato.", "success")
         return redirect(url_for("sinistri.index"))
     clienti = Cliente.query.order_by(Cliente.cognome).all()
-    contratti = Contratto.query.order_by(Contratto.numero_polizza).all()
-    # Cliente pre-selezionato quando si crea "da scheda cliente" (?cliente_id=X)
+    # I contratti NON si caricano più qui: il menu parte vuoto e lo riempie
+    # /contratti/del-cliente col cliente scelto (prima elencava le polizze
+    # di tutti, quindi si poteva aprire un sinistro sulla polizza di un altro).
     cliente_sel = request.args.get("cliente_id", type=int)
-    return render_template("sinistri/form.html", s=s, clienti=clienti,
-                           contratti=contratti, stati=STATI_SINISTRO,
-                           cliente_sel=cliente_sel)
+    return rendi_form(
+        "sinistri/form.html", "sinistri/_campi.html",
+        "Modifica sinistro" if s else "Nuovo sinistro",
+        s=s, clienti=clienti, stati=STATI_SINISTRO, cliente_sel=cliente_sel,
+        form_action=url_for("sinistri.form", sin_id=sin_id) if sin_id
+        else url_for("sinistri.form"),
+    )
+
 
 
 @bp.route("/<int:sin_id>/elimina", methods=["POST"])

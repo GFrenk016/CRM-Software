@@ -114,6 +114,13 @@ a { color:inherit; text-decoration:none; }
   padding:5px; border-radius:6px; display:inline-flex; transition:all .15s; }
 .btn-icon:hover { color:var(--text); background:var(--surface2); }
 
+/* Contatore sul tasto "Archiviati": segnala quanti ce ne sono senza aprire la
+   modale. Nascosto dal template quando l'archivio è vuoto. */
+.badge-count { display:inline-flex; align-items:center; justify-content:center;
+  min-width:18px; height:18px; padding:0 5px; margin-left:6px; border-radius:9px;
+  background:var(--surface2); color:var(--text2); font-size:10px; font-weight:700;
+  font-family:var(--mono); }
+
 /* KPI / STAT CARDS */
 .stats-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:24px; }
 .stat-card { background:var(--surface); border:1px solid var(--border);
@@ -262,6 +269,11 @@ tbody tr:hover td { background:var(--surface2); }
 .form-input:focus { border-color:var(--primary); }
 select.form-input { cursor:pointer; }
 textarea.form-input { resize:vertical; min-height:70px; }
+/* Campo in sola lettura dentro un form: stessa altezza e allineamento di
+   .form-input, ma senza bordo, così si legge come "informazione" e non come
+   "cosa da compilare" (es. il lead collegato nella pratica). */
+.form-static { padding:8px 12px; font-size:13px; color:var(--text2);
+  background:transparent; border:1px solid transparent; }
 .checkbox-row { display:flex; align-items:center; gap:8px; }
 .checkbox-row input { width:16px; height:16px; }
 .form-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:8px;
@@ -308,6 +320,32 @@ textarea.form-input { resize:vertical; min-height:70px; }
 .com-item { align-items:flex-start; }
 .com-testo { font-size:12px; color:var(--text2); margin-top:4px;
   white-space:pre-wrap; overflow-wrap:anywhere; }
+
+/* DOCUMENTI (scheda cliente).
+   Classe a sé e non una modifica a .related-item, che è condivisa con
+   appuntamenti e comunicazioni: cambiarla lì rompeva altre due sezioni.
+   La card va in colonna così i tasti finiscono sotto, a sinistra e sempre
+   alla stessa altezza: prima stavano in fondo alla riga del nome e si
+   spostavano da una card all'altra a seconda di quanto era lungo il nome. */
+.doc-item { flex-direction:column; align-items:flex-start; gap:8px; }
+/* min-width:0 sul figlio flex: il valore automatico è la larghezza del
+   contenuto, quindi senza questo il testo non si comprime mai e l'ellissi
+   non scatta (il nome sfonda il riquadro invece di troncarsi). */
+.doc-info { min-width:0; max-width:100%; }
+.doc-nome { font-weight:600; white-space:nowrap; overflow:hidden;
+  text-overflow:ellipsis; }
+.doc-meta { font-size:11px; color:var(--text3); }
+
+/* Anteprima del file scelto nel form di upload: si vede PRIMA di premere
+   Carica, così si accorge subito di aver preso il file sbagliato. Niente a
+   che vedere con previewDoc(), che apre i documenti già sul server. */
+.upload-preview { display:flex; align-items:center; gap:10px; padding:10px;
+  margin-bottom:10px; background:var(--surface2); border:1px solid var(--border);
+  border-radius:8px; }
+.upload-media { width:56px; height:56px; flex-shrink:0; border-radius:6px;
+  background:var(--bg); color:var(--text2); overflow:hidden;
+  display:flex; align-items:center; justify-content:center; }
+.upload-thumb { width:100%; height:100%; object-fit:cover; display:block; }
 
 /* PIPELINE KANBAN */
 .pipeline-board { display:grid; grid-template-columns:repeat(6,minmax(180px,1fr));

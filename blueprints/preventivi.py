@@ -7,7 +7,7 @@ from flask import (Blueprint, flash, redirect, render_template, request, url_for
 from extensions import db
 from models import (GARANZIE, STATI_PREVENTIVO, Cliente, Compagnia, Contratto,
                     Lead, Preventivo, PreventivoCompagnia, Veicolo)
-from utils import parse_date
+from utils import parse_date, rendi_form
 
 bp = Blueprint("preventivi", __name__, url_prefix="/preventivi")
 
@@ -104,19 +104,14 @@ def index():
                                        _scadenza_riferimento(p) or date.max))
     else:
         preventivi = q.order_by(Preventivo.created_at.desc()).all()
-    # Dati per i <select> del modale "Nuovo preventivo"
-    clienti = Cliente.query.order_by(Cliente.cognome).all()
-    compagnie = Compagnia.query.order_by(Compagnia.nome).all()
-    lead = Lead.query.all()
-    veicoli = Veicolo.query.all()
+    # Il pannello "Nuovo preventivo" arriva montato da /preventivi/nuovo?modal=1,
+    # quindi qui non servono più clienti/compagnie/lead/veicoli.
     # Scadenza di riferimento per riga (derivata dai contratti attivi del
     # cliente): mostrata in colonna così l'ordinamento è leggibile.
     scadenze_rif = {p.id: _scadenza_riferimento(p) for p in preventivi}
     return render_template("preventivi/list.html", preventivi=preventivi,
                            stati=STATI_PREVENTIVO, stato_sel=stato,
-                           ordina_sel=ordina, scadenze_rif=scadenze_rif,
-                           clienti=clienti, compagnie=compagnie, lead=lead,
-                           veicoli=veicoli)
+                           ordina_sel=ordina, scadenze_rif=scadenze_rif)
 
 
 @bp.route("/nuovo", methods=["GET", "POST"])
@@ -129,9 +124,17 @@ def form(prev_id=None):
             prev = Preventivo(numero=_prossimo_numero())
             db.session.add(prev)
         prev.cliente_id = int(f["cliente_id"])
-        prev.lead_id = int(f["lead_id"]) if f.get("lead_id") else None
+        # Il lead non arriva dal form: ogni cliente ne ha uno solo (pipeline
+        # specchio dell'anagrafica), quindi lo deriviamo.
+        _lead = Lead.query.filter_by(cliente_id=prev.cliente_id).first()
+        prev.lead_id = _lead.id if _lead else None
         prev.compagnia_id = int(f["compagnia_id"]) if f.get("compagnia_id") else None
-        prev.veicolo_id = int(f["veicolo_id"]) if f.get("veicolo_id") else None
+        # Il menu è filtrato lato browser, ma qui ricontrolliamo: un veicolo di
+        # un altro cliente non deve poter finire su questo preventivo.
+        _v = (Veicolo.query.filter_by(id=int(f["veicolo_id"]),
+                                      cliente_id=prev.cliente_id).first()
+              if f.get("veicolo_id") else None)
+        prev.veicolo_id = _v.id if _v else None
         prev.oggetto = f.get("oggetto", "").strip() or None
         prev.premio_proposto = float(f.get("premio_proposto") or 0)
         prev.stato = f.get("stato", "bozza")
@@ -165,8 +168,8 @@ def form(prev_id=None):
         return redirect(url_for("preventivi.index"))
     clienti = Cliente.query.order_by(Cliente.cognome).all()
     compagnie = Compagnia.query.order_by(Compagnia.nome).all()
-    lead = Lead.query.all()
-    veicoli = Veicolo.query.all()
+    # Lead e veicoli non si caricano più qui: il lead è derivato e i veicoli
+    # arrivano da /pratiche/collegabili filtrati sul cliente scelto.
     # Cliente pre-selezionato quando si crea "da scheda cliente" (?cliente_id=X)
     cliente_sel = request.args.get("cliente_id", type=int)
     # Cross selling: altri veicoli del cliente senza copertura attiva. L'avviso
@@ -177,11 +180,16 @@ def form(prev_id=None):
         db.session.get(Cliente, cliente_sel) if cliente_sel else None)
     veicoli_scoperti = (cliente_avviso.altri_veicoli_scoperti(
         prev.veicolo_id if prev else None) if cliente_avviso else [])
-    return render_template("preventivi/form.html", p=prev, clienti=clienti,
-                           compagnie=compagnie, lead=lead, veicoli=veicoli,
-                           stati=STATI_PREVENTIVO, cliente_sel=cliente_sel,
-                           garanzie=GARANZIE, cliente_avviso=cliente_avviso,
-                           veicoli_scoperti=veicoli_scoperti)
+    return rendi_form(
+        "preventivi/form.html", "preventivi/_campi.html",
+        "Modifica preventivo" if prev else "Nuovo preventivo",
+        p=prev, clienti=clienti, compagnie=compagnie,
+        stati=STATI_PREVENTIVO, cliente_sel=cliente_sel,
+        garanzie=GARANZIE, cliente_avviso=cliente_avviso,
+        veicoli_scoperti=veicoli_scoperti,
+        form_action=url_for("preventivi.form", prev_id=prev_id) if prev_id
+        else url_for("preventivi.form"),
+    )
 
 
 @bp.route("/<int:prev_id>/converti", methods=["POST"])
