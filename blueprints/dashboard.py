@@ -101,6 +101,16 @@ def index():
 
     # 4) Da ricontattare questo mese: pratiche PERSE la cui polizza attuale
     # (data_scadenza_riferimento, inserita a mano) scade nel mese corrente.
+    #
+    # L'intervallo qui sotto NON ha errori di confine, anche se il sintomo
+    # sembrava quello: >= primo del mese e < primo del mese successivo copre
+    # tutto il mese corrente estremi inclusi, compreso il giorno di oggi e
+    # l'ultimo del mese (verificato su tutti i mesi di tre anni, bisestili
+    # compresi). Le pratiche che non comparivano erano quelle delle tipologie
+    # senza catena di emissione: fino a poco fa "persa" non era fra i loro stati
+    # selezionabili, quindi non potevano proprio entrare in questa lista. La
+    # causa stava in STATI_PRATICA_BASE (models.py), non in questo filtro: se un
+    # domani qualcosa non compare di nuovo, guardare prima di lì.
     inizio_mese = oggi.replace(day=1)
     fine_mese = (date(oggi.year + 1, 1, 1) if oggi.month == 12
                  else date(oggi.year, oggi.month + 1, 1))
