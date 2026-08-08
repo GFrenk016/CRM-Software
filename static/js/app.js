@@ -224,6 +224,14 @@ document.addEventListener('input', (e) => {
 });
 
 // --- TOAST ------------------------------------------------------------------
+// Durata MINIMA 5 secondi: a 3,5s un messaggio sparuto spariva prima di essere
+// letto, soprattutto quando arriva insieme a un cambio pagina (i flash del
+// server partono al DOMContentLoaded, mentre l'occhio è ancora sul contenuto).
+// I messaggi lunghi restano di più: ~60 ms per carattere, cioè il tempo di
+// leggerli. Il tetto evita che un errore prolisso resti in mezzo allo schermo.
+const TOAST_MS_MIN = 5000;
+const TOAST_MS_MAX = 10000;
+
 function toast(msg, type) {
   const tc = document.getElementById('toast-container');
   if (!tc) return;
@@ -231,7 +239,9 @@ function toast(msg, type) {
   t.className = 'toast ' + (type || 'success');
   t.textContent = msg;
   tc.appendChild(t);
-  setTimeout(() => t.remove(), 3500);
+  const durata = Math.min(TOAST_MS_MAX,
+                          Math.max(TOAST_MS_MIN, String(msg || '').length * 60));
+  setTimeout(() => t.remove(), durata);
 }
 
 // --- PIPELINE: drag & drop con persistenza sul DB ---------------------------
