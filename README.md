@@ -1,232 +1,396 @@
-# CRM Assicurativo — Subagente plurimandatario
+# CRM Assicurativo
 
-Gestionale mono-utente per un subagente assicurativo plurimandatario: clienti,
-lead/pipeline, **pratiche**, preventivi, contratti, scadenze/rinnovi, sinistri,
-incassi, documenti, appuntamenti e storico comunicazioni.
+Applicazione web locale per la gestione delle attività commerciali e operative di un subagente assicurativo plurimandatario.
 
-Due cicli di vita convivono:
+Il progetto centralizza anagrafiche, lead, pratiche, preventivi, contratti, scadenze, sinistri, incassi e documenti, offrendo una vista completa del rapporto con ogni cliente.
 
-- **Commerciale:** Lead → Preventivo → Contratto attivo → Scadenza/Rinnovo → Sinistro,
-  con incassi collegati ai contratti.
-- **Operativo (Pratica):** ogni richiesta del cliente diventa una pratica
-  numerata (`PR-anno-progressivo`) con tipologia, priorità e stato, e — per le
-  tipologie che arrivano davvero all'emissione — segue la catena guidata
-  documentazione → pagamento → OTP → coda emissione → emessa → certificato inviato.
+## Panoramica
 
-## Stack tecnico
+Il CRM segue l’intero ciclo di vita assicurativo:
 
-- **Backend:** Python + **Flask** (sincrono, server-rendered — più semplice da
-  mantenere di FastAPI per un'app mono-utente senza API pubblica).
-- **Database:** **SQLite** (un unico file `crm.db`) con schema relazionale vero
-  (chiavi esterne coerenti), tramite Flask-SQLAlchemy. Lo schema è gestito con
-  **Flask-Migrate** (Alembic): all'avvio l'app applica automaticamente le
-  migrazioni fino all'ultima revisione.
-- **Frontend:** template **Jinja** serviti da Flask + piccoli endpoint JSON per
-  le parti interattive (drag&drop pipeline, celle stato incassi, anteprima
-  documenti, messaggistica). Nessun build step, nessun framework JS.
-- **Documenti:** salvati su filesystem in `uploads/`, con solo il riferimento
-  nel database.
-- **Zero dipendenze cloud:** font di sistema e icone SVG inline (nessun CDN),
-  funziona anche completamente offline.
+```text
+Lead → Preventivo → Contratto → Scadenza/Rinnovo → Sinistro
+```
 
-## Come avviarlo in locale
+A questo flusso si affianca il modulo **Pratiche**, utilizzato per organizzare il lavoro operativo: raccolta documenti, appuntamenti, comunicazioni, avanzamento dell’emissione e collegamenti con clienti, veicoli, preventivi e polizze.
 
-Serve **Python 3.10+**.
+L’applicazione è progettata per un utilizzo **locale e mono-utente**. Non richiede servizi cloud, API esterne o un processo di build frontend.
+
+## Funzionalità principali
+
+### Dashboard operativa
+
+- KPI calcolati direttamente dal database
+- valore complessivo della pipeline
+- tasso di conversione dei lead
+- distribuzione per stadio e fonte
+- contratti attivi e preventivi presenti
+- scadenze nei successivi 30 giorni
+- incassi da riscuotere e pagamenti in ritardo
+- sinistri ancora aperti
+- clienti da ricontattare nel mese corrente
+
+### Anagrafica clienti
+
+- creazione, modifica, archiviazione e ripristino dei clienti
+- validazione e unicità del codice fiscale
+- gestione di recapiti, indirizzo, dati personali e professionali
+- registrazione dei veicoli con controllo del formato e unicità della targa
+- filtri combinabili su dati anagrafici, nucleo familiare e scadenze
+- scheda cliente a 360° con tutte le entità collegate
+- eliminazione controllata tramite relazioni e regole di cascade
+
+Quando viene creato un cliente, il sistema genera automaticamente il relativo lead nella pipeline. È inoltre possibile aprire contestualmente una pratica.
+
+### Pipeline commerciale
+
+- vista Kanban con drag and drop
+- stadi: nuovo, contattato, qualificato, proposta, vinto e perso
+- persistenza immediata dello spostamento nel database
+- valore stimato e prossima azione
+- conteggio dei giorni trascorsi nello stadio
+- punteggio lead deterministico basato su:
+  - completezza dell’anagrafica
+  - valore stimato
+  - avanzamento commerciale
+
+La pipeline viene mantenuta allineata all’anagrafica: ogni cliente attivo dispone di un lead, mentre i clienti archiviati vengono esclusi dalla board senza perdere lo storico.
+
+### Gestione delle pratiche
+
+- numerazione automatica nel formato `PR-ANNO-PROGRESSIVO`
+- collegamento con cliente, lead, contratto, sinistro e veicolo
+- classificazione per tipologia, priorità e stato
+- filtri per famiglia di stato
+- assegnazione automatica della priorità urgente per le lavorazioni critiche
+- flusso guidato per l’emissione della polizza
+- registrazione delle date dei principali passaggi
+- avvisi non bloccanti per operazioni fuori dalle finestre di emissione
+- verifica dei dati obbligatori in base alla tipologia di pratica
+- gestione del motivo di perdita e della futura data di ricontatto
+- checklist dei documenti attesi
+- appuntamenti e comunicazioni collegati
+- creazione di più preventivi a partire dalla stessa pratica
+
+### Preventivi e confronto compagnie
+
+- gestione degli stati: bozza, inviato, accettato e rifiutato
+- collegamento con cliente, lead, veicolo e pratica
+- confronto tra più compagnie consultate
+- registrazione di premio, garanzie e note per ciascuna compagnia
+- evidenziazione dell’offerta più conveniente
+- scelta della compagnia selezionata
+- conversione di un preventivo accettato in contratto attivo
+- mantenimento del collegamento tra preventivo e polizza generata
+
+### Contratti e scadenze
+
+- gestione di compagnia, numero di polizza, ramo, premio e stato
+- collegamento al preventivo di origine
+- vista di dettaglio con sinistri e incassi associati
+- scadenziario calcolato automaticamente dai contratti attivi
+- ordinamento e monitoraggio delle polizze prossime alla scadenza
+
+Le scadenze non vengono duplicate in una tabella separata: sono derivate dalla data di scadenza dei contratti, mantenendo un’unica fonte di verità.
+
+### Sinistri
+
+- numerazione progressiva
+- collegamento obbligatorio a cliente e contratto
+- gestione di tipologia, data di apertura, stato e importo stimato
+- monitoraggio degli stati aperto, perizia e chiuso
+
+### Incassi e provvigioni
+
+- registro visuale in stile board
+- stati: da incassare, incassato e in ritardo
+- aggiornamento dello stato senza ricaricare la pagina
+- sincronizzazione tra stato e data di incasso
+- rilevamento automatico dei pagamenti scaduti
+- riepilogo degli importi per stato
+
+### Documenti e compliance
+
+- caricamento di documenti fino a 25 MB
+- associazione del documento al cliente e, facoltativamente, a una pratica
+- anteprima di immagini e PDF
+- download ed eliminazione degli allegati
+- anteprima del file prima del caricamento
+- checklist di compliance basata sui dati e sui documenti realmente presenti
+- controllo di dati identificativi, documento d’identità, privacy e recapiti
+
+I file vengono conservati nella cartella `uploads/`; nel database sono salvati metadati e riferimenti.
+
+### Comunicazioni e appuntamenti
+
+- preparazione di messaggi WhatsApp tramite `wa.me`
+- preparazione di email tramite `mailto:`
+- selezione di uno o più destinatari
+- modelli di messaggio modificabili
+- personalizzazione del testo con il nome del cliente
+- composizione automatica delle richieste per i documenti mancanti
+- registrazione dello storico delle comunicazioni
+- gestione di appuntamenti, tipologia ed esito
+
+Il CRM prepara e apre i messaggi nell’applicazione scelta dall’utente, ma non effettua un invio automatico tramite API esterne.
+
+### Ricerca
+
+- ricerca parziale o completa per codice fiscale
+- vista aggregata in sola lettura
+- accesso immediato a pratiche, polizze, preventivi, veicoli, documenti, comunicazioni e appuntamenti del cliente
+
+## Stack tecnologico
+
+| Area | Tecnologie |
+|---|---|
+| Backend | Python, Flask |
+| Persistenza | SQLite, SQLAlchemy |
+| Migrazioni | Flask-Migrate, Alembic |
+| Frontend | Jinja, HTML, CSS, JavaScript |
+| Interazioni dinamiche | Fetch API ed endpoint JSON |
+| Server WSGI | Gunicorn |
+| Distribuzione | esecuzione locale, configurazione Render presente |
+
+L’interfaccia è server-rendered. JavaScript viene utilizzato soltanto per le funzionalità interattive, come pipeline drag and drop, modali, filtri, aggiornamento degli incassi e anteprima dei documenti.
+
+Non sono richiesti Node.js, npm o un processo di compilazione frontend.
+
+## Architettura
+
+L’applicazione utilizza il pattern **application factory** di Flask e separa i moduli tramite Blueprint.
+
+```text
+CRM-Software/
+├── app.py                 # Application factory ed entrypoint
+├── config.py              # Database, sessione e configurazione upload
+├── extensions.py          # Istanza SQLAlchemy condivisa
+├── models.py              # Modelli, relazioni e logica di dominio
+├── seed.py                # Dati dimostrativi iniziali
+├── utils.py               # Helper e filtri Jinja
+├── requirements.txt
+├── avvia_crm.bat          # Avvio assistito su Windows
+├── render.yaml            # Configurazione WSGI per Render
+│
+├── blueprints/            # Moduli applicativi Flask
+│   ├── dashboard.py
+│   ├── clienti.py
+│   ├── pipeline.py
+│   ├── pratiche.py
+│   ├── preventivi.py
+│   ├── contratti.py
+│   ├── scadenze.py
+│   ├── sinistri.py
+│   ├── incassi.py
+│   ├── compagnie.py
+│   ├── compliance.py
+│   ├── documenti.py
+│   ├── messaggi.py
+│   ├── appuntamenti.py
+│   ├── impostazioni.py
+│   └── ricerca.py
+│
+├── templates/             # Layout e viste Jinja
+├── static/
+│   ├── css/
+│   └── js/
+├── migrations/            # Migrazioni Alembic
+└── uploads/               # Allegati locali non versionati
+```
+
+## Modello dati
+
+Il database comprende le seguenti entità principali:
+
+- `Cliente`
+- `Lead`
+- `Veicolo`
+- `Pratica`
+- `ChecklistDocumento`
+- `Appuntamento`
+- `Comunicazione`
+- `Preventivo`
+- `PreventivoCompagnia`
+- `Compagnia`
+- `Contratto`
+- `Sinistro`
+- `Incasso`
+- `Documento`
+- `ImpostazioniAgenzia`
+
+Le entità sono collegate tramite chiavi esterne e relazioni SQLAlchemy. La scheda cliente utilizza queste relazioni per ricostruire l’intero storico senza duplicare i dati.
+
+Il database SQLite viene salvato nel file:
+
+```text
+crm.db
+```
+
+Lo schema è gestito tramite migrazioni Alembic, applicate automaticamente all’avvio.
+
+## Requisiti
+
+- Python 3.10 o superiore
+- `pip`
+- un browser moderno
+
+Non è richiesta alcuna variabile d’ambiente per l’avvio locale.
+
+La variabile opzionale `CRM_SECRET_KEY` permette di sostituire la chiave predefinita utilizzata da Flask per sessione e messaggi flash:
+
+```powershell
+$env:CRM_SECRET_KEY = "una-chiave-personale"
+```
+
+## Installazione e avvio
+
+Clona la repository:
 
 ```bash
-# 1. (consigliato) crea un ambiente virtuale
+git clone https://github.com/GFrenk016/CRM-Software.git
+cd CRM-Software
+```
+
+Crea un ambiente virtuale:
+
+```bash
 python -m venv .venv
-source .venv/bin/activate        # Windows: .venv\Scripts\activate
+```
 
-# 2. installa le dipendenze
+Attivalo su Windows:
+
+```powershell
+.venv\Scripts\activate
+```
+
+Oppure su macOS/Linux:
+
+```bash
+source .venv/bin/activate
+```
+
+Installa le dipendenze:
+
+```bash
 pip install -r requirements.txt
+```
 
-# 3. avvia il programma
+Avvia l’applicazione:
+
+```bash
 python app.py
 ```
 
-Al primo avvio il database `crm.db` viene creato automaticamente e popolato con
-**dati fittizi di esempio** (nessun dato reale).
+Apri quindi:
 
-Poi apri il browser su:
-
-```
+```text
 http://localhost:5000
 ```
 
-Per fermare il programma: `Ctrl+C` nel terminale.
+Al primo avvio il sistema:
 
-Su Windows c'è anche `avvia_crm.bat`, che fa gli stessi passaggi con un doppio
-clic. **Non è ancora stato provato su una macchina Windows reale**: se non
-parte, usa la procedura manuale qui sopra.
+1. crea la cartella degli allegati;
+2. genera il database SQLite;
+3. applica tutte le migrazioni disponibili;
+4. inserisce un insieme coerente di dati dimostrativi.
 
-### Ripartire da zero
+## Avvio rapido su Windows
 
-Per svuotare tutto e ricreare i dati di esempio, chiudi l'app ed elimina il file
-del database:
+È disponibile anche lo script:
 
-```bash
-rm crm.db      # Windows: del crm.db
+```text
+avvia_crm.bat
+```
+
+Lo script crea l’ambiente virtuale se necessario, installa o aggiorna le dipendenze, controlla la compatibilità del database e apre automaticamente il browser.
+
+Se rileva un database precedente all’introduzione delle migrazioni, propone di crearne una copia `crm.db.bak` prima della ricostruzione.
+
+## Ripristino dei dati dimostrativi
+
+Per ricreare il database iniziale, arresta l’applicazione ed elimina `crm.db`.
+
+Windows:
+
+```powershell
+Remove-Item crm.db
 python app.py
 ```
 
-> Se aggiorni da una versione precedente all'introduzione di Flask-Migrate,
-> elimina una volta il vecchio `crm.db` (contiene solo dati di esempio): non ha
-> la cronologia delle migrazioni e verrà ricreato aggiornato al primo avvio.
-
-### Backup
-
-Il database è **un solo file**: `crm.db`. Copiarlo ad app chiusa è un backup
-completo dei dati; per un backup davvero completo va copiata anche la cartella
-`uploads/`, che contiene gli allegati veri (nel database ci sono solo i
-riferimenti).
-
-### Modificare lo schema (migrazioni)
-
-Dopo aver cambiato i modelli in `models.py`, genera e applica la migrazione:
+macOS/Linux:
 
 ```bash
-export FLASK_APP=app.py CRM_SKIP_STARTUP_UPGRADE=1   # Windows: set ...
-flask db migrate -m "descrizione della modifica"
-flask db upgrade                                     # oppure riavvia l'app
+rm crm.db
+python app.py
 ```
 
-Prima di applicare una migrazione su un database con dati veri, **fai una copia
-di `crm.db`**.
+Il database verrà ricreato e popolato automaticamente.
 
-## Anteprima online (Render)
+## Gestione delle migrazioni
 
-`render.yaml` configura un deploy su Render (gunicorn) utile a **far vedere
-l'applicazione a distanza**. Va inteso come vetrina temporanea, non come
-installazione di lavoro:
+Dopo una modifica ai modelli, imposta le variabili necessarie e genera una nuova migrazione.
 
-- il filesystem di Render è **effimero**: a ogni nuovo deploy il database e gli
-  allegati caricati vengono persi e si riparte dai dati di esempio;
-- il server gira con orologio **UTC**, quindi le finestre orarie di emissione
-  risultano spostate rispetto all'ora italiana (vedi *Limiti noti*);
-- non c'è autenticazione: chiunque abbia il link vede tutto. Non caricarci dati
-  reali di clienti.
+PowerShell:
 
-Per un uso online vero servirebbero un database gestito (Postgres via
-`DATABASE_URL`) e uno storage esterno per gli allegati: non sono ancora previsti.
+```powershell
+$env:FLASK_APP = "app.py"
+$env:CRM_SKIP_STARTUP_UPGRADE = "1"
 
-## Struttura del progetto
-
-```
-app.py               # entrypoint (python app.py) — applica le migrazioni e fa il seed
-config.py            # configurazione (percorso DB, cartella upload, limiti)
-extensions.py        # istanza SQLAlchemy condivisa
-models.py            # schema relazionale, costanti di dominio e validazioni
-seed.py              # dati fittizi di esempio
-utils.py             # filtri Jinja (€, date), voci di sidebar, form pagina/modale
-blueprints/          # una sezione per modulo: dashboard, clienti, pipeline,
-                     #   pratiche, preventivi, contratti, scadenze, sinistri,
-                     #   incassi, compagnie, compliance, documenti, messaggi,
-                     #   appuntamenti, impostazioni, ricerca
-migrations/          # cronologia Alembic dello schema
-templates/           # base.html, _macros.html + template per ogni sezione
-static/css, static/js
-uploads/             # documenti allegati (non versionati)
-crm.db               # database SQLite (generato)
-bugfixes.md          # storico richieste, fasi, domande al cliente, debito tecnico
-collaudo_subagente.md# traccia per la prova con il cliente
+flask db migrate -m "descrizione modifica"
+flask db upgrade
 ```
 
-## Funzionalità
+macOS/Linux:
 
-**Bacheca (dashboard)**
-- Urgenze operative in evidenza — scadenze in arrivo, incassi in ritardo,
-  sinistri aperti — ciascuna con link "vedi tutti" a una lista che mostra
-  esattamente le stesse righe contate nella card.
-- Clienti **da ricontattare** ricavati dalle pratiche perse con data di
-  riferimento nel mese.
-- KPI da query reali (valore pipeline, conversione, distribuzione per stadio e
-  per fonte). Nessun valore casuale.
+```bash
+export FLASK_APP=app.py
+export CRM_SKIP_STARTUP_UPGRADE=1
 
-**Anagrafica e ricerca**
-- Scheda cliente **360°**: da un'unica pagina si vedono lead, pratiche,
-  preventivi, contratti, scadenze, sinistri, incassi, veicoli, documenti,
-  appuntamenti e storico comunicazioni.
-- Filtro avanzato multi-campo tradotto in query SQL (es. clienti *con figli* **e**
-  con *polizza in scadenza in un dato mese/anno*).
-- **Archiviazione clienti**: archiviazione anche massiva dei selezionati, elenco
-  archiviati con ripristino. Gli archiviati escono da Anagrafica e Pipeline, ma
-  i dati collegati restano.
-- **Ricerca CF**: vista aggregata a partire dal codice fiscale, con avviso di
-  **cross-selling** sui veicoli del cliente non ancora coperti da polizza.
-- Codice fiscale validato sul formato standard italiano e univoco.
+flask db migrate -m "descrizione modifica"
+flask db upgrade
+```
 
-**Pipeline**
-- Kanban con drag & drop fra gli stadi, persistito nel database.
-- Specchio dell'anagrafica: i lead nascono creando un cliente e spariscono se il
-  cliente viene eliminato o archiviato. Dalle card si apre la scheda cliente.
-- **Punteggio lead deterministico** (completezza dati + valore + stadio).
+`CRM_SKIP_STARTUP_UPGRADE` è una variabile tecnica usata durante la manutenzione dello schema; non è necessaria per il normale avvio.
 
-**Pratiche**
-- 10 tipologie (Bersani, rinnovo, nuovo acquisto, sostituzione veicolo,
-  pagamento polizza/rata, sospensione, riattivazione, consulenza, sinistro,
-  nuovo preventivo), 4 livelli di priorità.
-- Stati filtrati per tipologia: la catena di emissione compare solo dove ha
-  senso, le altre restano sugli stati generici.
-- **Avanzamento guidato** allo stato successivo, **checklist documenti** per
-  pratica e **richiesta documenti al cliente** che compone il messaggio e lo
-  registra a storico.
-- Esito negativo con **motivo di perdita** (elenco chiuso) più **motivazione
-  libera** quando si sceglie "altro", e data di riferimento per il ricontatto.
-- Collegamenti a lead, preventivo, contratto, sinistro e veicolo.
+## Gestione degli allegati
 
-**Preventivi e contratti**
-- **Compagnie consultate** su un preventivo: una riga per compagnia con premio,
-  garanzie e note, con il premio più basso evidenziato; la compagnia scelta è
-  distinta dalle altre consultate.
-- Conversione preventivo → contratto con link all'origine.
-- Dal dettaglio contratto si aprono direttamente nuovo sinistro e nuovo incasso,
-  già con cliente e polizza pre-selezionati.
+Sono supportati i seguenti formati:
 
-**Scadenziario, sinistri, incassi**
-- Scadenziario derivato automaticamente dai contratti attivi, con finestra
-  temporale selezionabile.
-- Registro incassi con celle di stato cliccabili (da incassare / incassato /
-  in ritardo).
+```text
+pdf, png, jpg, jpeg, gif, webp,
+doc, docx, xls, xlsx, txt, csv
+```
 
-**Documenti, comunicazioni, appuntamenti**
-- Upload con tipo documento, anteprima in modale (immagini e PDF) e download.
-- **Storico comunicazioni** per cliente e per pratica: ogni messaggio composto
-  dalla modale viene registrato, con canale, destinatario e testo; i doppioni si
-  possono eliminare.
-- Messaggistica **WhatsApp** (`wa.me`) ed **Email** (`mailto:`) verso più
-  clienti selezionati, con apertura sequenziale. Il CRM compone, l'invio lo fa
-  l'operatore: nessuna API a pagamento.
-- Appuntamenti con tipo (compreso **OTP**) ed esito, gestiti da scheda cliente e
-  dettaglio pratica.
+La dimensione massima prevista è di 25 MB per file.
 
-**Compagnie, compliance, impostazioni**
-- Anagrafica compagnie mandatarie.
-- Sezione compliance.
-- Impostazioni agenzia: ragione sociale, IBAN e le **due finestre giornaliere di
-  emissione**, cioè le fasce orarie in cui il subagente emette davvero le polizze
-  presso le compagnie (default 9-11 / 15-17, modificabili; lasciando vuota una
-  fascia la si disattiva). Se una pratica viene portata a "in coda emissione" o
-  "emessa" fuori da quelle fasce, il CRM mostra un avviso — **non blocca**
-  l'operazione, serve solo a ricordare che in quel momento in compagnia non si
-  emette.
+Gli allegati e il database non sono versionati da Git e devono essere inclusi nelle procedure di backup.
 
-## Limiti noti
+## Ambito e limitazioni
 
-Elenco sintetico; il dettaglio, con le domande ancora aperte per il cliente, sta
-in `bugfixes.md`.
+Il progetto è attualmente pensato come gestionale locale:
 
-- **Orari in UTC.** I timestamp sono salvati con `datetime.utcnow()` e stampati
-  senza conversione: nello storico comunicazioni l'ora appare indietro di due ore
-  d'estate (una d'inverno). Il controllo delle finestre di emissione usa invece
-  l'ora locale della macchina, quindi in locale è corretto ma su un server UTC
-  no. Va uniformato.
-- **Nessuna autenticazione**: previsto un solo utente su una sola macchina.
-- **Deploy online non pronto**: SQLite e allegati su filesystem (vedi
-  *Anteprima online*).
-- **`avvia_crm.bat` non provato** su Windows reale.
-- **Validazioni incomplete**: alcuni campi obbligatori sono aggirabili con una
-  POST diretta, l'email non è validata lato server, e importi non numerici
-  inviati fuori dal form possono dare errore 500 invece di un avviso.
-- **Elenco garanzie provvisorio** e polizze caricate a mano non collegabili a
-  una targa: il veicolo resta fra gli "scoperti" anche se assicurato.
+- non include autenticazione o gestione di più utenti;
+- non deve essere esposto direttamente su Internet nella configurazione attuale;
+- utilizza SQLite e filesystem locale per database e allegati;
+- WhatsApp ed email vengono aperti tramite link, senza invio automatico;
+- non è presente una suite di test automatici;
+- la configurazione Render inclusa richiede storage persistente e autenticazione prima di un utilizzo reale online.
+
+Per un’eventuale evoluzione multi-utente sarebbe opportuno introdurre autenticazione, autorizzazioni per ruolo, protezione CSRF, PostgreSQL, storage esterno per gli allegati e test automatici.
+
+## Aspetti tecnici rilevanti
+
+- architettura Flask modulare basata su Blueprint;
+- schema relazionale gestito tramite ORM e migrazioni versionate;
+- logica di dominio concentrata nei modelli;
+- workflow di emissione guidato e dipendente dalla tipologia di pratica;
+- validazione lato server dei principali dati assicurativi;
+- controllo dei collegamenti per impedire associazioni tra entità appartenenti a clienti diversi;
+- KPI e scadenze calcolati da dati reali;
+- aggiornamenti asincroni mirati senza dipendere da un framework frontend;
+- gestione distinta tra archiviazione non distruttiva ed eliminazione;
+- mantenimento dello storico delle comunicazioni anche in caso di eliminazione dell’anagrafica.
+
+## Autore
+
+Progetto sviluppato da [GFrenk016](https://github.com/GFrenk016).
