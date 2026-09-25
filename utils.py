@@ -69,7 +69,7 @@ def register_template_helpers(app):
             ("Anagrafica", "clienti.index", "users"),
             # Vista aggregata a partire dal codice fiscale: sta accanto
             # all'anagrafica perché è il modo alternativo di arrivare al cliente.
-            ("Ricerca CF", "ricerca.index", "search"),
+            ("Ricerca Cliente", "ricerca.index", "search"),
             ("Preventivi", "preventivi.index", "file-text"),
             ("Contratti", "contratti.index", "shield"),
             ("Scadenziario", "scadenze.index", "calendar"),
