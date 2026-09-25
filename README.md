@@ -42,6 +42,24 @@ L’applicazione è progettata per un utilizzo **locale e mono-utente**. Non ric
 
 Quando viene creato un cliente, il sistema genera automaticamente il relativo lead nella pipeline. È inoltre possibile aprire contestualmente una pratica.
 
+### Collegamento di un form esterno
+
+Il CRM espone `POST /api/richieste/` per ricevere richieste da un form ospitato altrove.
+Impostare `CRM_FORM_TOKEN` nell'ambiente del server CRM e inviare lo stesso valore
+nell'header `X-CRM-Form-Token` **dal server del sito**. Non inserire il token nel
+JavaScript visibile ai visitatori. Il sito deve inoltrare un JSON come questo:
+
+```json
+{"nome":"Mario","cognome":"Rossi","email":"mario@example.com","cellulare":"3331234567","codice_fiscale":"","messaggio":"Vorrei un preventivo RCA"}
+```
+
+Sono obbligatori nome, cognome e almeno un recapito (email o cellulare). Un
+nuovo contatto entra in Pipeline come `nuovo` con fonte `sito`; se l'email o il
+codice fiscale corrispondono a un cliente esistente, il CRM riusa il suo lead
+senza duplicarlo. La risposta contiene `cliente_id`, `codice_cliente`, `lead_id`
+e `created`. Il collegamento effettivo del sito richiede il suo codice server,
+l'URL pubblico del CRM e l'impostazione del token nell'ambiente di hosting.
+
 ### Pipeline commerciale
 
 - vista Kanban con drag and drop

@@ -10,7 +10,7 @@
     <div class="form-group" style="margin-bottom:0">
       <label>Codice fiscale, codice cliente o targa</label>
       <input class="form-input mono" name="q" value="{{ cf }}" autofocus
-             placeholder="CF, CL-000001 o targa" autocomplete="off">
+             placeholder="CF, CL-0001 o targa" autocomplete="off">
     </div>
     <div class="form-group" style="margin-bottom:0;justify-content:flex-end">
       <button class="btn btn-primary"><svg class="icon icon-sm"><use href="#i-search"/></svg> Cerca</button>
@@ -47,7 +47,7 @@
   <div class="related-item">
     <div><a href="{{ url_for('ricerca.index', cliente_id=r.id, cf=cf) }}"><strong>{{ r.nome_completo }}</strong></a>
       <span class="muted" style="font-size:12px"> · {{ r.citta or '—' }}</span></div>
-    <div class="mono">{{ r.codice_cliente }} · {{ r.codice_fiscale or "—" }}{% for collegato in r.clienti_collegati %}<br>Collegato: {{ collegato.codice_cliente }}{% endfor %}</div>
+    <div class="mono">{{ r.codice_cliente }} · {{ r.codice_fiscale or "—" }}{% for collegato, rapporto in r.relazioni_dettaglio %}<br>{{ collegato.codice_cliente }} · {{ rapporto or 'Relazione da definire' }}{% endfor %}</div>
   </div>
   {% endfor %}
 </div>
@@ -68,7 +68,7 @@
 
 <div class="card" style="margin-bottom:16px">
   <div class="detail-grid">
-    <div class="detail-item"><label>Clienti collegati</label><span>{% for r in cliente.clienti_collegati %}<a href="{{ url_for('ricerca.index', cliente_id=r.id) }}">{{ r.codice_cliente }} {{ r.nome_completo }}</a>{% if not loop.last %}, {% endif %}{% else %}—{% endfor %}</span></div>
+    <div class="detail-item"><label>Clienti collegati</label><span>{% for r, rapporto in cliente.relazioni_dettaglio %}<a href="{{ url_for('ricerca.index', cliente_id=r.id) }}">{{ r.codice_cliente }} {{ r.nome_completo }}</a> ({{ rapporto or 'da definire' }}){% if not loop.last %}, {% endif %}{% else %}—{% endfor %}</span></div>
     <div class="detail-item"><label>Nato il</label><span>{{ cliente.data_nascita|data_it }}</span></div>
     <div class="detail-item"><label>Cellulare</label><span>{{ cliente.cellulare or cliente.telefono or '—' }}</span></div>
     <div class="detail-item"><label>Email</label><span>{{ cliente.email or '—' }}</span></div>

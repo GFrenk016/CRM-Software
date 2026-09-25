@@ -4,6 +4,19 @@ Questo documento riporta le modifiche effettivamente entrate nel branch `main`, 
 
 > **Nota sulla data richiesta:** un mese esatto prima del 22 settembre 2026 è il **22 agosto 2026**, ma in quella data non risultano commit. Il blocco funzionale più vicino precedente è stato integrato l'**8 agosto 2026**. Il commit successivo, del **1° settembre 2026**, aggiorna soltanto il README.
 
+## 25 settembre 2026 — Rifiniture della scheda cliente e ingresso richieste
+
+- Il codice cliente viene mostrato nell'anagrafica e usa il formato `CL-0001` (lo stesso ID, con quattro cifre minime).
+- I collegamenti tra clienti possono indicare il rapporto nelle due direzioni, per esempio “figlia” dalla scheda della madre e “madre” dalla scheda della figlia. I legami preesistenti restano visibili e possono essere completati.
+- “Convivenza” è sostituita nel modulo da “Nucleo familiare”; la precedente spunta positiva viene conservata come indicazione storica senza inventare la composizione della famiglia.
+- La data di inserimento e i contatti principali compaiono in un riquadro compatto della scheda cliente.
+- “Nuovo cliente” e “Modifica” aprono lo stesso modulo in sovraimpressione, mantenendo la versione a pagina intera come alternativa.
+- L'anteprima di PDF e immagini prima del caricamento compare anche nei documenti generali e resta di dimensioni ridotte nei form di allegato.
+- Aggiunto `POST /api/richieste/` per creare cliente e lead da un form esterno tramite un token server-to-server. Il sito esterno e il token di hosting devono ancora essere configurati.
+- Migrazione Alembic `f7105a924edd` per nucleo familiare e descrizione inversa dei legami.
+
+---
+
 ## 25 settembre 2026 — Ricerca, allegati e nuove sezioni della scheda cliente
 
 ### Ricerca clienti
@@ -296,4 +309,3 @@ Per evitare di confondere diagnosi e modifiche realmente consegnate, queste voci
 - persistenza di produzione ancora legata a SQLite locale;
 - collegamento diretto tra Contratto e Veicolo non presente;
 - integrazioni automatiche WhatsApp Business, social e Google Form non implementate.
-

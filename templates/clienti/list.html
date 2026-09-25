@@ -13,7 +13,7 @@
   <button class="btn btn-secondary btn-sm" onclick="archiviaSelezionati()">
     <svg class="icon icon-sm"><use href="#i-archive"/></svg> Archivia
   </button>
-  <button class="btn btn-primary btn-sm" onclick="openTemplate('tpl-nuovo-cliente', true)">
+  <button class="btn btn-primary btn-sm" onclick="apriFormModale('{{ url_for('clienti.form') }}')">
     <svg class="icon icon-sm"><use href="#i-plus"/></svg> Nuovo cliente
   </button>
 {% endblock %}
@@ -112,7 +112,7 @@
       <thead>
         <tr>
           <th style="width:34px"><input type="checkbox" id="sel-all"></th>
-          <th>Cliente</th><th>Contatti</th><th>Codice fiscale</th>
+          <th>Codice cliente</th><th>Cliente</th><th>Contatti</th><th>Codice fiscale</th>
           <th>Città</th><th class="text-center">Figli</th>
           <th class="text-center">Contratti</th><th></th>
         </tr>
@@ -121,6 +121,7 @@
         {% for c in clienti %}
         <tr data-search="{{ (c.nome_completo ~ ' ' ~ (c.codice_fiscale or '') ~ ' ' ~ (c.email or ''))|lower }}">
           <td><input type="checkbox" class="sel-cliente" value="{{ c.id }}"></td>
+          <td class="mono">{{ c.codice_cliente }}</td>
           <td class="font-bold row-link" onclick="location.href='{{ url_for('clienti.detail', cliente_id=c.id) }}'">{{ c.nome_completo }}</td>
           <td>
             <div style="font-size:12px">{{ c.cellulare or c.telefono or '—' }}</div>
@@ -133,77 +134,17 @@
           <td>
             <div class="table-actions">
               <a class="btn-icon" href="{{ url_for('clienti.detail', cliente_id=c.id) }}" title="Scheda 360°"><svg class="icon icon-sm"><use href="#i-eye"/></svg></a>
-              <a class="btn-icon" href="{{ url_for('clienti.form', cliente_id=c.id) }}" title="Modifica"><svg class="icon icon-sm"><use href="#i-edit"/></svg></a>
+              <button class="btn-icon" onclick="apriFormModale('{{ url_for('clienti.form', cliente_id=c.id) }}')" title="Modifica"><svg class="icon icon-sm"><use href="#i-edit"/></svg></button>
             </div>
           </td>
         </tr>
         {% else %}
-        <tr><td colspan="8"><div class="empty-state"><svg class="icon"><use href="#i-users"/></svg><h3>Nessun cliente</h3></div></td></tr>
+        <tr><td colspan="9"><div class="empty-state"><svg class="icon"><use href="#i-users"/></svg><h3>Nessun cliente</h3></div></td></tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
 </div>
-
-<!-- Modale "Nuovo cliente": stesso pattern di templates/compagnie/list.html.
-     Il form fa POST alla route clienti.form (che crea il cliente e reindirizza
-     alla sua scheda). La route resta raggiungibile anche come pagina normale. -->
-<template id="tpl-nuovo-cliente">
-  <div class="modal-header"><h3>Nuovo cliente</h3><button class="btn-icon" onclick="closeModal()"><svg class="icon"><use href="#i-x"/></svg></button></div>
-  <div class="modal-body">
-    <form method="post" action="{{ url_for('clienti.form') }}">
-      <div class="form-row">
-        <div class="form-group"><label>Nome *</label><input class="form-input" name="nome" required></div>
-        <div class="form-group"><label>Cognome *</label><input class="form-input" name="cognome" required></div>
-      </div>
-      <div class="form-row-3">
-        <div class="form-group"><label>Indirizzo</label><input class="form-input" name="indirizzo"></div>
-        <div class="form-group"><label>Città</label><input class="form-input" name="citta"></div>
-        <div class="form-group"><label>CAP</label><input class="form-input" name="cap"></div>
-      </div>
-      <div class="form-row-3">
-        <div class="form-group"><label>Provincia</label><input class="form-input" name="provincia" maxlength="2"></div>
-        <div class="form-group"><label>Email</label><input class="form-input" type="email" name="email"></div>
-        <div class="form-group"><label>Professione</label><input class="form-input" name="professione"></div>
-      </div>
-      <div class="form-row">
-        <div class="form-group"><label>Cellulare</label><input class="form-input" name="cellulare"></div>
-        <div class="form-group"><label>Telefono</label><input class="form-input" name="telefono"></div>
-      </div>
-      <div class="form-row-3">
-        <div class="form-group"><label>Codice fiscale</label><input class="form-input" name="codice_fiscale"></div>
-        <div class="form-group"><label>Data nascita</label><input class="form-input" type="date" name="data_nascita"></div>
-        <div class="form-group"><label>Figli</label><input class="form-input" type="number" min="0" name="num_figli" value="0"></div>
-      </div>
-      <div class="form-row-3">
-        <div class="form-group"><label>Tipo documento</label>
-          <select class="form-input" name="tipo_documento">
-            <option value="">—</option>
-            {% for t in ['Carta identità','Patente','Passaporto'] %}
-            <option value="{{ t }}">{{ t }}</option>{% endfor %}
-          </select>
-        </div>
-        <div class="form-group"><label>N. documento</label><input class="form-input" name="numero_documento"></div>
-        <div class="form-group"><label>Stato civile</label>
-          <select class="form-input" name="stato_civile">
-            <option value="">—</option>
-            {% for s in ['celibe/nubile','coniugato','convivente','divorziato','vedovo'] %}
-            <option value="{{ s }}">{{ s }}</option>{% endfor %}
-          </select>
-        </div>
-      </div>
-      <div class="form-group checkbox-row">
-        <input type="checkbox" name="convivenza" id="conv-modal">
-        <label for="conv-modal" style="text-transform:none">Convivenza</label>
-      </div>
-      <div class="form-group"><label>Note</label><textarea class="form-input" name="note"></textarea></div>
-      <div class="form-actions">
-        <button type="button" class="btn btn-secondary" onclick="closeModal()">Annulla</button>
-        <button type="submit" class="btn btn-primary">Salva</button>
-      </div>
-    </form>
-  </div>
-</template>
 
 <!-- Modale "Archiviati": elenco di sola consultazione dei clienti fuori
      dall'operatività. Ogni riga porta alla scheda 360° (i dati non sono
