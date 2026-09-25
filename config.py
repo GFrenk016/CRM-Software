@@ -9,6 +9,8 @@ BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
 
 class Config:
+    # Token per invii server-to-server da un eventuale form esterno.
+    CRM_FORM_TOKEN = os.environ.get("CRM_FORM_TOKEN", "")
     # Chiave usata da Flask per i messaggi flash / sessione locale.
     SECRET_KEY = os.environ.get("CRM_SECRET_KEY", "crm-locale-mono-utente")
 

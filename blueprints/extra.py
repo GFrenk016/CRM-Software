@@ -75,10 +75,33 @@ def collega(cliente_id):
         flash("Cliente collegato non trovato.", "error")
         return _ritorno(cliente_id)
     a, b = sorted((cliente_id, altro.id))
-    if db.session.get(RelazioneCliente, (a, b)):
-        flash("Relazione già presente.", "error")
+    rapporto = request.form.get("rapporto", "").strip()[:80]
+    inverso = request.form.get("rapporto_inverso", "").strip()[:80]
+    if not rapporto:
+        flash("Indica il tipo di relazione.", "error")
+        return _ritorno(cliente_id)
+    relazione = db.session.get(RelazioneCliente, (a, b))
+    if relazione is None:
+        relazione = RelazioneCliente(cliente_a_id=a, cliente_b_id=b)
+        db.session.add(relazione)
+    if cliente_id == a:
+        relazione.descrizione, relazione.descrizione_inversa = rapporto, inverso or None
     else:
-        db.session.add(RelazioneCliente(cliente_a_id=a, cliente_b_id=b))
+        relazione.descrizione_inversa, relazione.descrizione = rapporto, inverso or None
+    db.session.commit()
+    flash("Relazione salvata.", "success")
+    return _ritorno(cliente_id)
+
+
+@bp.post("/<int:cliente_id>/relazioni/<int:altro_id>/elimina")
+def scollega(cliente_id, altro_id):
+    Cliente.query.get_or_404(cliente_id)
+    a, b = sorted((cliente_id, altro_id))
+    relazione = db.session.get(RelazioneCliente, (a, b))
+    if relazione is None or cliente_id == altro_id:
+        flash("Relazione non trovata.", "error")
+    else:
+        db.session.delete(relazione)
         db.session.commit()
-        flash("Clienti collegati.", "success")
+        flash("Collegamento rimosso.", "success")
     return _ritorno(cliente_id)

@@ -463,6 +463,8 @@ function anteprimaUpload(input) {
 function anteprimaAllegato(input) {
   const box = input.closest('form').querySelector('[data-preview]');
   if (!box) return;
+  if (box.dataset.objectUrl) URL.revokeObjectURL(box.dataset.objectUrl);
+  delete box.dataset.objectUrl;
   box.replaceChildren();
   const file = input.files && input.files[0];
   box.classList.toggle('hidden', !file);
@@ -470,12 +472,15 @@ function anteprimaAllegato(input) {
   const label = document.createElement('div');
   label.textContent = `${file.name} · ${pesoLeggibile(file.size)}`;
   box.append(label);
-  if (file.type === 'application/pdf' || file.type.startsWith('image/')) {
+  const pdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+  if (pdf || file.type.startsWith('image/')) {
     const url = URL.createObjectURL(file);
-    const media = document.createElement(file.type === 'application/pdf' ? 'iframe' : 'img');
-    media.className = file.type === 'application/pdf' ? 'preview-frame' : 'upload-thumb';
+    box.dataset.objectUrl = url;
+    const media = document.createElement(pdf ? 'iframe' : 'img');
+    media.className = pdf ? 'preview-frame' : 'upload-thumb';
     media.src = url;
-    media.onload = () => URL.revokeObjectURL(url);
+    if (pdf) media.title = `Anteprima di ${file.name}`;
+    else media.alt = file.name;
     box.append(media);
   }
 }

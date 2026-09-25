@@ -293,15 +293,22 @@ class Cliente(db.Model):
 
     @property
     def codice_cliente(self):
-        return f"CL-{self.id:06d}" if self.id is not None else "—"
+        return f"CL-{self.id:04d}" if self.id is not None else "—"
+
+    @property
+    def relazioni_dettaglio(self):
+        if self.id is None:
+            return []
+        dettagli = []
+        for relazione in self.relazioni_a:
+            dettagli.append((relazione.cliente_b, relazione.descrizione))
+        for relazione in self.relazioni_b:
+            dettagli.append((relazione.cliente_a, relazione.descrizione_inversa))
+        return sorted(dettagli, key=lambda item: item[0].nome_completo)
 
     @property
     def clienti_collegati(self):
-        if self.id is None:
-            return []
-        ids = [r.cliente_b_id for r in RelazioneCliente.query.filter_by(cliente_a_id=self.id)]
-        ids += [r.cliente_a_id for r in RelazioneCliente.query.filter_by(cliente_b_id=self.id)]
-        return Cliente.query.filter(Cliente.id.in_(ids)).order_by(Cliente.cognome).all() if ids else []
+        return [cliente for cliente, _ in self.relazioni_dettaglio]
 
     # Anagrafica di base
     nome = db.Column(db.String(80), nullable=False)
@@ -328,6 +335,7 @@ class Cliente(db.Model):
     professione = db.Column(db.String(80))
     stato_civile = db.Column(db.String(40))       # celibe/nubile, coniugato, ...
     convivenza = db.Column(db.Boolean, default=False)
+    nucleo_familiare = db.Column(db.String(200))
     num_figli = db.Column(db.Integer, default=0)
 
     note = db.Column(db.Text)
@@ -364,9 +372,9 @@ class Cliente(db.Model):
     proposte = db.relationship("Proposta", back_populates="cliente",
                               cascade="all, delete-orphan")
     relazioni_a = db.relationship("RelazioneCliente", foreign_keys="RelazioneCliente.cliente_a_id",
-                                  cascade="all, delete-orphan")
+                                  back_populates="cliente_a", cascade="all, delete-orphan")
     relazioni_b = db.relationship("RelazioneCliente", foreign_keys="RelazioneCliente.cliente_b_id",
-                                  cascade="all, delete-orphan")
+                                  back_populates="cliente_b", cascade="all, delete-orphan")
     veicoli = db.relationship("Veicolo", back_populates="cliente",
                               cascade="all, delete-orphan")
     pratiche = db.relationship("Pratica", back_populates="cliente",
@@ -812,6 +820,9 @@ class RelazioneCliente(db.Model):
     cliente_a_id = db.Column(db.Integer, db.ForeignKey("clienti.id"), primary_key=True)
     cliente_b_id = db.Column(db.Integer, db.ForeignKey("clienti.id"), primary_key=True)
     descrizione = db.Column(db.String(80))
+    descrizione_inversa = db.Column(db.String(80))
+    cliente_a = db.relationship("Cliente", foreign_keys=[cliente_a_id], back_populates="relazioni_a")
+    cliente_b = db.relationship("Cliente", foreign_keys=[cliente_b_id], back_populates="relazioni_b")
 
 
 class AltroProdotto(db.Model):
@@ -868,7 +879,7 @@ class Documento(db.Model):
 
     @property
     def is_pdf(self):
-        return self.mime == "application/pdf"
+        return self.mime == "application/pdf" or bool(self.filename and self.filename.lower().endswith(".pdf"))
 
     def __repr__(self):
         return f"<Documento {self.filename}>"

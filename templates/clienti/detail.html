@@ -6,9 +6,9 @@
 {% block page_title %}Scheda cliente{% endblock %}
 {% block actions %}
   <a class="btn btn-secondary btn-sm" href="{{ url_for('clienti.index') }}">← Elenco</a>
-  <a class="btn btn-primary btn-sm" href="{{ url_for('clienti.form', cliente_id=c.id) }}">
+  <button class="btn btn-primary btn-sm" onclick="apriFormModale('{{ url_for('clienti.form', cliente_id=c.id) }}')">
     <svg class="icon icon-sm"><use href="#i-edit"/></svg> Modifica
-  </a>
+  </button>
 {% endblock %}
 
 {% block content %}
@@ -23,6 +23,15 @@
         onsubmit="return confirm('Eliminare definitivamente questo cliente e tutti i dati collegati?')">
     <button class="btn btn-danger btn-sm"><svg class="icon icon-sm"><use href="#i-trash"/></svg> Elimina</button>
   </form>
+</div>
+
+<div class="card client-summary">
+  <div><label>Codice cliente</label><strong class="mono">{{ c.codice_cliente }}</strong></div>
+  <div><label>Codice fiscale</label><strong class="mono">{{ c.codice_fiscale or '—' }}</strong></div>
+  <div><label>Telefono</label><strong>{{ c.cellulare or c.telefono or '—' }}</strong></div>
+  <div><label>Email</label><strong>{{ c.email or '—' }}</strong></div>
+  <div><label>Nucleo familiare</label><strong>{{ c.nucleo_familiare or '—' }}</strong></div>
+  <div><label>Inserito nel CRM</label><strong>{{ c.created_at|data_it }}</strong></div>
 </div>
 
 <!-- Barra azioni rapide: crea una nuova entità già collegata a questo cliente -->
@@ -59,21 +68,31 @@
         <div class="detail-item"><label>Documento</label><span>{{ c.tipo_documento or '—' }}</span></div>
         <div class="detail-item"><label>N. documento</label><span class="mono">{{ c.numero_documento or '—' }}</span></div>
         <div class="detail-item"><label>Stato civile</label><span>{{ c.stato_civile or '—' }}</span></div>
-        <div class="detail-item"><label>Convivenza</label><span>{{ 'Sì' if c.convivenza else 'No' }}</span></div>
+        <div class="detail-item"><label>Nucleo familiare</label><span>{{ c.nucleo_familiare or '—' }}</span></div>
         <div class="detail-item"><label>Figli</label><span>{{ c.num_figli or 0 }}</span></div>
+        <div class="detail-item"><label>Inserito nel CRM</label><span>{{ c.created_at|data_it }}</span></div>
       </div>
       {% if c.note %}<div class="detail-item" style="margin-top:12px"><label>Note</label><span>{{ c.note }}</span></div>{% endif %}
     </div>
 
     <div class="section-title"><span class="st-left">Clienti collegati</span></div>
     <div class="related-list">
-      {% for r in c.clienti_collegati %}<div class="related-item"><a href="{{ url_for('clienti.detail', cliente_id=r.id) }}">{{ r.codice_cliente }} · {{ r.nome_completo }}</a></div>
+      {% for r, rapporto in c.relazioni_dettaglio %}
+      <div class="related-item">
+        <div><a href="{{ url_for('clienti.detail', cliente_id=r.id) }}">{{ r.codice_cliente }} · {{ r.nome_completo }}</a>
+          <span class="muted"> · {{ rapporto or 'Relazione da definire' }}</span></div>
+        <form method="post" action="{{ url_for('extra.scollega', cliente_id=c.id, altro_id=r.id) }}" onsubmit="return confirm('Rimuovere il collegamento?')"><button class="btn-icon" title="Rimuovi collegamento">×</button></form>
+      </div>
       {% else %}<div class="related-empty">Nessun collegamento.</div>{% endfor %}
     </div>
     <form class="card" method="post" action="{{ url_for('extra.collega', cliente_id=c.id) }}" style="padding:12px">
-      <label>Collega tramite codice cliente</label>
-      <input class="form-input" name="codice_cliente" placeholder="CL-000002" required>
-      <button class="btn btn-primary btn-sm" style="margin-top:8px">Collega</button>
+      <label>Codice cliente da collegare</label>
+      <input class="form-input" name="codice_cliente" placeholder="CL-0002" required>
+      <label>Chi è per {{ c.nome }}? *</label>
+      <input class="form-input" name="rapporto" placeholder="Es. figlia, moglie, padre" maxlength="80" required>
+      <label>Chi è {{ c.nome }} per l'altra persona? (facoltativo)</label>
+      <input class="form-input" name="rapporto_inverso" placeholder="Es. madre, marito, figlio" maxlength="80">
+      <button class="btn btn-primary btn-sm" style="margin-top:8px">Salva relazione</button>
     </form>
 
     <!-- VEICOLI: elenco targhe collegate al cliente, con form di aggiunta rapida -->
@@ -136,12 +155,12 @@
         <div class="form-group" style="margin-bottom:8px">
           <label>File</label>
           <input class="form-input" type="file" name="file" required
-                 onchange="anteprimaUpload(this)">
+                 onchange="anteprimaAllegato(this)">
         </div>
       </div>
       {# Riempito da anteprimaUpload() alla scelta del file, svuotato se la
          scelta viene annullata: parte e resta vuoto lato server. #}
-      <div class="upload-preview hidden" id="upload-preview"></div>
+      <div class="upload-preview hidden" data-preview></div>
       <button class="btn btn-primary btn-sm"><svg class="icon icon-sm"><use href="#i-upload"/></svg> Carica</button>
     </form>
 

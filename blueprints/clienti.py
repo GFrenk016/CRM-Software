@@ -8,7 +8,7 @@ from sqlalchemy.exc import IntegrityError
 from extensions import db
 from models import (ESITI_APPUNTAMENTO, STADI_LEAD, TIPI_APPUNTAMENTO, Cliente,
                     Contratto, Lead, Pratica, TipologiaPratica, Veicolo)
-from utils import parse_date
+from utils import parse_date, rendi_form
 
 bp = Blueprint("clienti", __name__, url_prefix="/clienti")
 
@@ -242,8 +242,12 @@ def form(cliente_id=None):
             return _riapri_form(cliente_id, request.form)
         flash(messaggio, "success")
         return redirect(url_for("clienti.detail", cliente_id=cliente.id))
-    return render_template("clienti/form.html", c=cliente,
-                           tipologie=TipologiaPratica, nuovo=cliente is None)
+    return rendi_form("clienti/form.html", "clienti/_campi.html",
+                      "Nuovo cliente" if cliente is None else "Modifica cliente",
+                      c=cliente, tipologie=TipologiaPratica,
+                      nuovo=cliente is None,
+                      form_action=url_for("clienti.form", cliente_id=cliente_id)
+                      if cliente_id else url_for("clienti.form"))
 
 
 def _riapri_form(cliente_id, inviati):
@@ -255,9 +259,12 @@ def _riapri_form(cliente_id, inviati):
     Senza questo l'utente si ritroverebbe il modulo vuoto e dovrebbe ridigitare
     tutto solo per aver sbagliato un carattere del codice fiscale.
     """
-    return render_template("clienti/form.html", c=_ValoriForm(cliente_id, inviati),
-                           tipologie=TipologiaPratica,
-                           nuovo=cliente_id is None), 400
+    return rendi_form("clienti/form.html", "clienti/_campi.html",
+                      "Nuovo cliente" if cliente_id is None else "Modifica cliente",
+                      c=_ValoriForm(cliente_id, inviati),
+                      tipologie=TipologiaPratica, nuovo=cliente_id is None,
+                      form_action=url_for("clienti.form", cliente_id=cliente_id)
+                      if cliente_id else url_for("clienti.form")), 400
 
 
 class _ValoriForm:
@@ -268,7 +275,6 @@ class _ValoriForm:
     def __init__(self, cliente_id, inviati):
         self.id = cliente_id
         self._inviati = inviati
-        self.convivenza = inviati.get("convivenza") == "on"
         self.num_figli = inviati.get("num_figli") or 0
 
     def __getattr__(self, nome):
@@ -339,7 +345,7 @@ def _read_form(form):
         numero_documento=form.get("numero_documento", "").strip() or None,
         professione=form.get("professione", "").strip() or None,
         stato_civile=form.get("stato_civile", "").strip() or None,
-        convivenza=form.get("convivenza") == "on",
+        nucleo_familiare=form.get("nucleo_familiare", "").strip() or None,
         num_figli=int(form.get("num_figli") or 0),
         note=form.get("note", "").strip() or None,
     )
