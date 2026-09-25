@@ -4,6 +4,37 @@ Questo documento riporta le modifiche effettivamente entrate nel branch `main`, 
 
 > **Nota sulla data richiesta:** un mese esatto prima del 22 settembre 2026 è il **22 agosto 2026**, ma in quella data non risultano commit. Il blocco funzionale più vicino precedente è stato integrato l'**8 agosto 2026**. Il commit successivo, del **1° settembre 2026**, aggiorna soltanto il README.
 
+## 25 settembre 2026 — Ricerca, allegati e nuove sezioni della scheda cliente
+
+### Ricerca clienti
+
+- La ricerca aggregata accetta codice fiscale, codice cliente (`CL-000001`) e targa.
+- Nei risultati sono mostrati il codice cliente e gli eventuali codici dei clienti collegati.
+- Dalla scheda cliente è possibile collegare un altro cliente tramite il suo codice.
+
+### Documenti e PDF
+
+- Aggiunti allegati nelle sezioni **Veicoli**, **Proposte** e **Altri prodotti**, oltre che nel dettaglio del **Contratto**.
+- I nuovi file sono organizzati per cliente e sezione. Anche caricando più file con lo stesso nome, ciascuno viene salvato separatamente.
+- Aggiunta l’anteprima di PDF e immagini prima del caricamento nei nuovi form di allegato. Restano disponibili anteprima, download ed eliminazione dei file caricati.
+- Gli allegati già presenti continuano a essere accessibili.
+
+### Compagnie assicurative
+
+- Aggiunto un colore modificabile per ogni compagnia, mostrato come indicatore nelle schermate aggiornate.
+
+### Altri prodotti e proposte
+
+- Sotto **Appuntamenti**, nella scheda cliente, aggiunta la sezione **Altri prodotti** con nome, numero tessera, descrizione e allegati.
+- Aggiunta la sezione **Proposte** con numero proposta, note e allegati.
+- Introdotta la migrazione Alembic `b4e892a1c705` per i nuovi dati e collegamenti.
+
+**Verifica:** migrazione e flussi principali provati su un database temporaneo, inclusi ricerca, creazione delle nuove voci e caricamenti ripetuti con lo stesso nome.
+
+**Commit:** [`507a022` — Add CRM search, contextual attachments, products and proposals](https://github.com/GFrenk016/CRM-Software/commit/507a0227a3d4ea833e222cca4922ce9ce6c3458f)
+
+---
+
 ## 1 settembre 2026 — Documentazione del progetto
 
 ### Documentazione
