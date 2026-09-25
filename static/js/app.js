@@ -460,6 +460,26 @@ function anteprimaUpload(input) {
   box.append(media, info);
 }
 
+function anteprimaAllegato(input) {
+  const box = input.closest('form').querySelector('[data-preview]');
+  if (!box) return;
+  box.replaceChildren();
+  const file = input.files && input.files[0];
+  box.classList.toggle('hidden', !file);
+  if (!file) return;
+  const label = document.createElement('div');
+  label.textContent = `${file.name} · ${pesoLeggibile(file.size)}`;
+  box.append(label);
+  if (file.type === 'application/pdf' || file.type.startsWith('image/')) {
+    const url = URL.createObjectURL(file);
+    const media = document.createElement(file.type === 'application/pdf' ? 'iframe' : 'img');
+    media.className = file.type === 'application/pdf' ? 'preview-frame' : 'upload-thumb';
+    media.src = url;
+    media.onload = () => URL.revokeObjectURL(url);
+    box.append(media);
+  }
+}
+
 // I documenti già caricati mostrano i KB (lato server), qui si passa ai MB
 // oltre il megabyte perché un allegato scelto a mano può essere molto grande
 // e "8394 KB" si legge peggio di "8.2 MB".

@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% from "_macros.html" import appuntamenti_list, appuntamento_nuovo, comunicazioni_list %}
+{% from "_allegati.html" import allegati %}
 {% set section = "clienti" %}
 {% block title %}{{ c.nome_completo }}{% endblock %}
 {% block page_title %}Scheda cliente{% endblock %}
@@ -16,6 +17,7 @@
   <div>
     <h3 style="font-size:20px">{{ c.nome_completo }}</h3>
     <div class="muted">{{ c.professione or '—' }}{% if c.citta %} · {{ c.citta }}{% endif %}</div>
+    <div class="muted mono">{{ c.codice_cliente }}</div>
   </div>
   <form method="post" action="{{ url_for('clienti.delete', cliente_id=c.id) }}" style="margin-left:auto"
         onsubmit="return confirm('Eliminare definitivamente questo cliente e tutti i dati collegati?')">
@@ -47,6 +49,7 @@
     <div class="card">
       <div class="section-title" style="margin-top:0"><span class="st-left">Dati anagrafici</span></div>
       <div class="detail-grid">
+        <div class="detail-item"><label>Codice cliente</label><span class="mono">{{ c.codice_cliente }}</span></div>
         <div class="detail-item"><label>Codice fiscale</label><span class="mono">{{ c.codice_fiscale or '—' }}</span></div>
         <div class="detail-item"><label>Data nascita</label><span>{{ c.data_nascita|data_it }}</span></div>
         <div class="detail-item"><label>Cellulare</label><span>{{ c.cellulare or '—' }}</span></div>
@@ -61,6 +64,17 @@
       </div>
       {% if c.note %}<div class="detail-item" style="margin-top:12px"><label>Note</label><span>{{ c.note }}</span></div>{% endif %}
     </div>
+
+    <div class="section-title"><span class="st-left">Clienti collegati</span></div>
+    <div class="related-list">
+      {% for r in c.clienti_collegati %}<div class="related-item"><a href="{{ url_for('clienti.detail', cliente_id=r.id) }}">{{ r.codice_cliente }} · {{ r.nome_completo }}</a></div>
+      {% else %}<div class="related-empty">Nessun collegamento.</div>{% endfor %}
+    </div>
+    <form class="card" method="post" action="{{ url_for('extra.collega', cliente_id=c.id) }}" style="padding:12px">
+      <label>Collega tramite codice cliente</label>
+      <input class="form-input" name="codice_cliente" placeholder="CL-000002" required>
+      <button class="btn btn-primary btn-sm" style="margin-top:8px">Collega</button>
+    </form>
 
     <!-- VEICOLI: elenco targhe collegate al cliente, con form di aggiunta rapida -->
     <div class="section-title">
@@ -96,6 +110,7 @@
           <button class="btn-icon" title="Elimina"><svg class="icon icon-sm"><use href="#i-trash"/></svg></button>
         </form>
       </div>
+      <div style="padding:0 12px 12px">{{ allegati(c.id, 'veicolo', v, v.documenti) }}</div>
       {% else %}<div class="related-empty">Nessun veicolo.</div>{% endfor %}
     </div>
 
@@ -143,7 +158,7 @@
       {# .related-item resta anche qui: è la base grafica condivisa ed è il
          selettore su cui gira filtraDocumenti(). .doc-item aggiunge solo la
          disposizione in colonna, specifica dei documenti. #}
-      {% for d in c.documenti %}
+      {% for d in c.documenti if not (d.contratto_id or d.veicolo_id or d.prodotto_id or d.proposta_id) %}
       <div class="related-item doc-item" data-tipo="{{ d.tipo or 'Altro' }}">
         <div class="doc-info">
           {# title: il nome è troncato con i puntini, al passaggio del mouse
@@ -208,6 +223,36 @@
     {{ appuntamenti_list(c.appuntamenti, next_url, esiti_appuntamento) }}
     {{ appuntamento_nuovo(c.id, next_url, tipi_appuntamento) }}
 
+    <div class="section-title"><span class="st-left">Altri prodotti</span></div>
+    {% for prodotto in c.altri_prodotti %}
+    <div class="card" style="padding:12px;margin-bottom:8px">
+      <strong>{{ prodotto.nome }}</strong> · Tessera {{ prodotto.numero_tessera or '—' }}
+      {% if prodotto.descrizione %}<p>{{ prodotto.descrizione }}</p>{% endif %}
+      {{ allegati(c.id, 'prodotto', prodotto, prodotto.documenti) }}
+      <form method="post" action="{{ url_for('extra.elimina_prodotto', cliente_id=c.id, identificativo=prodotto.id) }}" onsubmit="return confirm('Eliminare il prodotto?')"><button class="btn btn-danger btn-sm">Elimina prodotto</button></form>
+    </div>
+    {% else %}<div class="related-empty">Nessun altro prodotto.</div>{% endfor %}
+    <form class="card" style="padding:12px" method="post" action="{{ url_for('extra.prodotto', cliente_id=c.id) }}">
+      <div class="form-row"><div class="form-group"><label>Prodotto</label><input class="form-input" name="nome" required></div><div class="form-group"><label>Numero tessera</label><input class="form-input" name="numero_tessera"></div></div>
+      <div class="form-group"><label>Descrizione</label><textarea class="form-input" name="descrizione"></textarea></div>
+      <button class="btn btn-primary btn-sm">Aggiungi prodotto</button>
+    </form>
+
+    <div class="section-title"><span class="st-left">Proposte</span></div>
+    {% for proposta in c.proposte %}
+    <div class="card" style="padding:12px;margin-bottom:8px">
+      <strong class="mono">{{ proposta.numero }}</strong>
+      {% if proposta.note %}<p>{{ proposta.note }}</p>{% endif %}
+      {{ allegati(c.id, 'proposta', proposta, proposta.documenti) }}
+      <form method="post" action="{{ url_for('extra.elimina_proposta', cliente_id=c.id, identificativo=proposta.id) }}" onsubmit="return confirm('Eliminare la proposta?')"><button class="btn btn-danger btn-sm">Elimina proposta</button></form>
+    </div>
+    {% else %}<div class="related-empty">Nessuna proposta.</div>{% endfor %}
+    <form class="card" style="padding:12px" method="post" action="{{ url_for('extra.proposta', cliente_id=c.id) }}">
+      <div class="form-group"><label>Numero proposta</label><input class="form-input" name="numero" required></div>
+      <div class="form-group"><label>Note</label><textarea class="form-input" name="note"></textarea></div>
+      <button class="btn btn-primary btn-sm">Aggiungi proposta</button>
+    </form>
+
     <!-- COMUNICAZIONI (storico/audit): cosa è stato mandato, quando e su quale
          canale. Non si creano da qui (si registrano da dove si inviano: modale
          Messaggio, richiesta documenti sulla pratica), ma si possono eliminare
@@ -221,7 +266,7 @@
       {% for p in c.preventivi %}
       <div class="related-item">
         <div><span class="mono">{{ p.numero }}</span> · {{ p.oggetto or '—' }}
-          <span class="muted">{{ p.compagnia.nome if p.compagnia else '' }}</span></div>
+          <span class="muted"><span class="compagnia-mark" style="--compagnia:{{ p.compagnia.colore if p.compagnia else '#94a3b8' }}">{{ p.compagnia.nome if p.compagnia else '' }}</span></span></div>
         <div><span class="badge badge-{{ p.stato }}">{{ p.stato }}</span> <span class="mono">{{ p.premio_proposto|eur }}</span></div>
       </div>
       {% else %}<div class="related-empty">Nessun preventivo.</div>{% endfor %}
@@ -234,7 +279,7 @@
       <div class="related-item">
         <div>
           <a href="{{ url_for('contratti.detail', contratto_id=k.id) }}"><span class="mono">{{ k.numero_polizza }}</span></a>
-          · {{ k.ramo or '—' }} <span class="muted">{{ k.compagnia.nome if k.compagnia else '' }}</span>
+          · {{ k.ramo or '—' }} <span class="muted"><span class="compagnia-mark" style="--compagnia:{{ k.compagnia.colore if k.compagnia else '#94a3b8' }}">{{ k.compagnia.nome if k.compagnia else '' }}</span></span>
           {% if k.preventivo %}<span class="muted" style="font-size:11px"> (da {{ k.preventivo.numero }})</span>{% endif %}
         </div>
         <div><span class="mono">{{ k.premio|eur }}</span> <span class="muted">scad. {{ k.data_scadenza|data_it }}</span></div>
@@ -247,7 +292,7 @@
     <div class="related-list">
       {% for k in c.scadenze %}
       <div class="related-item">
-        <div>{{ k.ramo or k.numero_polizza }} <span class="muted">{{ k.compagnia.nome if k.compagnia else '' }}</span></div>
+        <div>{{ k.ramo or k.numero_polizza }} <span class="muted"><span class="compagnia-mark" style="--compagnia:{{ k.compagnia.colore if k.compagnia else '#94a3b8' }}">{{ k.compagnia.nome if k.compagnia else '' }}</span></span></div>
         <div><span class="badge badge-{{ k.stato_scadenza }}">{{ k.stato_scadenza|replace('_',' ') }}</span> <span class="mono">{{ k.data_scadenza|data_it }}</span></div>
       </div>
       {% else %}<div class="related-empty">Nessuna scadenza.</div>{% endfor %}

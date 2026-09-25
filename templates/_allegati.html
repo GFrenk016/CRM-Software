@@ -1,0 +1,24 @@
+{% macro allegati(cliente_id, tipo, oggetto, documenti) %}
+<div class="related-list">
+  {% for d in documenti %}
+  <div class="related-item">
+    <div><strong>{{ d.filename }}</strong> <small class="muted">{{ d.tipo }} · {{ d.created_at|data_it }}</small></div>
+    <div class="table-actions">
+      <a class="btn btn-secondary btn-sm" href="{{ url_for('documenti.anteprima', doc_id=d.id) }}" target="_blank" rel="noopener">Anteprima</a>
+      <a class="btn btn-secondary btn-sm" href="{{ url_for('documenti.download', doc_id=d.id) }}">Scarica</a>
+      <form method="post" action="{{ url_for('documenti.elimina', doc_id=d.id) }}" onsubmit="return confirm('Eliminare questo allegato?')"><button class="btn-icon" title="Elimina">×</button></form>
+    </div>
+  </div>
+  {% else %}<div class="related-empty">Nessun allegato.</div>{% endfor %}
+</div>
+<form class="card" method="post" enctype="multipart/form-data" action="{{ url_for('documenti.carica', cliente_id=cliente_id) }}" style="padding:12px;margin-top:6px">
+  <input type="hidden" name="destinazione" value="{{ tipo }}">
+  <input type="hidden" name="destinazione_id" value="{{ oggetto.id }}">
+  <div class="form-row">
+    <div class="form-group"><label>Descrizione file</label><input class="form-input" name="tipo" value="{{ tipo|capitalize }}"></div>
+    <div class="form-group"><label>Allegato</label><input class="form-input" type="file" name="file" accept=".pdf,.png,.jpg,.jpeg,.gif,.webp,.doc,.docx,.xls,.xlsx,.txt,.csv" onchange="anteprimaAllegato(this)" required></div>
+  </div>
+  <div class="upload-preview hidden" data-preview></div>
+  <button class="btn btn-primary btn-sm">Carica allegato</button>
+</form>
+{% endmacro %}

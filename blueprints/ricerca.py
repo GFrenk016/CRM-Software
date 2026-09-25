@@ -11,7 +11,8 @@ qualcosa, così non ci sono due punti da tenere allineati.
 """
 from flask import Blueprint, render_template, request
 
-from models import Cliente
+from sqlalchemy import or_, cast, String
+from models import Cliente, Veicolo
 
 bp = Blueprint("ricerca", __name__, url_prefix="/ricerca")
 
@@ -20,7 +21,7 @@ bp = Blueprint("ricerca", __name__, url_prefix="/ricerca")
 def index():
     # Il CF si normalizza come nel modello (upper/trim): scriverlo minuscolo o
     # con spazi in coda è la norma quando lo si incolla da un documento.
-    cf = (request.args.get("cf") or "").strip().upper()
+    cf = (request.args.get("q") or request.args.get("cf") or "").strip().upper()
     cliente_id = request.args.get("cliente_id", type=int)
 
     # Scelta esplicita dall'elenco dei risultati (CF parziale su più clienti).
@@ -37,8 +38,13 @@ def index():
     # frammento (le prime lettere del cognome, la parte della data di nascita),
     # perché spesso si ha in mano solo un pezzo. Quindi più clienti sono
     # possibili anche con la colonna unique.
+    codice = str(int(cf[3:])) if cf.startswith("CL-") and cf[3:].isdigit() else ""
     risultati = (Cliente.query
-                 .filter(Cliente.codice_fiscale.ilike(f"%{cf}%"))
+                 .outerjoin(Veicolo, Veicolo.cliente_id == Cliente.id)
+                 .filter(or_(Cliente.codice_fiscale.ilike(f"%{cf}%"),
+                             Veicolo.targa.ilike(f"%{cf.replace(' ', '')}%"),
+                             cast(Cliente.id, String) == codice if codice else False))
+                 .distinct()
                  .order_by(Cliente.cognome, Cliente.nome)
                  .all())
 

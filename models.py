@@ -270,6 +270,7 @@ class Compagnia(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(120), nullable=False, unique=True)
     note = db.Column(db.Text)
+    colore = db.Column(db.String(7), nullable=False, default="#2563eb")
 
     # Relazioni inverse. `preventivi` sono quelli in cui questa compagnia è
     # stata SCELTA; `consultazioni` quelli in cui è stata solo interpellata per
@@ -289,6 +290,18 @@ class Compagnia(db.Model):
 class Cliente(db.Model):
     __tablename__ = "clienti"
     id = db.Column(db.Integer, primary_key=True)
+
+    @property
+    def codice_cliente(self):
+        return f"CL-{self.id:06d}" if self.id is not None else "—"
+
+    @property
+    def clienti_collegati(self):
+        if self.id is None:
+            return []
+        ids = [r.cliente_b_id for r in RelazioneCliente.query.filter_by(cliente_a_id=self.id)]
+        ids += [r.cliente_a_id for r in RelazioneCliente.query.filter_by(cliente_b_id=self.id)]
+        return Cliente.query.filter(Cliente.id.in_(ids)).order_by(Cliente.cognome).all() if ids else []
 
     # Anagrafica di base
     nome = db.Column(db.String(80), nullable=False)
@@ -344,7 +357,16 @@ class Cliente(db.Model):
     incassi = db.relationship("Incasso", back_populates="cliente",
                               cascade="all, delete-orphan")
     documenti = db.relationship("Documento", back_populates="cliente",
-                                cascade="all, delete-orphan")
+                                cascade="all, delete-orphan",
+                                order_by="Documento.created_at.desc()")
+    altri_prodotti = db.relationship("AltroProdotto", back_populates="cliente",
+                                    cascade="all, delete-orphan")
+    proposte = db.relationship("Proposta", back_populates="cliente",
+                              cascade="all, delete-orphan")
+    relazioni_a = db.relationship("RelazioneCliente", foreign_keys="RelazioneCliente.cliente_a_id",
+                                  cascade="all, delete-orphan")
+    relazioni_b = db.relationship("RelazioneCliente", foreign_keys="RelazioneCliente.cliente_b_id",
+                                  cascade="all, delete-orphan")
     veicoli = db.relationship("Veicolo", back_populates="cliente",
                               cascade="all, delete-orphan")
     pratiche = db.relationship("Pratica", back_populates="cliente",
@@ -699,6 +721,7 @@ class Contratto(db.Model):
                                cascade="all, delete-orphan")
     incassi = db.relationship("Incasso", back_populates="contratto",
                               cascade="all, delete-orphan")
+    documenti = db.relationship("Documento", back_populates="contratto")
     # FK nullable lato Pratica: se il contratto viene eliminato le pratiche
     # collegate NON vengono cancellate, il riferimento viene solo azzerato.
     pratiche = db.relationship("Pratica", back_populates="contratto")
@@ -784,6 +807,34 @@ class Incasso(db.Model):
 # --------------------------------------------------------------------------- #
 #  Documento (allegato su filesystem, path salvato in DB)                     #
 # --------------------------------------------------------------------------- #
+class RelazioneCliente(db.Model):
+    __tablename__ = "relazioni_clienti"
+    cliente_a_id = db.Column(db.Integer, db.ForeignKey("clienti.id"), primary_key=True)
+    cliente_b_id = db.Column(db.Integer, db.ForeignKey("clienti.id"), primary_key=True)
+    descrizione = db.Column(db.String(80))
+
+
+class AltroProdotto(db.Model):
+    __tablename__ = "altri_prodotti"
+    id = db.Column(db.Integer, primary_key=True)
+    cliente_id = db.Column(db.Integer, db.ForeignKey("clienti.id"), nullable=False)
+    nome = db.Column(db.String(120), nullable=False)
+    numero_tessera = db.Column(db.String(80))
+    descrizione = db.Column(db.Text)
+    cliente = db.relationship("Cliente", back_populates="altri_prodotti")
+    documenti = db.relationship("Documento", back_populates="prodotto")
+
+
+class Proposta(db.Model):
+    __tablename__ = "proposte"
+    id = db.Column(db.Integer, primary_key=True)
+    cliente_id = db.Column(db.Integer, db.ForeignKey("clienti.id"), nullable=False)
+    numero = db.Column(db.String(80), nullable=False)
+    note = db.Column(db.Text)
+    cliente = db.relationship("Cliente", back_populates="proposte")
+    documenti = db.relationship("Documento", back_populates="proposta")
+
+
 class Documento(db.Model):
     __tablename__ = "documenti"
     id = db.Column(db.Integer, primary_key=True)
@@ -792,6 +843,10 @@ class Documento(db.Model):
     # cascade): serve per allegare documenti alla pratica e, in fase successiva,
     # per l'invio del certificato a chiusura pratica.
     pratica_id = db.Column(db.Integer, db.ForeignKey("pratiche.id"))     # nullable
+    contratto_id = db.Column(db.Integer, db.ForeignKey("contratti.id"))
+    veicolo_id = db.Column(db.Integer, db.ForeignKey("veicoli.id"))
+    prodotto_id = db.Column(db.Integer, db.ForeignKey("altri_prodotti.id"))
+    proposta_id = db.Column(db.Integer, db.ForeignKey("proposte.id"))
 
     tipo = db.Column(db.String(60))             # "Carta identità", "Modulo firmato", ...
     filename = db.Column(db.String(255))        # nome originale mostrato all'utente
@@ -802,6 +857,10 @@ class Documento(db.Model):
 
     cliente = db.relationship("Cliente", back_populates="documenti")
     pratica = db.relationship("Pratica", back_populates="documenti")
+    contratto = db.relationship("Contratto", back_populates="documenti")
+    veicolo = db.relationship("Veicolo", back_populates="documenti")
+    prodotto = db.relationship("AltroProdotto", back_populates="documenti")
+    proposta = db.relationship("Proposta", back_populates="documenti")
 
     @property
     def is_immagine(self):
@@ -829,6 +888,7 @@ class Veicolo(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     cliente = db.relationship("Cliente", back_populates="veicoli")
+    documenti = db.relationship("Documento", back_populates="veicolo")
 
     @validates("targa")
     def _valida_targa(self, key, value):

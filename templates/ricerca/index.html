@@ -1,16 +1,16 @@
 {% extends "base.html" %}
 {% from "_macros.html" import comunicazioni_list %}
 {% set section = "ricerca" %}
-{% block title %}Ricerca per codice fiscale{% endblock %}
-{% block page_title %}Ricerca per codice fiscale{% endblock %}
+{% block title %}Ricerca clienti{% endblock %}
+{% block page_title %}Ricerca clienti{% endblock %}
 
 {% block content %}
 <form class="card" method="get" style="padding:14px;margin-bottom:16px">
   <div class="form-row">
     <div class="form-group" style="margin-bottom:0">
-      <label>Codice fiscale (anche parziale)</label>
-      <input class="form-input mono" name="cf" value="{{ cf }}" autofocus
-             placeholder="RSSMRC80A01F205X" autocomplete="off">
+      <label>Codice fiscale, codice cliente o targa</label>
+      <input class="form-input mono" name="q" value="{{ cf }}" autofocus
+             placeholder="CF, CL-000001 o targa" autocomplete="off">
     </div>
     <div class="form-group" style="margin-bottom:0;justify-content:flex-end">
       <button class="btn btn-primary"><svg class="icon icon-sm"><use href="#i-search"/></svg> Cerca</button>
@@ -21,8 +21,8 @@
 {% if not cercato %}
 <div class="empty-state">
   <svg class="icon"><use href="#i-search"/></svg>
-  <h3>Inserisci un codice fiscale</h3>
-  <p>Da un CF si arriva a tutto ciò che è collegato al cliente: pratiche, polizze,
+  <h3>Cerca un cliente</h3>
+  <p>Da un codice fiscale, codice cliente o targa si arriva a tutto ciò che è collegato al cliente: pratiche, polizze,
      preventivi, targhe, documenti, comunicazioni e appuntamenti in una schermata sola.</p>
 </div>
 
@@ -30,7 +30,7 @@
 {# Nessun cliente: messaggio esplicito, non una pagina vuota. #}
 <div class="notice notice-warn">
   <svg class="icon icon-sm"><use href="#i-alert"/></svg>
-  <div><strong>Nessun cliente con codice fiscale «{{ cf }}».</strong>
+  <div><strong>Nessun cliente trovato per «{{ cf }}».</strong>
     Controlla il codice oppure <a href="{{ url_for('clienti.index', nome=cf) }}">cercalo in anagrafica</a>
     (la ricerca in anagrafica guarda anche nome, email e cellulare), o
     <a href="{{ url_for('clienti.form') }}">crea il cliente</a>.</div>
@@ -47,7 +47,7 @@
   <div class="related-item">
     <div><a href="{{ url_for('ricerca.index', cliente_id=r.id, cf=cf) }}"><strong>{{ r.nome_completo }}</strong></a>
       <span class="muted" style="font-size:12px"> · {{ r.citta or '—' }}</span></div>
-    <div class="mono">{{ r.codice_fiscale }}</div>
+    <div class="mono">{{ r.codice_cliente }} · {{ r.codice_fiscale or "—" }}{% for collegato in r.clienti_collegati %}<br>Collegato: {{ collegato.codice_cliente }}{% endfor %}</div>
   </div>
   {% endfor %}
 </div>
@@ -60,7 +60,7 @@
   <div class="detail-avatar">{{ cliente.iniziali }}</div>
   <div>
     <h3 style="font-size:20px">{{ cliente.nome_completo }}</h3>
-    <div class="muted mono">{{ cliente.codice_fiscale or 'CF non registrato' }}</div>
+    <div class="muted mono">{{ cliente.codice_cliente }} · {{ cliente.codice_fiscale or 'CF non registrato' }}</div>
   </div>
   <a class="btn btn-primary btn-sm" style="margin-left:auto" href="{{ url_for('clienti.detail', cliente_id=cliente.id) }}">
     <svg class="icon icon-sm"><use href="#i-users"/></svg> Apri scheda cliente</a>
@@ -68,6 +68,7 @@
 
 <div class="card" style="margin-bottom:16px">
   <div class="detail-grid">
+    <div class="detail-item"><label>Clienti collegati</label><span>{% for r in cliente.clienti_collegati %}<a href="{{ url_for('ricerca.index', cliente_id=r.id) }}">{{ r.codice_cliente }} {{ r.nome_completo }}</a>{% if not loop.last %}, {% endif %}{% else %}—{% endfor %}</span></div>
     <div class="detail-item"><label>Nato il</label><span>{{ cliente.data_nascita|data_it }}</span></div>
     <div class="detail-item"><label>Cellulare</label><span>{{ cliente.cellulare or cliente.telefono or '—' }}</span></div>
     <div class="detail-item"><label>Email</label><span>{{ cliente.email or '—' }}</span></div>
@@ -96,7 +97,7 @@
       {% for k in cliente.contratti %}
       <div class="related-item">
         <div><a href="{{ url_for('contratti.detail', contratto_id=k.id) }}"><span class="mono">{{ k.numero_polizza }}</span></a>
-          · {{ k.ramo or '—' }} <span class="muted">{{ k.compagnia.nome if k.compagnia else '' }}</span></div>
+          · {{ k.ramo or '—' }} <span class="muted"><span class="compagnia-mark" style="--compagnia:{{ k.compagnia.colore if k.compagnia else '#94a3b8' }}">{{ k.compagnia.nome if k.compagnia else '' }}</span></span></div>
         <div><span class="badge badge-{{ k.stato }}">{{ k.stato }}</span>
           <span class="muted">scad. {{ k.data_scadenza|data_it }}</span></div>
       </div>

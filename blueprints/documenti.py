@@ -12,7 +12,7 @@ from flask import (Blueprint, abort, current_app, flash, redirect,
 from werkzeug.utils import secure_filename
 
 from extensions import db
-from models import Cliente, Documento
+from models import Cliente, Documento, Contratto, Veicolo, AltroProdotto, Proposta
 
 bp = Blueprint("documenti", __name__, url_prefix="/documenti")
 
@@ -35,9 +35,32 @@ def carica(cliente_id):
 
     original = secure_filename(file.filename)
     ext = original.rsplit(".", 1)[-1].lower() if "." in original else "bin"
-    stored = f"{uuid.uuid4().hex}.{ext}"
+    destinazioni = {
+        "contratto": (Contratto, "contratto_id"),
+        "veicolo": (Veicolo, "veicolo_id"),
+        "prodotto": (AltroProdotto, "prodotto_id"),
+        "proposta": (Proposta, "proposta_id"),
+    }
+    tipo_dest = request.form.get("destinazione", "")
+    identificativo = request.form.get("destinazione_id", type=int)
+    if tipo_dest or identificativo:
+        if tipo_dest not in destinazioni or not identificativo:
+            abort(400)
+        modello, campo = destinazioni[tipo_dest]
+        entita = modello.query.get_or_404(identificativo)
+        if entita.cliente_id != cliente.id:
+            abort(400)
+    else:
+        campo = None
+    gruppo = tipo_dest if campo else "generali"
+    cartella = os.path.join("clienti", str(cliente.id), gruppo)
+    directory = os.path.join(current_app.config["UPLOAD_FOLDER"], cartella)
+    os.makedirs(directory, exist_ok=True)
+    stored = os.path.join(cartella, f"{uuid.uuid4().hex}.{ext}")
     path = os.path.join(current_app.config["UPLOAD_FOLDER"], stored)
-    file.save(path)
+    # O_EXCL impedisce di sostituire anche accidentalmente un file già presente.
+    with open(path, "xb") as output:
+        file.save(output)
 
     doc = Documento(
         cliente_id=cliente.id,
@@ -47,9 +70,18 @@ def carica(cliente_id):
         mime=file.mimetype or mimetypes.guess_type(original)[0],
         size=os.path.getsize(path),
     )
+    if campo:
+        setattr(doc, campo, identificativo)
     db.session.add(doc)
-    db.session.commit()
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        os.remove(path)
+        raise
     flash("Documento caricato.", "success")
+    if tipo_dest == "contratto":
+        return redirect(url_for("contratti.detail", contratto_id=identificativo))
     return redirect(url_for("clienti.detail", cliente_id=cliente_id))
 
 
@@ -74,10 +106,13 @@ def download(doc_id):
 def elimina(doc_id):
     doc = Documento.query.get_or_404(doc_id)
     cliente_id = doc.cliente_id
+    contratto_id = doc.contratto_id
     path = os.path.join(current_app.config["UPLOAD_FOLDER"], doc.stored_name or "")
-    if doc.stored_name and os.path.exists(path):
-        os.remove(path)
     db.session.delete(doc)
     db.session.commit()
+    if doc.stored_name and os.path.isfile(path):
+        os.remove(path)
     flash("Documento eliminato.", "success")
+    if contratto_id:
+        return redirect(url_for("contratti.detail", contratto_id=contratto_id))
     return redirect(url_for("clienti.detail", cliente_id=cliente_id))

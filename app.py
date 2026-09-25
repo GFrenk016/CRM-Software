@@ -48,11 +48,12 @@ def create_app(config_class=Config):
     from blueprints.appuntamenti import bp as appuntamenti_bp
     from blueprints.impostazioni import bp as impostazioni_bp
     from blueprints.ricerca import bp as ricerca_bp
+    from blueprints.extra import bp as extra_bp
 
     for bp in (dashboard_bp, clienti_bp, pipeline_bp, pratiche_bp, preventivi_bp,
                contratti_bp, scadenze_bp, sinistri_bp, incassi_bp, compagnie_bp,
                compliance_bp, documenti_bp, messaggi_bp, appuntamenti_bp,
-               impostazioni_bp, ricerca_bp):
+               impostazioni_bp, ricerca_bp, extra_bp):
         app.register_blueprint(bp)
 
     # Filtri Jinja utili in tutte le pagine

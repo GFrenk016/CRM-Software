@@ -499,3 +499,5 @@ select.mono-cell option { background:var(--surface2); color:var(--text);
   .stats-grid,.filter-grid { grid-template-columns:repeat(2,1fr); }
   .charts-row,.form-row,.form-row-3,.detail-cols { grid-template-columns:1fr; }
 }
+
+.compagnia-mark { border-left: 4px solid var(--compagnia); padding-left: 6px; }
